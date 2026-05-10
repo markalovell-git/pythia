@@ -125,6 +125,7 @@ class _ZodiacWheel(QWidget):
         super().__init__(parent)
         self._chart: chart_model.ChartData | None = None
         self._transits: chart_model.ChartData | None = None
+        self._transit_aspects: chart_model.TransitData | None = None
         self._aspects: list[chart_model.NatalAspect] = []
         self._planet_positions: dict[str, tuple[float, float]] = {}
         self._transit_positions: dict[str, tuple[float, float]] = {}
@@ -149,17 +150,25 @@ class _ZodiacWheel(QWidget):
         fb_layout = QVBoxLayout(self._filter_box)
         fb_layout.setContentsMargins(6, 6, 6, 6)
         fb_layout.setSpacing(2)
-        self._cb_natal    = QCheckBox("Natal Planets")
-        self._cb_transits = QCheckBox("Transit Planets")
-        self._cb_labels   = QCheckBox("Circle Labels")
+        self._cb_natal           = QCheckBox("Natal Planets")
+        self._cb_transits        = QCheckBox("Transit Planets")
+        self._cb_transit_aspects = QCheckBox("Transit Aspects")
+        self._cb_hover_aspects   = QCheckBox("Hover Aspects")
+        self._cb_labels          = QCheckBox("Circle Labels")
         self._cb_natal.setChecked(True)
         self._cb_transits.setChecked(True)
+        self._cb_transit_aspects.setChecked(False)
+        self._cb_hover_aspects.setChecked(True)
         self._cb_labels.setChecked(True)
         fb_layout.addWidget(self._cb_natal)
         fb_layout.addWidget(self._cb_transits)
+        fb_layout.addWidget(self._cb_transit_aspects)
+        fb_layout.addWidget(self._cb_hover_aspects)
         fb_layout.addWidget(self._cb_labels)
         self._cb_natal.toggled.connect(self.update)
         self._cb_transits.toggled.connect(self.update)
+        self._cb_transit_aspects.toggled.connect(self.update)
+        self._cb_hover_aspects.toggled.connect(self.update)
         self._cb_labels.toggled.connect(self.update)
         self._filter_box.adjustSize()
         self._filter_box.move(10, 10)
@@ -172,6 +181,10 @@ class _ZodiacWheel(QWidget):
 
     def set_transits(self, transits: chart_model.ChartData | None):
         self._transits = transits
+        self.update()
+
+    def set_transit_aspects(self, data: chart_model.TransitData | None):
+        self._transit_aspects = data
         self.update()
 
     def mouseMoveEvent(self, event):
@@ -336,6 +349,30 @@ class _ZodiacWheel(QWidget):
                     x1, y1 = _angle_to_xy(cx, cy, radius_house_ring, lon1)
                     x2, y2 = _angle_to_xy(cx, cy, radius_house_ring, lon2)
                     painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+
+        # ── Transit-to-natal aspect lines ────────────────────────
+        show_all_t_asp   = self._cb_transit_aspects.isChecked()
+        show_hover_t_asp = self._cb_hover_aspects.isChecked() and bool(self._hovered_transit)
+        if (show_all_t_asp or show_hover_t_asp) and self._transit_aspects and self._chart:
+            dash_pen = QPen()
+            dash_pen.setWidth(1)
+            dash_pen.setStyle(Qt.PenStyle.DashLine)
+            for t in self._transit_aspects.transits:
+                if not show_all_t_asp and t.transit_planet != self._hovered_transit:
+                    continue
+                if t.natal_planet not in self._chart.positions:
+                    continue
+                if not self._transits or t.transit_planet not in self._transits.positions:
+                    continue
+                color = QColor(ASPECT_COLORS.get(t.aspect, "#888"))
+                color.setAlpha(110)
+                dash_pen.setColor(color)
+                painter.setPen(dash_pen)
+                t_lon = self._transits.positions[t.transit_planet].longitude
+                n_lon = self._chart.positions[t.natal_planet].longitude
+                tx, ty = _angle_to_xy(cx, cy, radius_zodiac_outer, t_lon)
+                nx, ny = _angle_to_xy(cx, cy, radius_house_ring,   n_lon)
+                painter.drawLine(QPointF(tx, ty), QPointF(nx, ny))
 
         # ── Planet glyphs ─────────────────────────────────────────
         if show_natal and self._chart:
@@ -630,6 +667,7 @@ class ChartView(QWidget):
 
     def _on_transit_aspects(self, data: chart_model.TransitData | None):
         self._transit_aspects = data
+        self.wheel.set_transit_aspects(data)
 
     def _on_chart(self, chart: chart_model.ChartData | None):
         if not chart:
@@ -688,11 +726,10 @@ class ChartView(QWidget):
         aspect_lines = ""
         for a in my_aspects:
             other = a.planet2 if a.planet1 == name else a.planet1
-            other_glyph = PLANET_GLYPHS.get(other, other)
             asp_color = ASPECT_COLORS.get(a.aspect, "#888")
             aspect_lines += (
                 f'<span style="color:{asp_color}">■</span> '
-                f'{a.aspect.title()} {other_glyph} {other} '
+                f'{a.aspect.title()} {other} '
                 f'<span style="color:#555">(orb {a.orb:.1f}°)</span><br>'
             )
 
@@ -730,11 +767,10 @@ class ChartView(QWidget):
         if self._transit_aspects:
             my_transits = [t for t in self._transit_aspects.transits if t.transit_planet == name]
             for t in my_transits:
-                natal_glyph = PLANET_GLYPHS.get(t.natal_planet, t.natal_planet)
                 asp_color = ASPECT_COLORS.get(t.aspect, "#888")
                 aspect_lines += (
                     f'<span style="color:{asp_color}">■</span> '
-                    f'{t.aspect.title()} natal {natal_glyph} {t.natal_planet} '
+                    f'{t.aspect.title()} natal {t.natal_planet} '
                     f'<span style="color:#555">(orb {t.orb:.1f}°)</span><br>'
                 )
 
