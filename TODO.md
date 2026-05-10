@@ -5,6 +5,10 @@
 - [ ] Ascendant (ASC) and Descendant (DSC)
 - [ ] IC (Imum Coeli) and MC (Midheaven)
 
+## Aspect Web
+- [ ] **Aspect symbols at line midpoints** — draw the standard aspect glyph (☌ conjunction, ☍ opposition, △ trine, □ square, ⚹ sextile) at the midpoint of each aspect line in the web
+- [ ] **Aspect symbol key** — a legend panel or overlay mapping each symbol to its name and meaning
+
 ## Animations
 - [ ] **Hover glow pulse** on planets/signs — `QTimer` driving a sine-wave alpha value
 - [ ] **Hover glow effect** — tried multi-layer bloom (redrawing glyph at larger sizes with decreasing alpha); wasn't striking enough. Needs a different approach — maybe `QGraphicsEffect`, offscreen render + blur, or something else entirely.

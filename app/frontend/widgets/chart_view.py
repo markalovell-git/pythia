@@ -68,7 +68,7 @@ ASPECT_COLORS = {
 
 
 def _angle_to_xy(cx, cy, r, longitude_deg):
-    rad = math.radians(longitude_deg - 90)
+    rad = math.radians(90 - longitude_deg)
     return cx + r * math.cos(rad), cy + r * math.sin(rad)
 
 
@@ -212,7 +212,7 @@ class _ZodiacWheel(QWidget):
             start = -(i * 30 - 90)
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QBrush(QColor(SIGN_COLORS[i])))
-            painter.drawPie(outer_rect, int(start * 16), int(-30 * 16))
+            painter.drawPie(outer_rect, int(start * 16), int(30 * 16))
 
         # ── Radial dividers across zodiac band ────────────────────
         painter.setPen(QPen(QColor("#3a3a6a"), 1))
@@ -356,7 +356,7 @@ class _ZodiacWheel(QWidget):
             label_font = QFont()
             label_font.setPointSize(9)
             painter.setFont(label_font)
-            label_angle = 315
+            label_angle = 215
             radius_aspects = (radius_hub + radius_house_ring) / 2
             for radius, text, offset in [
                 (radius_hub,          "Earth",    20),
