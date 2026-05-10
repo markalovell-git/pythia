@@ -14,14 +14,14 @@ PLANET_GLYPHS = {
     "Sun":     "☉︎", "Moon":    "☽︎", "Mercury": "☿︎",
     "Venus":   "♀︎", "Mars":    "♂︎", "Jupiter": "♃︎",
     "Saturn":  "♄︎", "Uranus":  "♅︎", "Neptune": "♆︎",
-    "Pluto":   "♇︎",
+    "Pluto":   "⯓",
 }
 
 PLANET_COLORS = {
     "Sun": "#FFD700", "Moon": "#C0C0C0", "Mercury": "#cc88ff",
-    "Venus": "#FF69B4", "Mars": "#FF4500", "Jupiter": "#FFA500",
-    "Saturn": "#c8a96e", "Uranus": "#00CED1", "Neptune": "#4169E1",
-    "Pluto": "#DC143C",
+    "Venus": "#FF69B4", "Mars": "#DD1111", "Jupiter": "#FF7A00",
+    "Saturn": "#d4be96", "Uranus": "#00CED1", "Neptune": "#4169E1",
+    "Pluto": "#C01F6A",
 }
 
 # ︎ = variation selector 15: forces text rendering instead of emoji
@@ -31,6 +31,9 @@ SIGN_COLORS = ["#1a1a40", "#141436"] * 6
 
 GLYPH_PT = 34   # planet glyph font size
 GLYPH_PX = 44   # approximate rendered pixel size at GLYPH_PT
+GLYPH_PT_OVERRIDE = {
+    "Pluto": 26,  # ⯓ renders tall; shrink so it fits within GLYPH_PX box
+}
 
 SIGN_GLYPH_PT = 32  # zodiac sign glyph font size
 SIGN_GLYPH_PX = 40  # approximate rendered pixel size at SIGN_GLYPH_PT
@@ -336,6 +339,14 @@ class _ZodiacWheel(QWidget):
                 self._planet_positions[name] = (gx, gy)
                 color = QColor(PLANET_COLORS.get(name, "#ffffff"))
                 is_hovered = name == self._hovered
+
+                pt = GLYPH_PT_OVERRIDE.get(name, GLYPH_PT)
+                if pt != GLYPH_PT:
+                    f = QFont()
+                    f.setPointSize(pt)
+                    painter.setFont(f)
+                else:
+                    painter.setFont(planet_font)
 
                 if is_hovered:
                     painter.setPen(Qt.PenStyle.NoPen)
