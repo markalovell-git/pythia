@@ -151,21 +151,25 @@ class _ZodiacWheel(QWidget):
         fb_layout.setContentsMargins(6, 6, 6, 6)
         fb_layout.setSpacing(2)
         self._cb_natal           = QCheckBox("Natal Planets")
+        self._cb_natal_aspects   = QCheckBox("Natal Aspects")
         self._cb_transits        = QCheckBox("Transit Planets")
         self._cb_transit_aspects = QCheckBox("Transit Aspects")
         self._cb_hover_aspects   = QCheckBox("Hover Aspects")
         self._cb_labels          = QCheckBox("Circle Labels")
         self._cb_natal.setChecked(True)
+        self._cb_natal_aspects.setChecked(True)
         self._cb_transits.setChecked(True)
         self._cb_transit_aspects.setChecked(False)
         self._cb_hover_aspects.setChecked(True)
         self._cb_labels.setChecked(True)
         fb_layout.addWidget(self._cb_natal)
+        fb_layout.addWidget(self._cb_natal_aspects)
         fb_layout.addWidget(self._cb_transits)
         fb_layout.addWidget(self._cb_transit_aspects)
         fb_layout.addWidget(self._cb_hover_aspects)
         fb_layout.addWidget(self._cb_labels)
         self._cb_natal.toggled.connect(self.update)
+        self._cb_natal_aspects.toggled.connect(self.update)
         self._cb_transits.toggled.connect(self.update)
         self._cb_transit_aspects.toggled.connect(self.update)
         self._cb_hover_aspects.toggled.connect(self.update)
@@ -322,7 +326,7 @@ class _ZodiacWheel(QWidget):
         painter.drawEllipse(QPointF(cx, cy), radius_house_ring, radius_house_ring)
 
         # ── Aspect lines ──────────────────────────────────────────
-        if show_natal and self._chart and self._aspects:
+        if show_natal and self._cb_natal_aspects.isChecked() and self._chart and self._aspects:
             arc_step = radius_house_ring * 0.015
             for asp in self._aspects:
                 lon1 = self._chart.positions[asp.planet1].longitude
@@ -483,6 +487,15 @@ class _ZodiacWheel(QWidget):
                 painter.setPen(QPen(QColor(120, 150, 255, 128)))
                 painter.drawText(QRectF(gx - half_t, gy - half_t, TRANSIT_GLYPH_PX, TRANSIT_GLYPH_PX),
                                  Qt.AlignmentFlag.AlignCenter, glyph)
+
+                # Retrograde indicator
+                if pos.retrograde and name not in ("North Node", "South Node"):
+                    rx_font = QFont()
+                    rx_font.setPointSize(9)
+                    painter.setFont(rx_font)
+                    painter.setPen(QPen(QColor(220, 50, 50, 230)))
+                    painter.drawText(QRectF(gx + half_t - 6, gy - half_t - 2, 16, 14),
+                                     Qt.AlignmentFlag.AlignLeft, "℞")
 
         # ── Hub ───────────────────────────────────────────────────
         painter.setPen(Qt.PenStyle.NoPen)
@@ -736,11 +749,13 @@ class ChartView(QWidget):
         degree_line = f"{pos.sign} {pos.degree:.2f}°"
         if ruling:
             degree_line += f" &nbsp;·&nbsp; rules {ruling}"
+        retrograde_tag = "" if not pos.retrograde or name in ("North Node", "South Node") else \
+            "<p style='color:#cc3333; margin:0 0 4px 0; font-size:11px; letter-spacing:1px;'>℞ RETROGRADE</p>"
 
         html = f"""
         <p style="font-size:24px; color:{color}; margin:0 0 4px 0;">{glyph} <b>{name}</b></p>
         <p style="color:#7070a0; margin:0 0 4px 0; font-size:13px;">{degree_line}</p>
-        <p style="color:#445588; margin:0 0 10px 0; font-size:11px; letter-spacing:1px;">NATAL PLANET</p>
+        {retrograde_tag}<p style="color:#445588; margin:0 0 10px 0; font-size:11px; letter-spacing:1px;">NATAL PLANET</p>
         <p style="color:#a0a0c0; margin:0 0 14px 0; font-size:14px; line-height:1.6;">
             {description}
         </p>
@@ -777,6 +792,7 @@ class ChartView(QWidget):
         html = f"""
         <p style="font-size:24px; color:{color}; margin:0 0 4px 0;">{glyph} <b>{name}</b></p>
         <p style="color:#7070a0; margin:0 0 4px 0; font-size:13px;">{pos.sign} {pos.degree:.2f}°</p>
+        {"<p style='color:#cc3333; margin:0 0 4px 0; font-size:11px; letter-spacing:1px;'>℞ RETROGRADE</p>" if pos.retrograde and name not in ("North Node", "South Node") else ""}
         <p style="color:#4466aa; margin:0 0 10px 0; font-size:11px; letter-spacing:1px;">TRANSIT PLANET</p>
         <p style="color:#a0a0c0; margin:0 0 14px 0; font-size:14px; line-height:1.6;">
             {description}

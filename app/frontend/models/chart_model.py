@@ -15,6 +15,7 @@ class PlanetPosition:
     longitude: float
     sign: str
     degree: float
+    retrograde: bool = False
 
 
 @dataclass

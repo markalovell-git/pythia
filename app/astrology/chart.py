@@ -1,5 +1,5 @@
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from functools import lru_cache
 
@@ -80,6 +80,7 @@ def compute_planet_positions(dt_utc: datetime, zodiac_system: str) -> dict:
     planets, ts = _load_ephemeris()
     earth = planets["earth"]
     t = ts.from_datetime(dt_utc)
+    t_next = ts.from_datetime(dt_utc + timedelta(days=1))
     positions = {}
 
     for name, body in PLANETS:
@@ -92,11 +93,21 @@ def compute_planet_positions(dt_utc: datetime, zodiac_system: str) -> dict:
         else:
             final_lon = tropical_lon
 
+        # Retrograde: ecliptic longitude decreasing over the next day
+        _, lon_next, _ = earth.at(t_next).observe(planets[body]).frame_latlon(ecliptic_frame)
+        tropical_lon_next = lon_next.degrees % 360
+        if zodiac_system == "sidereal":
+            final_lon_next = (tropical_lon_next - _lahiri_ayanamsa(t_next.tt)) % 360
+        else:
+            final_lon_next = tropical_lon_next
+        retrograde = bool(((final_lon_next - final_lon + 180) % 360 - 180) < 0)
+
         sign, degree = _longitude_to_sign(final_lon)
         positions[name] = {
             "longitude": round(final_lon, 4),
             "sign": sign,
             "degree": round(degree, 4),
+            "retrograde": retrograde,
         }
 
     # Mean North Node via standard formula (accurate to ~0.1°)
@@ -112,6 +123,7 @@ def compute_planet_positions(dt_utc: datetime, zodiac_system: str) -> dict:
             "longitude": round(node_lon, 4),
             "sign": sign,
             "degree": round(degree, 4),
+            "retrograde": True,  # Mean Node always moves retrograde
         }
 
     return positions
