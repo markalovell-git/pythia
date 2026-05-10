@@ -32,8 +32,31 @@ SIGN_COLORS = ["#1a1a40", "#141436"] * 6
 GLYPH_PT = 34   # planet glyph font size
 GLYPH_PX = 44   # approximate rendered pixel size at GLYPH_PT
 
+SIGN_GLYPH_PT = 32  # zodiac sign glyph font size
+SIGN_GLYPH_PX = 40  # approximate rendered pixel size at SIGN_GLYPH_PT
+
 CLUSTER_THRESHOLD_DEG = 8.0   # planets within this angle form a cluster
 STACK_STEP_FRACTION = 0.20    # step as fraction of natal zone width
+
+SIGN_NAMES = [
+    "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+    "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces",
+]
+
+SIGN_INFO = {
+    "Aries":       ("Fire · Cardinal",  "Bold, pioneering, impulsive. The initiator — action-first, questions later. Rules self and new beginnings."),
+    "Taurus":      ("Earth · Fixed",    "Steady, sensual, stubborn. Builds slowly but endures. Rules beauty, money, and the pleasures of the material world."),
+    "Gemini":      ("Air · Mutable",    "Curious, adaptable, restless. The twin mind — thrives on variety and conversation. Rules communication and intellect."),
+    "Cancer":      ("Water · Cardinal", "Nurturing, intuitive, protective. The caretaker — deeply feeling, home-oriented. Rules family and emotional security."),
+    "Leo":         ("Fire · Fixed",     "Radiant, proud, generous. The performer — wants to shine and be seen. Rules creativity, romance, and self-expression."),
+    "Virgo":       ("Earth · Mutable",  "Precise, helpful, discerning. The craftsperson — improves everything it touches. Rules health, service, and daily routine."),
+    "Libra":       ("Air · Cardinal",   "Harmonious, fair, indecisive. The diplomat — seeks balance and beauty in all things. Rules relationships and justice."),
+    "Scorpio":     ("Water · Fixed",    "Intense, perceptive, transformative. The detective — digs beneath the surface. Rules death, rebirth, and shared resources."),
+    "Sagittarius": ("Fire · Mutable",   "Adventurous, philosophical, blunt. The wanderer — seeks meaning across horizons. Rules travel, wisdom, and belief."),
+    "Capricorn":   ("Earth · Cardinal", "Ambitious, disciplined, patient. The builder — plays the long game. Rules career, authority, and lasting legacy."),
+    "Aquarius":    ("Air · Fixed",      "Innovative, rebellious, detached. The visionary — thinks in systems and futures. Rules community, ideals, and technology."),
+    "Pisces":      ("Water · Mutable",  "Dreamy, compassionate, boundless. The mystic — dissolves boundaries and feels everything. Rules spirituality and the unconscious."),
+}
 
 ASPECT_COLORS = {
     "conjunction": "#FFD700",
@@ -84,13 +107,16 @@ def _assign_radii(positions: dict, radius_natal: float,
 
 class _ZodiacWheel(QWidget):
     planet_hovered = pyqtSignal(str)   # planet name, or "" for none
+    sign_hovered   = pyqtSignal(str)   # sign name, or "" for none
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._chart: chart_model.ChartData | None = None
         self._aspects: list[chart_model.NatalAspect] = []
         self._planet_positions: dict[str, tuple[float, float]] = {}
-        self._hovered: str = ""
+        self._sign_positions:   dict[str, tuple[float, float]] = {}
+        self._hovered:      str = ""
+        self._hovered_sign: str = ""
         self.setMinimumSize(420, 420)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setMouseTracking(True)
@@ -127,14 +153,27 @@ class _ZodiacWheel(QWidget):
 
     def mouseMoveEvent(self, event):
         mx, my = event.position().x(), event.position().y()
-        hit = ""
+
+        hit_planet = ""
         for name, (px, py) in self._planet_positions.items():
             if math.sqrt((mx - px) ** 2 + (my - py) ** 2) < GLYPH_PX / 2 + 4:
-                hit = name
+                hit_planet = name
                 break
-        if hit != self._hovered:
-            self._hovered = hit
-            self.planet_hovered.emit(hit)
+
+        hit_sign = ""
+        if not hit_planet:
+            for name, (sx, sy) in self._sign_positions.items():
+                if math.sqrt((mx - sx) ** 2 + (my - sy) ** 2) < SIGN_GLYPH_PX / 2:
+                    hit_sign = name
+                    break
+
+        if hit_planet != self._hovered:
+            self._hovered = hit_planet
+            self.planet_hovered.emit(hit_planet)
+            self.update()
+        if hit_sign != self._hovered_sign:
+            self._hovered_sign = hit_sign
+            self.sign_hovered.emit(hit_sign)
             self.update()
 
     def paintEvent(self, event):
@@ -148,11 +187,12 @@ class _ZodiacWheel(QWidget):
         w, h = self.width(), self.height()
         size = min(w, h) - 24
         cx, cy = w / 2, h / 2
-        radius_zodiac_outer = size / 2        # outer edge of zodiac band
-        radius_zodiac_inner = radius_zodiac_outer * 0.82   # inner edge of zodiac band
-        radius_natal        = radius_zodiac_outer * 0.70   # natal planet zone
-        radius_house_ring   = radius_zodiac_outer * 0.60   # house ring / aspect web boundary
-        radius_hub          = radius_zodiac_outer * 0.04   # earth hub
+        radius_cosmos       = size / 2                      # outer border of chart
+        radius_zodiac_outer = radius_cosmos * 0.82          # outer edge of zodiac band (Ecliptic)
+        radius_zodiac_inner = radius_zodiac_outer * 0.87    # inner edge of zodiac band
+        radius_house_ring   = radius_zodiac_outer * 0.60    # house ring / aspect web boundary
+        radius_natal        = (radius_zodiac_inner + radius_house_ring) / 2  # natal planet zone midpoint
+        radius_hub          = radius_zodiac_outer * 0.04    # earth hub
 
         outer_rect = QRectF(cx - radius_zodiac_outer, cy - radius_zodiac_outer,
                             radius_zodiac_outer * 2, radius_zodiac_outer * 2)
@@ -160,7 +200,12 @@ class _ZodiacWheel(QWidget):
         # ── Base circle ───────────────────────────────────────────
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QBrush(QColor("#0d0d1a")))
-        painter.drawEllipse(QPointF(cx, cy), radius_zodiac_outer, radius_zodiac_outer)
+        painter.drawEllipse(QPointF(cx, cy), radius_cosmos, radius_cosmos)
+
+        # ── Cosmos ring (outer chart border) ──────────────────────
+        painter.setPen(QPen(QColor("#3a3a6a"), 1))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(QPointF(cx, cy), radius_cosmos, radius_cosmos)
 
         # ── Zodiac band — 12 alternating wedges ───────────────────
         for i in range(12):
@@ -176,16 +221,29 @@ class _ZodiacWheel(QWidget):
             x2, y2 = _angle_to_xy(cx, cy, radius_zodiac_outer, i * 30)
             painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
+        # ── Ecliptic ring ─────────────────────────────────────────
+        painter.setPen(QPen(QColor("#3a3a6a"), 1))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(QPointF(cx, cy), radius_zodiac_outer, radius_zodiac_outer)
+
         # ── Sign glyphs ───────────────────────────────────────────
         glyph_font = QFont()
-        glyph_font.setPointSize(16)
+        glyph_font.setPointSize(SIGN_GLYPH_PT)
         painter.setFont(glyph_font)
         label_r = (radius_zodiac_outer + radius_zodiac_inner) / 2
+        half_sign = SIGN_GLYPH_PX / 2
+        self._sign_positions.clear()
         for i, glyph in enumerate(SIGN_GLYPHS):
+            name = SIGN_NAMES[i]
             angle = i * 30 + 15
             x, y = _angle_to_xy(cx, cy, label_r, angle)
-            painter.setPen(QPen(QColor("#9090cc")))
-            painter.drawText(QRectF(x - 14, y - 14, 28, 28),
+            self._sign_positions[name] = (x, y)
+            if name == self._hovered_sign:
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QBrush(QColor(255, 255, 255, 30)))
+                painter.drawEllipse(QPointF(x, y), half_sign + 4, half_sign + 4)
+            painter.setPen(QPen(QColor("#c8c8ff") if name == self._hovered_sign else QColor("#9090cc")))
+            painter.drawText(QRectF(x - half_sign, y - half_sign, SIGN_GLYPH_PX, SIGN_GLYPH_PX),
                              Qt.AlignmentFlag.AlignCenter, glyph)
 
         # ── Inner circle — covers centre of wedges ────────────────
@@ -284,27 +342,34 @@ class _ZodiacWheel(QWidget):
                 painter.drawText(QRectF(gx - half, gy - half, GLYPH_PX, GLYPH_PX),
                                  Qt.AlignmentFlag.AlignCenter, glyph)
 
-        # ── Circle labels ─────────────────────────────────────────
-        if show_labels:
-            label_font = QFont()
-            label_font.setPointSize(9)
-            painter.setFont(label_font)
-            painter.setPen(QPen(QColor("#4a4a7a")))
-            label_angle = 315
-            for radius, text in [
-                (radius_hub,          "Earth"),
-                (radius_house_ring,   "Houses"),
-                (radius_zodiac_inner, "Zodiac"),
-                (radius_natal,        "Natal"),
-            ]:
-                lx, ly = _angle_to_xy(cx, cy, radius + 8, label_angle)
-                painter.drawText(QRectF(lx - 24, ly - 10, 48, 20),
-                                 Qt.AlignmentFlag.AlignCenter, text)
-
         # ── Hub ───────────────────────────────────────────────────
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QBrush(QColor("#3a3a6a")))
         painter.drawEllipse(QPointF(cx, cy), radius_hub, radius_hub)
+
+        # ── Circle labels (drawn last — on top of everything) ─────
+        if show_labels:
+            label_font = QFont()
+            label_font.setPointSize(9)
+            painter.setFont(label_font)
+            label_angle = 315
+            radius_aspects = (radius_hub + radius_house_ring) / 2
+            for radius, text, offset in [
+                (radius_hub,          "Earth",    20),
+                (radius_aspects,      "Aspects",   8),
+                (radius_house_ring,   "Houses",    8),
+                (radius_zodiac_inner, "Zodiac",   -4),
+                (radius_natal,        "Natal",    12),
+                (radius_zodiac_outer, "Ecliptic",  8),
+                (radius_cosmos,       "Cosmos",    8),
+            ]:
+                lx, ly = _angle_to_xy(cx, cy, radius + offset, label_angle)
+                rect = QRectF(lx - 24, ly - 10, 48, 20)
+                painter.setPen(QPen(QColor(0, 0, 0, 200)))
+                for dx, dy in ((1, 1), (-1, 1), (1, -1), (-1, -1)):
+                    painter.drawText(rect.translated(dx, dy), Qt.AlignmentFlag.AlignCenter, text)
+                painter.setPen(QPen(QColor("#4a4a7a")))
+                painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, text)
 
 
 PLANET_INFO = {
@@ -400,7 +465,7 @@ class ChartView(QWidget):
                 font-size: 14px;
             }
         """)
-        self.info_panel.setPlaceholderText("Hover a planet to see details.")
+        self.info_panel.setPlaceholderText("Hover a planet or sign to see details.")
         sb_layout.addWidget(self.info_panel, stretch=1)
 
         splitter.addWidget(sidebar)
@@ -409,6 +474,7 @@ class ChartView(QWidget):
         layout.addWidget(splitter, stretch=1)
 
         self.wheel.planet_hovered.connect(self._on_wheel_hover)
+        self.wheel.sign_hovered.connect(self._on_sign_hover)
 
         self.status_label = QLabel("")
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -477,7 +543,7 @@ class ChartView(QWidget):
 
     def _show_planet_info(self, name: str):
         if not name or not self._chart or name not in self._chart.positions:
-            self.info_panel.setPlaceholderText("Hover a planet to see details.")
+            self.info_panel.setPlaceholderText("Hover a planet or sign to see details.")
             self.info_panel.setHtml("")
             return
         pos = self._chart.positions[name]
@@ -507,6 +573,26 @@ class ChartView(QWidget):
         </p>
         {"<p style='color:#666; font-size:13px; margin:0 0 6px 0;'>Natal aspects:</p>" if aspect_lines else ""}
         <p style="font-size:13px; line-height:2.0; margin:0;">{aspect_lines}</p>
+        """
+        self.info_panel.setHtml(html)
+
+    def _on_sign_hover(self, name: str):
+        if name:
+            self._show_sign_info(name)
+        elif not self.wheel._hovered:
+            self._show_planet_info("")
+
+    def _show_sign_info(self, name: str):
+        if not name:
+            return
+        glyph = SIGN_GLYPHS[SIGN_NAMES.index(name)]
+        element, description = SIGN_INFO.get(name, ("", ""))
+        html = f"""
+        <p style="font-size:24px; color:#9090cc; margin:0 0 4px 0;">{glyph} <b>{name}</b></p>
+        <p style="color:#7070a0; margin:0 0 10px 0; font-size:13px;">{element}</p>
+        <p style="color:#a0a0c0; margin:0 0 14px 0; font-size:14px; line-height:1.6;">
+            {description}
+        </p>
         """
         self.info_panel.setHtml(html)
 
