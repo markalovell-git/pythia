@@ -32,6 +32,9 @@ SIGN_COLORS = ["#1a1a40", "#141436"] * 6
 GLYPH_PT = 34   # planet glyph font size
 GLYPH_PX = 44   # approximate rendered pixel size at GLYPH_PT
 
+CLUSTER_THRESHOLD_DEG = 8.0   # planets within this angle form a cluster
+STACK_STEP_FRACTION = 0.20    # step as fraction of natal zone width
+
 ASPECT_COLORS = {
     "conjunction": "#FFD700",
     "sextile":     "#4488ff",
@@ -44,6 +47,39 @@ ASPECT_COLORS = {
 def _angle_to_xy(cx, cy, r, longitude_deg):
     rad = math.radians(longitude_deg - 90)
     return cx + r * math.cos(rad), cy + r * math.sin(rad)
+
+
+def _assign_radii(positions: dict, radius_natal: float,
+                  radius_house_ring: float, radius_zodiac_inner: float,
+                  stack_step: float) -> dict:
+    """Return {name: radius} with conjunct planets zigzag-stacked in the natal zone."""
+    sorted_planets = sorted(positions.items(), key=lambda x: x[1].longitude)
+    radii = {}
+    i = 0
+    while i < len(sorted_planets):
+        cluster = [sorted_planets[i]]
+        j = i + 1
+        while j < len(sorted_planets):
+            if sorted_planets[j][1].longitude - sorted_planets[i][1].longitude <= CLUSTER_THRESHOLD_DEG:
+                cluster.append(sorted_planets[j])
+                j += 1
+            else:
+                break
+        offsets = []
+        for k in range(len(cluster)):
+            if k == 0:
+                offsets.append(0)
+            elif k % 2 == 1:
+                offsets.append(((k + 1) // 2) * stack_step)
+            else:
+                offsets.append(-(k // 2) * stack_step)
+        for (name, _), offset in zip(cluster, offsets):
+            r = radius_natal + offset
+            r = max(r, radius_house_ring)
+            r = min(r, radius_zodiac_inner)
+            radii[name] = r
+        i = j
+    return radii
 
 
 class _ZodiacWheel(QWidget):
@@ -195,25 +231,30 @@ class _ZodiacWheel(QWidget):
 
         # ── Planet glyphs ─────────────────────────────────────────
         if show_natal and self._chart:
+            natal_zone = radius_zodiac_inner - radius_house_ring
+            planet_radii = _assign_radii(
+                self._chart.positions,
+                radius_natal, radius_house_ring, radius_zodiac_inner,
+                stack_step=natal_zone * STACK_STEP_FRACTION,
+            )
             planet_font = QFont()
             planet_font.setPointSize(GLYPH_PT)
             painter.setFont(planet_font)
             half = GLYPH_PX / 2
             self._planet_positions.clear()
 
-            # Tick lines from just outside glyph edge down to house ring
+            # Tick lines — full natal zone width
             for name, pos in self._chart.positions.items():
                 color = QColor(PLANET_COLORS.get(name, "#ffffff"))
                 color.setAlpha(140)
                 painter.setPen(QPen(color, 1.0))
-                tick_start = radius_natal - half - 0.15 * (radius_natal - half - radius_house_ring)
-                tx, ty = _angle_to_xy(cx, cy, radius_house_ring, pos.longitude)
-                gx, gy = _angle_to_xy(cx, cy, tick_start,        pos.longitude)
+                tx, ty = _angle_to_xy(cx, cy, radius_zodiac_inner, pos.longitude)
+                gx, gy = _angle_to_xy(cx, cy, radius_house_ring,   pos.longitude)
                 painter.drawLine(QPointF(tx, ty), QPointF(gx, gy))
 
             for name, pos in self._chart.positions.items():
                 glyph = PLANET_GLYPHS.get(name, name[:2])
-                gx, gy = _angle_to_xy(cx, cy, radius_natal, pos.longitude)
+                gx, gy = _angle_to_xy(cx, cy, planet_radii[name], pos.longitude)
                 self._planet_positions[name] = (gx, gy)
                 color = QColor(PLANET_COLORS.get(name, "#ffffff"))
                 is_hovered = name == self._hovered
