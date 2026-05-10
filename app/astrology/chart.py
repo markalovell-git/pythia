@@ -99,6 +99,21 @@ def compute_planet_positions(dt_utc: datetime, zodiac_system: str) -> dict:
             "degree": round(degree, 4),
         }
 
+    # Mean North Node via standard formula (accurate to ~0.1°)
+    T = (t.tt - 2451545.0) / 36525.0
+    north_node_lon = (125.04452 - 1934.136261 * T) % 360
+    if zodiac_system == "sidereal":
+        north_node_lon = (north_node_lon - _lahiri_ayanamsa(t.tt)) % 360
+    south_node_lon = (north_node_lon + 180.0) % 360
+
+    for node_name, node_lon in [("North Node", north_node_lon), ("South Node", south_node_lon)]:
+        sign, degree = _longitude_to_sign(node_lon)
+        positions[node_name] = {
+            "longitude": round(node_lon, 4),
+            "sign": sign,
+            "degree": round(degree, 4),
+        }
+
     return positions
 
 

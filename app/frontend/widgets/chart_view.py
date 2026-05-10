@@ -11,10 +11,11 @@ from app.frontend.models import chart_model
 from app.frontend.workers.api_worker import ApiWorker
 
 PLANET_GLYPHS = {
-    "Sun":     "☉︎", "Moon":    "☽︎", "Mercury": "☿︎",
-    "Venus":   "♀︎", "Mars":    "♂︎", "Jupiter": "♃︎",
-    "Saturn":  "♄︎", "Uranus":  "♅︎", "Neptune": "♆︎",
-    "Pluto":   "⯓",
+    "Sun":        "☉︎", "Moon":      "☽︎", "Mercury":    "☿︎",
+    "Venus":      "♀︎", "Mars":      "♂︎", "Jupiter":    "♃︎",
+    "Saturn":     "♄︎", "Uranus":    "♅︎", "Neptune":    "♆︎",
+    "Pluto":      "⯓",
+    "North Node": "☊︎", "South Node": "☋︎",
 }
 
 PLANET_COLORS = {
@@ -22,6 +23,7 @@ PLANET_COLORS = {
     "Venus": "#FF69B4", "Mars": "#DD1111", "Jupiter": "#FF7A00",
     "Saturn": "#d4be96", "Uranus": "#00CED1", "Neptune": "#4169E1",
     "Pluto": "#C01F6A",
+    "North Node": "#90d870", "South Node": "#90d870",
 }
 
 # ︎ = variation selector 15: forces text rendering instead of emoji
@@ -32,7 +34,9 @@ SIGN_COLORS = ["#1a1a40", "#141436"] * 6
 GLYPH_PT = 34   # planet glyph font size
 GLYPH_PX = 44   # approximate rendered pixel size at GLYPH_PT
 GLYPH_PT_OVERRIDE = {
-    "Pluto": 26,  # ⯓ renders tall; shrink so it fits within GLYPH_PX box
+    "Pluto":      26,  # ⯓ renders tall; shrink so it fits within GLYPH_PX box
+    "North Node": 28,
+    "South Node": 28,
 }
 
 SIGN_GLYPH_PT = 32  # zodiac sign glyph font size
@@ -397,7 +401,9 @@ PLANET_INFO = {
     "Saturn":  ("Capricorn",  "Discipline, structure, karma, limitation, time. Where you're tested and where you build lasting things."),
     "Uranus":  ("Aquarius",   "Revolution, innovation, disruption, liberation. Where you break rules and crave freedom."),
     "Neptune": ("Pisces",     "Dreams, illusion, spirituality, compassion, dissolution. Where reality blurs and the mystical enters."),
-    "Pluto":   ("Scorpio",    "Transformation, power, death and rebirth, the shadow. Where deep and irreversible change happens."),
+    "Pluto":      ("Scorpio",    "Transformation, power, death and rebirth, the shadow. Where deep and irreversible change happens."),
+    "North Node": ("",           "Your karmic path forward — the direction of growth, destiny, and soul evolution in this lifetime."),
+    "South Node": ("",           "Your karmic past — innate gifts carried from prior experience, and patterns to release or transcend."),
 }
 
 

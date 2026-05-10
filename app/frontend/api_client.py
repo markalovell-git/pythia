@@ -97,6 +97,11 @@ def calculate_transits(user_id: str, date: str | None = None) -> dict:
     return _get(f"/calculate_transits/{user_id}", **params)
 
 
+def get_transit_positions(user_id: str, date: str | None = None) -> dict:
+    params = {"date": date} if date else {}
+    return _get(f"/transit_positions/{user_id}", **params)
+
+
 # ── Geocode ───────────────────────────────────────────────────────────────────
 
 def geocode(query: str) -> dict | None:
