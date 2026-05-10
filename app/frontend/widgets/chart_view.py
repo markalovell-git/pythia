@@ -201,13 +201,14 @@ class _ZodiacWheel(QWidget):
             half = GLYPH_PX / 2
             self._planet_positions.clear()
 
-            # Tick lines from glyph down to true position on house ring
+            # Tick lines from just outside glyph edge down to house ring
             for name, pos in self._chart.positions.items():
                 color = QColor(PLANET_COLORS.get(name, "#ffffff"))
                 color.setAlpha(140)
                 painter.setPen(QPen(color, 1.0))
+                tick_start = radius_natal - half - 0.15 * (radius_natal - half - radius_house_ring)
                 tx, ty = _angle_to_xy(cx, cy, radius_house_ring, pos.longitude)
-                gx, gy = _angle_to_xy(cx, cy, radius_natal,      pos.longitude)
+                gx, gy = _angle_to_xy(cx, cy, tick_start,        pos.longitude)
                 painter.drawLine(QPointF(tx, ty), QPointF(gx, gy))
 
             for name, pos in self._chart.positions.items():
