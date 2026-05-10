@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, String, DateTime, Float, ForeignKey, JSON
+from sqlalchemy import create_engine, Column, String, DateTime, Float, ForeignKey, JSON, Date
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
@@ -43,6 +43,17 @@ class NatalChart(Base):
     positions = Column(JSON, nullable=False)
 
     user = relationship("UserData", back_populates="natal_chart")
+
+
+class DiaryEntry(Base):
+    __tablename__ = "diary_entries"
+
+    entry_id = Column(String, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("user_data.user_id"), nullable=False, index=True)
+    entry_date = Column(Date, nullable=False)
+    content = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=False)
 
 
 Base.metadata.create_all(bind=engine)

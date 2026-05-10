@@ -1,0 +1,402 @@
+import math
+from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal
+from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QPainterPath
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+    QTableWidget, QTableWidgetItem, QSplitter, QSizePolicy,
+    QFrame, QTextBrowser, QHeaderView,
+)
+
+from app.frontend.models import chart_model
+from app.frontend.workers.api_worker import ApiWorker
+
+PLANET_GLYPHS = {
+    "Sun":     "☉︎", "Moon":    "☽︎", "Mercury": "☿︎",
+    "Venus":   "♀︎", "Mars":    "♂︎", "Jupiter": "♃︎",
+    "Saturn":  "♄︎", "Uranus":  "♅︎", "Neptune": "♆︎",
+    "Pluto":   "♇︎",
+}
+
+PLANET_COLORS = {
+    "Sun": "#FFD700", "Moon": "#C0C0C0", "Mercury": "#cc88ff",
+    "Venus": "#FF69B4", "Mars": "#FF4500", "Jupiter": "#FFA500",
+    "Saturn": "#c8a96e", "Uranus": "#00CED1", "Neptune": "#4169E1",
+    "Pluto": "#DC143C",
+}
+
+# ︎ = variation selector 15: forces text rendering instead of emoji
+SIGN_GLYPHS = [s + "︎" for s in ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]]
+
+SIGN_COLORS = ["#1a1a40", "#141436"] * 6
+
+GLYPH_PT = 34   # planet glyph font size
+GLYPH_PX = 44   # approximate rendered pixel size at GLYPH_PT
+
+ASPECT_COLORS = {
+    "conjunction": "#FFD700",
+    "sextile":     "#4488ff",
+    "square":      "#ff4444",
+    "trine":       "#44bb88",
+    "opposition":  "#ff8800",
+}
+
+
+def _angle_to_xy(cx, cy, r, longitude_deg):
+    rad = math.radians(longitude_deg - 90)
+    return cx + r * math.cos(rad), cy + r * math.sin(rad)
+
+
+class _ZodiacWheel(QWidget):
+    planet_hovered = pyqtSignal(str)   # planet name, or "" for none
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._chart: chart_model.ChartData | None = None
+        self._aspects: list[chart_model.NatalAspect] = []
+        self._planet_positions: dict[str, tuple[float, float]] = {}
+        self._hovered: str = ""
+        self.setMinimumSize(420, 420)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setMouseTracking(True)
+
+    def set_chart(self, chart: chart_model.ChartData | None):
+        self._chart = chart
+        self._aspects = chart_model.compute_natal_aspects(chart) if chart else []
+        self._planet_positions.clear()
+        self.update()
+
+    def mouseMoveEvent(self, event):
+        mx, my = event.position().x(), event.position().y()
+        hit = ""
+        for name, (px, py) in self._planet_positions.items():
+            if math.sqrt((mx - px) ** 2 + (my - py) ** 2) < GLYPH_PX / 2 + 4:
+                hit = name
+                break
+        if hit != self._hovered:
+            self._hovered = hit
+            self.planet_hovered.emit(hit)
+            self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+
+        w, h = self.width(), self.height()
+        size = min(w, h) - 24
+        cx, cy = w / 2, h / 2
+        R  = size / 2          # outer edge
+        Rs = R  * 0.82         # inner edge of sign band
+        Rp = R  * 0.70         # planet glyph ring
+        Ra = R  * 0.60         # aspect line endpoints
+        Rh = R  * 0.04         # hub
+
+        outer_rect = QRectF(cx - R,  cy - R,  R  * 2, R  * 2)
+        sign_rect  = QRectF(cx - Rs, cy - Rs, Rs * 2, Rs * 2)
+
+        # ── Base circle ───────────────────────────────────────────
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(QColor("#0d0d1a")))
+        painter.drawEllipse(QPointF(cx, cy), R, R)
+
+        # ── Zodiac band — 12 alternating wedges ───────────────────
+        for i in range(12):
+            start = -(i * 30 - 90)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(QColor(SIGN_COLORS[i])))
+            painter.drawPie(outer_rect, int(start * 16), int(-30 * 16))
+
+        # ── Radial dividers across full radius ────────────────────
+        painter.setPen(QPen(QColor("#3a3a6a"), 1))
+        for i in range(12):
+            x1, y1 = _angle_to_xy(cx, cy, Rs, i * 30)
+            x2, y2 = _angle_to_xy(cx, cy, R,  i * 30)
+            painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+
+        # ── Sign glyphs ───────────────────────────────────────────
+        glyph_font = QFont()
+        glyph_font.setPointSize(16)
+        painter.setFont(glyph_font)
+        label_r = (R + Rs) / 2
+        for i, glyph in enumerate(SIGN_GLYPHS):
+            angle = i * 30 + 15
+            x, y = _angle_to_xy(cx, cy, label_r, angle)
+            painter.setPen(QPen(QColor("#9090cc")))
+            painter.drawText(QRectF(x - 14, y - 14, 28, 28),
+                             Qt.AlignmentFlag.AlignCenter, glyph)
+
+        # ── Inner circle — covers centre of wedges ────────────────
+        painter.setPen(QPen(QColor("#3a3a6a"), 1))
+        painter.setBrush(QBrush(QColor("#0d0d1a")))
+        painter.drawEllipse(QPointF(cx, cy), Rs, Rs)
+
+        # ── Degree ticks on inner edge of sign band ───────────────
+        for deg in range(360):
+            if deg % 30 == 0:
+                continue            # sign boundary already drawn
+            tick_outer = Rs
+            if deg % 10 == 0:
+                tick_inner = Rs * 0.955
+                painter.setPen(QPen(QColor("#5555aa"), 1))
+            elif deg % 5 == 0:
+                tick_inner = Rs * 0.970
+                painter.setPen(QPen(QColor("#44447a"), 1))
+            else:
+                tick_inner = Rs * 0.984
+                painter.setPen(QPen(QColor("#2a2a55"), 1))
+            x1, y1 = _angle_to_xy(cx, cy, tick_outer, deg)
+            x2, y2 = _angle_to_xy(cx, cy, tick_inner, deg)
+            painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+
+        # ── Aspect circle border ──────────────────────────────────
+        painter.setPen(QPen(QColor("#2a2a50"), 1))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(QPointF(cx, cy), Ra, Ra)
+
+        # ── Aspect lines ──────────────────────────────────────────
+        if self._chart and self._aspects:
+            for asp in self._aspects:
+                lon1 = self._chart.positions[asp.planet1].longitude
+                lon2 = self._chart.positions[asp.planet2].longitude
+                x1, y1 = _angle_to_xy(cx, cy, Ra, lon1)
+                x2, y2 = _angle_to_xy(cx, cy, Ra, lon2)
+                color = QColor(ASPECT_COLORS.get(asp.aspect, "#888"))
+                color.setAlpha(160)
+                pen = QPen(color, 1.0)
+                painter.setPen(pen)
+                painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+
+        # ── Planet glyphs ─────────────────────────────────────────────
+        if self._chart:
+            planet_font = QFont()
+            planet_font.setPointSize(GLYPH_PT)
+            painter.setFont(planet_font)
+            half = GLYPH_PX / 2
+            self._planet_positions.clear()
+            for name, pos in self._chart.positions.items():
+                glyph = PLANET_GLYPHS.get(name, name[:2])
+                gx, gy = _angle_to_xy(cx, cy, Rp, pos.longitude)
+                self._planet_positions[name] = (gx, gy)
+                color = QColor(PLANET_COLORS.get(name, "#ffffff"))
+                is_hovered = name == self._hovered
+
+                if is_hovered:
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.setBrush(QBrush(QColor(255, 255, 255, 30)))
+                    painter.drawEllipse(QPointF(gx, gy), half + 4, half + 4)
+
+                painter.setPen(QPen(QColor("#ffffff") if is_hovered else color))
+                painter.drawText(QRectF(gx - half, gy - half, GLYPH_PX, GLYPH_PX),
+                                 Qt.AlignmentFlag.AlignCenter, glyph)
+
+        # ── Hub ───────────────────────────────────────────────────
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(QColor("#3a3a6a")))
+        painter.drawEllipse(QPointF(cx, cy), Rh, Rh)
+
+
+PLANET_INFO = {
+    "Sun":     ("Leo",        "Identity, vitality, ego, creative power. The core self — what you radiate and what you're becoming."),
+    "Moon":    ("Cancer",     "Emotion, instinct, memory, the subconscious. How you nurture and what makes you feel safe."),
+    "Mercury": ("Gemini/Virgo","Communication, intellect, perception, travel. How you think, speak, and process information."),
+    "Venus":   ("Taurus/Libra","Love, beauty, pleasure, values, money. What you attract and what you find beautiful."),
+    "Mars":    ("Aries",      "Drive, desire, courage, aggression, sexuality. How you take action and assert yourself."),
+    "Jupiter": ("Sagittarius","Expansion, luck, wisdom, philosophy, abundance. Where life opens up and growth flows easily."),
+    "Saturn":  ("Capricorn",  "Discipline, structure, karma, limitation, time. Where you're tested and where you build lasting things."),
+    "Uranus":  ("Aquarius",   "Revolution, innovation, disruption, liberation. Where you break rules and crave freedom."),
+    "Neptune": ("Pisces",     "Dreams, illusion, spirituality, compassion, dissolution. Where reality blurs and the mystical enters."),
+    "Pluto":   ("Scorpio",    "Transformation, power, death and rebirth, the shadow. Where deep and irreversible change happens."),
+}
+
+
+class ChartView(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._user_id: str | None = None
+        self._worker: ApiWorker | None = None
+        self._chart: chart_model.ChartData | None = None
+        self._aspects: list[chart_model.NatalAspect] = []
+        self._planet_names: list[str] = []
+        self._build_ui()
+
+    def _build_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # ── Header bar ────────────────────────────────────────────
+        header_bar = QWidget()
+        header_bar.setFixedHeight(40)
+        header = QHBoxLayout(header_bar)
+        header.setContentsMargins(12, 0, 12, 0)
+        self.title_label = QLabel("Natal Chart")
+        self.title_label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        self.zodiac_label = QLabel("")
+        self.zodiac_label.setStyleSheet("color: #888;")
+        self.recalc_btn = QPushButton("Recalculate")
+        self.recalc_btn.setFixedWidth(110)
+        self.recalc_btn.clicked.connect(self._on_recalculate)
+        header.addWidget(self.title_label)
+        header.addStretch()
+        header.addWidget(self.zodiac_label)
+        header.addSpacing(12)
+        header.addWidget(self.recalc_btn)
+        layout.addWidget(header_bar)
+
+        # ── Main area ─────────────────────────────────────────────
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setChildrenCollapsible(False)
+
+        self.wheel = _ZodiacWheel()
+        splitter.addWidget(self.wheel)
+
+        # ── Right sidebar ─────────────────────────────────────────
+        sidebar = QWidget()
+        sidebar.setFixedWidth(340)
+        sb_layout = QVBoxLayout(sidebar)
+        sb_layout.setContentsMargins(8, 8, 8, 8)
+        sb_layout.setSpacing(0)
+
+        # Planet table — sized to fit content exactly
+        self.table = QTableWidget(0, 3)
+        self.table.setHorizontalHeaderLabels(["Planet", "Sign", "Degree"])
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.verticalHeader().setVisible(False)
+        self.table.setShowGrid(False)
+        self.table.setAlternatingRowColors(True)
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.table.currentCellChanged.connect(lambda row, *_: self._on_row_hover(row))
+        sb_layout.addWidget(self.table)
+
+        # Divider
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setStyleSheet("color: #2a2a50; margin: 8px 0;")
+        sb_layout.addWidget(line)
+
+        # Planet info panel
+        self.info_panel = QTextBrowser()
+        self.info_panel.setOpenExternalLinks(False)
+        self.info_panel.setStyleSheet("""
+            QTextBrowser {
+                background: transparent;
+                border: none;
+                color: #c0c0e0;
+                font-size: 14px;
+            }
+        """)
+        self.info_panel.setPlaceholderText("Hover a planet to see details.")
+        sb_layout.addWidget(self.info_panel, stretch=1)
+
+        splitter.addWidget(sidebar)
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 0)
+        layout.addWidget(splitter, stretch=1)
+
+        self.wheel.planet_hovered.connect(self._on_wheel_hover)
+
+        self.status_label = QLabel("")
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status_label.setFixedHeight(20)
+        self.status_label.setStyleSheet("color: #555; font-size: 11px;")
+        layout.addWidget(self.status_label)
+
+    def load(self, user_id: str):
+        self._user_id = user_id
+        self._fetch(chart_model.load_chart)
+
+    def _on_recalculate(self):
+        if self._user_id:
+            self._fetch(chart_model.calculate_chart)
+
+    def _fetch(self, fn):
+        if not self._user_id:
+            return
+        self.status_label.setText("Loading…")
+        self._worker = ApiWorker(fn, self._user_id)
+        self._worker.result.connect(self._on_chart)
+        self._worker.error.connect(self._on_error)
+        self._worker.start()
+
+    def _on_chart(self, chart: chart_model.ChartData | None):
+        if not chart:
+            self.status_label.setText("No chart calculated yet. Press Recalculate.")
+            self.wheel.set_chart(None)
+            self.table.setRowCount(0)
+            return
+
+        self._chart = chart
+        self._aspects = chart_model.compute_natal_aspects(chart)
+        self._planet_names = list(chart.positions.keys())
+        self.status_label.setText("")
+        self.zodiac_label.setText(f"Zodiac: {chart.zodiac_system.title()}")
+        self.wheel.set_chart(chart)
+
+        planet_font = QFont()
+        planet_font.setPointSize(11)
+        self.table.setRowCount(len(chart.positions))
+        for row, (name, pos) in enumerate(chart.positions.items()):
+            glyph = PLANET_GLYPHS.get(name, name)
+            glyph_item = QTableWidgetItem(f"{glyph}  {name}")
+            glyph_item.setForeground(QColor(PLANET_COLORS.get(name, "#ffffff")))
+            glyph_item.setFont(planet_font)
+            self.table.setItem(row, 0, glyph_item)
+            self.table.setItem(row, 1, QTableWidgetItem(pos.sign))
+            self.table.setItem(row, 2, QTableWidgetItem(f"{pos.degree:.2f}°"))
+
+        # Shrink table to exact content height — no grey gap
+        row_h = self.table.rowHeight(0) if self.table.rowCount() > 0 else 24
+        header_h = self.table.horizontalHeader().height()
+        self.table.setFixedHeight(row_h * self.table.rowCount() + header_h + 4)
+
+    def _on_wheel_hover(self, name: str):
+        if name and name in self._planet_names:
+            row = self._planet_names.index(name)
+            self.table.selectRow(row)
+        self._show_planet_info(name)
+
+    def _on_row_hover(self, row: int):
+        if not self._chart or row < 0 or row >= len(self._planet_names):
+            return
+        self._show_planet_info(self._planet_names[row])
+
+    def _show_planet_info(self, name: str):
+        if not name or not self._chart or name not in self._chart.positions:
+            self.info_panel.setPlaceholderText("Hover a planet to see details.")
+            self.info_panel.setHtml("")
+            return
+        pos = self._chart.positions[name]
+        glyph = PLANET_GLYPHS.get(name, name)
+        color = PLANET_COLORS.get(name, "#ffffff")
+        ruling, description = PLANET_INFO.get(name, ("", ""))
+
+        my_aspects = [a for a in self._aspects if a.planet1 == name or a.planet2 == name]
+        aspect_lines = ""
+        for a in my_aspects:
+            other = a.planet2 if a.planet1 == name else a.planet1
+            other_glyph = PLANET_GLYPHS.get(other, other)
+            asp_color = ASPECT_COLORS.get(a.aspect, "#888")
+            aspect_lines += (
+                f'<span style="color:{asp_color}">■</span> '
+                f'{a.aspect.title()} {other_glyph} {other} '
+                f'<span style="color:#555">(orb {a.orb:.1f}°)</span><br>'
+            )
+
+        html = f"""
+        <p style="font-size:24px; color:{color}; margin:0 0 4px 0;">{glyph} <b>{name}</b></p>
+        <p style="color:#7070a0; margin:0 0 10px 0; font-size:13px;">
+            {pos.sign} {pos.degree:.2f}° &nbsp;·&nbsp; rules {ruling}
+        </p>
+        <p style="color:#a0a0c0; margin:0 0 14px 0; font-size:14px; line-height:1.6;">
+            {description}
+        </p>
+        {"<p style='color:#666; font-size:13px; margin:0 0 6px 0;'>Natal aspects:</p>" if aspect_lines else ""}
+        <p style="font-size:13px; line-height:2.0; margin:0;">{aspect_lines}</p>
+        """
+        self.info_panel.setHtml(html)
+
+    def _on_error(self, msg: str):
+        self.status_label.setText(f"Error: {msg}")
