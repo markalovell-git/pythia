@@ -79,6 +79,18 @@ def load_transits(user_id: str, date: str | None = None) -> TransitData:
     return TransitData(date=raw["date"], transits=transits)
 
 
+def load_transit_positions(user_id: str) -> ChartData | None:
+    raw = api_client.get_transit_positions(user_id)
+    if not raw:
+        return None
+    return ChartData(
+        user_id=raw["user_id"],
+        zodiac_system=raw["zodiac_system"],
+        positions={name: PlanetPosition(**pos) for name, pos in raw["positions"].items()},
+        computed_at=raw["date"],
+    )
+
+
 def get_zodiac_system(user_id: str) -> str:
     raw = api_client.get_user_settings(user_id)
     return raw["zodiac_system"] if raw else "sidereal"

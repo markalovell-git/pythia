@@ -42,6 +42,9 @@ GLYPH_PT_OVERRIDE = {
 SIGN_GLYPH_PT = 32  # zodiac sign glyph font size
 SIGN_GLYPH_PX = 40  # approximate rendered pixel size at SIGN_GLYPH_PT
 
+TRANSIT_GLYPH_PT = 38  # transit planet glyph font size
+TRANSIT_GLYPH_PX = 48  # approximate rendered pixel size at TRANSIT_GLYPH_PT
+
 CLUSTER_THRESHOLD_DEG = 8.0   # planets within this angle form a cluster
 STACK_STEP_FRACTION = 0.20    # step as fraction of natal zone width
 
@@ -81,7 +84,8 @@ def _angle_to_xy(cx, cy, r, longitude_deg):
 
 def _assign_radii(positions: dict, radius_natal: float,
                   radius_house_ring: float, radius_zodiac_inner: float,
-                  stack_step: float) -> dict:
+                  stack_step: float,
+                  cluster_threshold: float = CLUSTER_THRESHOLD_DEG) -> dict:
     """Return {name: radius} with conjunct planets zigzag-stacked in the natal zone."""
     sorted_planets = sorted(positions.items(), key=lambda x: x[1].longitude)
     radii = {}
@@ -90,7 +94,7 @@ def _assign_radii(positions: dict, radius_natal: float,
         cluster = [sorted_planets[i]]
         j = i + 1
         while j < len(sorted_planets):
-            if sorted_planets[j][1].longitude - sorted_planets[i][1].longitude <= CLUSTER_THRESHOLD_DEG:
+            if sorted_planets[j][1].longitude - sorted_planets[i][1].longitude <= cluster_threshold:
                 cluster.append(sorted_planets[j])
                 j += 1
             else:
@@ -113,17 +117,21 @@ def _assign_radii(positions: dict, radius_natal: float,
 
 
 class _ZodiacWheel(QWidget):
-    planet_hovered = pyqtSignal(str)   # planet name, or "" for none
-    sign_hovered   = pyqtSignal(str)   # sign name, or "" for none
+    planet_hovered  = pyqtSignal(str)   # natal planet name, or "" for none
+    transit_hovered = pyqtSignal(str)   # transit planet name, or "" for none
+    sign_hovered    = pyqtSignal(str)   # sign name, or "" for none
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._chart: chart_model.ChartData | None = None
+        self._transits: chart_model.ChartData | None = None
         self._aspects: list[chart_model.NatalAspect] = []
         self._planet_positions: dict[str, tuple[float, float]] = {}
+        self._transit_positions: dict[str, tuple[float, float]] = {}
         self._sign_positions:   dict[str, tuple[float, float]] = {}
-        self._hovered:      str = ""
-        self._hovered_sign: str = ""
+        self._hovered:         str = ""
+        self._hovered_transit: str = ""
+        self._hovered_sign:    str = ""
         self.setMinimumSize(420, 420)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setMouseTracking(True)
@@ -141,13 +149,17 @@ class _ZodiacWheel(QWidget):
         fb_layout = QVBoxLayout(self._filter_box)
         fb_layout.setContentsMargins(6, 6, 6, 6)
         fb_layout.setSpacing(2)
-        self._cb_natal  = QCheckBox("Natal Planets")
-        self._cb_labels = QCheckBox("Circle Labels")
+        self._cb_natal    = QCheckBox("Natal Planets")
+        self._cb_transits = QCheckBox("Transit Planets")
+        self._cb_labels   = QCheckBox("Circle Labels")
         self._cb_natal.setChecked(True)
+        self._cb_transits.setChecked(True)
         self._cb_labels.setChecked(True)
         fb_layout.addWidget(self._cb_natal)
+        fb_layout.addWidget(self._cb_transits)
         fb_layout.addWidget(self._cb_labels)
         self._cb_natal.toggled.connect(self.update)
+        self._cb_transits.toggled.connect(self.update)
         self._cb_labels.toggled.connect(self.update)
         self._filter_box.adjustSize()
         self._filter_box.move(10, 10)
@@ -156,6 +168,10 @@ class _ZodiacWheel(QWidget):
         self._chart = chart
         self._aspects = chart_model.compute_natal_aspects(chart) if chart else []
         self._planet_positions.clear()
+        self.update()
+
+    def set_transits(self, transits: chart_model.ChartData | None):
+        self._transits = transits
         self.update()
 
     def mouseMoveEvent(self, event):
@@ -167,8 +183,15 @@ class _ZodiacWheel(QWidget):
                 hit_planet = name
                 break
 
-        hit_sign = ""
+        hit_transit = ""
         if not hit_planet:
+            for name, (px, py) in self._transit_positions.items():
+                if math.sqrt((mx - px) ** 2 + (my - py) ** 2) < TRANSIT_GLYPH_PX / 2 + 4:
+                    hit_transit = name
+                    break
+
+        hit_sign = ""
+        if not hit_planet and not hit_transit:
             for name, (sx, sy) in self._sign_positions.items():
                 if math.sqrt((mx - sx) ** 2 + (my - sy) ** 2) < SIGN_GLYPH_PX / 2:
                     hit_sign = name
@@ -177,6 +200,10 @@ class _ZodiacWheel(QWidget):
         if hit_planet != self._hovered:
             self._hovered = hit_planet
             self.planet_hovered.emit(hit_planet)
+            self.update()
+        if hit_transit != self._hovered_transit:
+            self._hovered_transit = hit_transit
+            self.transit_hovered.emit(hit_transit)
             self.update()
         if hit_sign != self._hovered_sign:
             self._hovered_sign = hit_sign
@@ -361,6 +388,65 @@ class _ZodiacWheel(QWidget):
                 painter.drawText(QRectF(gx - half, gy - half, GLYPH_PX, GLYPH_PX),
                                  Qt.AlignmentFlag.AlignCenter, glyph)
 
+        # ── Transit planet glyphs ─────────────────────────────────
+        show_transits = self._cb_transits.isChecked()
+        if show_transits and self._transits:
+            transit_zone = radius_cosmos - radius_zodiac_outer
+            radius_transit_mid = (radius_zodiac_outer + radius_cosmos) / 2
+            transit_radii = _assign_radii(
+                self._transits.positions,
+                radius_transit_mid, radius_zodiac_outer, radius_cosmos,
+                stack_step=transit_zone * STACK_STEP_FRACTION,
+                cluster_threshold=5.0,
+            )
+            transit_font = QFont()
+            transit_font.setPointSize(TRANSIT_GLYPH_PT)
+            painter.setFont(transit_font)
+            half_t = TRANSIT_GLYPH_PX / 2
+
+            # Tick lines across transit zone
+            for name, pos in self._transits.positions.items():
+                color = QColor(PLANET_COLORS.get(name, "#ffffff"))
+                if name == self._hovered_transit:
+                    color = color.lighter(130)
+                    painter.setPen(QPen(color, 2.0))
+                else:
+                    color.setAlpha(100)
+                    painter.setPen(QPen(color, 1.0))
+                tx, ty = _angle_to_xy(cx, cy, radius_cosmos,       pos.longitude)
+                gx, gy = _angle_to_xy(cx, cy, radius_zodiac_outer, pos.longitude)
+                painter.drawLine(QPointF(tx, ty), QPointF(gx, gy))
+
+            # Glyphs — normal color base + blue ghost overlay
+            self._transit_positions.clear()
+            for name, pos in self._transits.positions.items():
+                glyph = PLANET_GLYPHS.get(name, name[:2])
+                gx, gy = _angle_to_xy(cx, cy, transit_radii[name], pos.longitude)
+                self._transit_positions[name] = (gx, gy)
+                color = QColor(PLANET_COLORS.get(name, "#ffffff"))
+                is_hovered = name == self._hovered_transit
+
+                pt = round(GLYPH_PT_OVERRIDE[name] * TRANSIT_GLYPH_PT / GLYPH_PT) if name in GLYPH_PT_OVERRIDE else TRANSIT_GLYPH_PT
+                f = QFont()
+                f.setPointSize(pt)
+                painter.setFont(f)
+
+                if is_hovered:
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.setBrush(QBrush(QColor(255, 255, 255, 30)))
+                    painter.drawEllipse(QPointF(gx, gy), half_t + 4, half_t + 4)
+
+                # Base layer — normal planet color
+                color.setAlpha(185)
+                painter.setPen(QPen(QColor("#ffffff") if is_hovered else color))
+                painter.drawText(QRectF(gx - half_t, gy - half_t, TRANSIT_GLYPH_PX, TRANSIT_GLYPH_PX),
+                                 Qt.AlignmentFlag.AlignCenter, glyph)
+
+                # Ghost layer — blue on top
+                painter.setPen(QPen(QColor(120, 150, 255, 128)))
+                painter.drawText(QRectF(gx - half_t, gy - half_t, TRANSIT_GLYPH_PX, TRANSIT_GLYPH_PX),
+                                 Qt.AlignmentFlag.AlignCenter, glyph)
+
         # ── Hub ───────────────────────────────────────────────────
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QBrush(QColor("#3a3a6a")))
@@ -372,18 +458,20 @@ class _ZodiacWheel(QWidget):
             label_font.setPointSize(9)
             painter.setFont(label_font)
             label_angle = 215
-            radius_aspects = (radius_hub + radius_house_ring) / 2
+            radius_aspects     = (radius_hub + radius_house_ring) / 2
+            radius_transit_mid = (radius_zodiac_outer + radius_cosmos) / 2
             for radius, text, offset in [
-                (radius_hub,          "Earth",    20),
-                (radius_aspects,      "Aspects",   8),
-                (radius_house_ring,   "Houses",    8),
-                (radius_zodiac_inner, "Zodiac",   -4),
-                (radius_natal,        "Natal",    12),
-                (radius_zodiac_outer, "Ecliptic",  8),
-                (radius_cosmos,       "Cosmos",    8),
+                (radius_hub,          "Earth",           20),
+                (radius_aspects,      "Aspects",          8),
+                (radius_house_ring,   "Houses",           8),
+                (radius_zodiac_inner, "Zodiac",          -4),
+                (radius_natal,        "Natal Planets",   12),
+                (radius_zodiac_outer, "Ecliptic",         8),
+                (radius_transit_mid,  "Transit Planets",  0),
+                (radius_cosmos,       "Cosmos",           8),
             ]:
                 lx, ly = _angle_to_xy(cx, cy, radius + offset, label_angle)
-                rect = QRectF(lx - 24, ly - 10, 48, 20)
+                rect = QRectF(lx - 44, ly - 10, 88, 20)
                 painter.setPen(QPen(QColor(0, 0, 0, 200)))
                 for dx, dy in ((1, 1), (-1, 1), (1, -1), (-1, -1)):
                     painter.drawText(rect.translated(dx, dy), Qt.AlignmentFlag.AlignCenter, text)
@@ -412,8 +500,11 @@ class ChartView(QWidget):
         super().__init__(parent)
         self._user_id: str | None = None
         self._worker: ApiWorker | None = None
+        self._transit_worker: ApiWorker | None = None
+        self._transit_aspect_worker: ApiWorker | None = None
         self._chart: chart_model.ChartData | None = None
         self._aspects: list[chart_model.NatalAspect] = []
+        self._transit_aspects: chart_model.TransitData | None = None
         self._planet_names: list[str] = []
         self._build_ui()
 
@@ -495,6 +586,7 @@ class ChartView(QWidget):
         layout.addWidget(splitter, stretch=1)
 
         self.wheel.planet_hovered.connect(self._on_wheel_hover)
+        self.wheel.transit_hovered.connect(self._on_transit_hover)
         self.wheel.sign_hovered.connect(self._on_sign_hover)
 
         self.status_label = QLabel("")
@@ -520,6 +612,25 @@ class ChartView(QWidget):
         self._worker.error.connect(self._on_error)
         self._worker.start()
 
+    def _fetch_transits(self):
+        if not self._user_id:
+            return
+        self._transit_worker = ApiWorker(chart_model.load_transit_positions, self._user_id)
+        self._transit_worker.result.connect(self._on_transits)
+        self._transit_worker.error.connect(lambda _: None)
+        self._transit_worker.start()
+
+        self._transit_aspect_worker = ApiWorker(chart_model.load_transits, self._user_id)
+        self._transit_aspect_worker.result.connect(self._on_transit_aspects)
+        self._transit_aspect_worker.error.connect(lambda _: None)
+        self._transit_aspect_worker.start()
+
+    def _on_transits(self, transits: chart_model.ChartData | None):
+        self.wheel.set_transits(transits)
+
+    def _on_transit_aspects(self, data: chart_model.TransitData | None):
+        self._transit_aspects = data
+
     def _on_chart(self, chart: chart_model.ChartData | None):
         if not chart:
             self.status_label.setText("No chart calculated yet. Press Recalculate.")
@@ -533,6 +644,7 @@ class ChartView(QWidget):
         self.status_label.setText("")
         self.zodiac_label.setText(f"Zodiac: {chart.zodiac_system.title()}")
         self.wheel.set_chart(chart)
+        self._fetch_transits()
 
         planet_font = QFont()
         planet_font.setPointSize(11)
@@ -584,15 +696,56 @@ class ChartView(QWidget):
                 f'<span style="color:#555">(orb {a.orb:.1f}°)</span><br>'
             )
 
+        degree_line = f"{pos.sign} {pos.degree:.2f}°"
+        if ruling:
+            degree_line += f" &nbsp;·&nbsp; rules {ruling}"
+
         html = f"""
         <p style="font-size:24px; color:{color}; margin:0 0 4px 0;">{glyph} <b>{name}</b></p>
-        <p style="color:#7070a0; margin:0 0 10px 0; font-size:13px;">
-            {pos.sign} {pos.degree:.2f}° &nbsp;·&nbsp; rules {ruling}
-        </p>
+        <p style="color:#7070a0; margin:0 0 4px 0; font-size:13px;">{degree_line}</p>
+        <p style="color:#445588; margin:0 0 10px 0; font-size:11px; letter-spacing:1px;">NATAL PLANET</p>
         <p style="color:#a0a0c0; margin:0 0 14px 0; font-size:14px; line-height:1.6;">
             {description}
         </p>
         {"<p style='color:#666; font-size:13px; margin:0 0 6px 0;'>Natal aspects:</p>" if aspect_lines else ""}
+        <p style="font-size:13px; line-height:2.0; margin:0;">{aspect_lines}</p>
+        """
+        self.info_panel.setHtml(html)
+
+    def _on_transit_hover(self, name: str):
+        if name:
+            self._show_transit_info(name)
+        elif not self.wheel._hovered and not self.wheel._hovered_sign:
+            self._show_planet_info("")
+
+    def _show_transit_info(self, name: str):
+        if not name or not self.wheel._transits or name not in self.wheel._transits.positions:
+            return
+        pos = self.wheel._transits.positions[name]
+        glyph = PLANET_GLYPHS.get(name, name)
+        color = PLANET_COLORS.get(name, "#ffffff")
+        _, description = PLANET_INFO.get(name, ("", ""))
+
+        aspect_lines = ""
+        if self._transit_aspects:
+            my_transits = [t for t in self._transit_aspects.transits if t.transit_planet == name]
+            for t in my_transits:
+                natal_glyph = PLANET_GLYPHS.get(t.natal_planet, t.natal_planet)
+                asp_color = ASPECT_COLORS.get(t.aspect, "#888")
+                aspect_lines += (
+                    f'<span style="color:{asp_color}">■</span> '
+                    f'{t.aspect.title()} natal {natal_glyph} {t.natal_planet} '
+                    f'<span style="color:#555">(orb {t.orb:.1f}°)</span><br>'
+                )
+
+        html = f"""
+        <p style="font-size:24px; color:{color}; margin:0 0 4px 0;">{glyph} <b>{name}</b></p>
+        <p style="color:#7070a0; margin:0 0 4px 0; font-size:13px;">{pos.sign} {pos.degree:.2f}°</p>
+        <p style="color:#4466aa; margin:0 0 10px 0; font-size:11px; letter-spacing:1px;">TRANSIT PLANET</p>
+        <p style="color:#a0a0c0; margin:0 0 14px 0; font-size:14px; line-height:1.6;">
+            {description}
+        </p>
+        {"<p style='color:#666; font-size:13px; margin:0 0 6px 0;'>Active transits:</p>" if aspect_lines else ""}
         <p style="font-size:13px; line-height:2.0; margin:0;">{aspect_lines}</p>
         """
         self.info_panel.setHtml(html)
