@@ -218,16 +218,32 @@ class _ZodiacWheel(QWidget):
 
         # ── Aspect lines ──────────────────────────────────────────
         if show_natal and self._chart and self._aspects:
+            arc_step = radius_house_ring * 0.015
             for asp in self._aspects:
                 lon1 = self._chart.positions[asp.planet1].longitude
                 lon2 = self._chart.positions[asp.planet2].longitude
-                x1, y1 = _angle_to_xy(cx, cy, radius_house_ring, lon1)
-                x2, y2 = _angle_to_xy(cx, cy, radius_house_ring, lon2)
                 color = QColor(ASPECT_COLORS.get(asp.aspect, "#888"))
                 color.setAlpha(160)
-                pen = QPen(color, 1.0)
-                painter.setPen(pen)
-                painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+                painter.setPen(QPen(color, 1.0))
+
+                if asp.aspect == "conjunction":
+                    # Three concentric arcs curving along the house ring
+                    a1, a2 = min(lon1, lon2), max(lon1, lon2)
+                    if a2 - a1 > 180:
+                        a1, a2 = a2, a1 + 360
+                    start_qt = 90 - a1
+                    sweep_qt = -(a2 - a1)
+                    for k in range(3):
+                        r = radius_house_ring + k * arc_step
+                        rect = QRectF(cx - r, cy - r, 2 * r, 2 * r)
+                        path = QPainterPath()
+                        path.arcMoveTo(rect, start_qt)
+                        path.arcTo(rect, start_qt, sweep_qt)
+                        painter.drawPath(path)
+                else:
+                    x1, y1 = _angle_to_xy(cx, cy, radius_house_ring, lon1)
+                    x2, y2 = _angle_to_xy(cx, cy, radius_house_ring, lon2)
+                    painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
         # ── Planet glyphs ─────────────────────────────────────────
         if show_natal and self._chart:
