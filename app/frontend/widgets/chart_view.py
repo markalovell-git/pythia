@@ -289,8 +289,8 @@ class _ZodiacWheel(QWidget):
                     a1, a2 = min(lon1, lon2), max(lon1, lon2)
                     if a2 - a1 > 180:
                         a1, a2 = a2, a1 + 360
-                    start_qt = 90 - a1
-                    sweep_qt = -(a2 - a1)
+                    start_qt = a1 - 90
+                    sweep_qt = a2 - a1
                     for k in range(3):
                         r = radius_house_ring + k * arc_step
                         rect = QRectF(cx - r, cy - r, 2 * r, 2 * r)
