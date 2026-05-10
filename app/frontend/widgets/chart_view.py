@@ -4,7 +4,7 @@ from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QPainterPath
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QSplitter, QSizePolicy,
-    QFrame, QTextBrowser, QHeaderView,
+    QFrame, QTextBrowser, QHeaderView, QCheckBox,
 )
 
 from app.frontend.models import chart_model
@@ -59,6 +59,30 @@ class _ZodiacWheel(QWidget):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setMouseTracking(True)
 
+        self._filter_box = QFrame(self)
+        self._filter_box.setStyleSheet("""
+            QFrame {
+                background: rgba(10, 10, 30, 180);
+                border: 1px solid #2a2a50;
+                border-radius: 6px;
+            }
+            QCheckBox { color: #9090cc; font-size: 12px; padding: 2px 6px; }
+            QCheckBox::indicator { width: 13px; height: 13px; }
+        """)
+        fb_layout = QVBoxLayout(self._filter_box)
+        fb_layout.setContentsMargins(6, 6, 6, 6)
+        fb_layout.setSpacing(2)
+        self._cb_natal  = QCheckBox("Natal Planets")
+        self._cb_labels = QCheckBox("Circle Labels")
+        self._cb_natal.setChecked(True)
+        self._cb_labels.setChecked(True)
+        fb_layout.addWidget(self._cb_natal)
+        fb_layout.addWidget(self._cb_labels)
+        self._cb_natal.toggled.connect(self.update)
+        self._cb_labels.toggled.connect(self.update)
+        self._filter_box.adjustSize()
+        self._filter_box.move(10, 10)
+
     def set_chart(self, chart: chart_model.ChartData | None):
         self._chart = chart
         self._aspects = chart_model.compute_natal_aspects(chart) if chart else []
@@ -82,22 +106,25 @@ class _ZodiacWheel(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
 
+        show_natal  = self._cb_natal.isChecked()
+        show_labels = self._cb_labels.isChecked()
+
         w, h = self.width(), self.height()
         size = min(w, h) - 24
         cx, cy = w / 2, h / 2
-        R  = size / 2          # outer edge
-        Rs = R  * 0.82         # inner edge of sign band
-        Rp = R  * 0.70         # planet glyph ring
-        Ra = R  * 0.60         # aspect line endpoints
-        Rh = R  * 0.04         # hub
+        radius_zodiac_outer = size / 2        # outer edge of zodiac band
+        radius_zodiac_inner = radius_zodiac_outer * 0.82   # inner edge of zodiac band
+        radius_natal        = radius_zodiac_outer * 0.70   # natal planet zone
+        radius_house_ring   = radius_zodiac_outer * 0.60   # house ring / aspect web boundary
+        radius_hub          = radius_zodiac_outer * 0.04   # earth hub
 
-        outer_rect = QRectF(cx - R,  cy - R,  R  * 2, R  * 2)
-        sign_rect  = QRectF(cx - Rs, cy - Rs, Rs * 2, Rs * 2)
+        outer_rect = QRectF(cx - radius_zodiac_outer, cy - radius_zodiac_outer,
+                            radius_zodiac_outer * 2, radius_zodiac_outer * 2)
 
         # ── Base circle ───────────────────────────────────────────
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QBrush(QColor("#0d0d1a")))
-        painter.drawEllipse(QPointF(cx, cy), R, R)
+        painter.drawEllipse(QPointF(cx, cy), radius_zodiac_outer, radius_zodiac_outer)
 
         # ── Zodiac band — 12 alternating wedges ───────────────────
         for i in range(12):
@@ -106,18 +133,18 @@ class _ZodiacWheel(QWidget):
             painter.setBrush(QBrush(QColor(SIGN_COLORS[i])))
             painter.drawPie(outer_rect, int(start * 16), int(-30 * 16))
 
-        # ── Radial dividers across full radius ────────────────────
+        # ── Radial dividers across zodiac band ────────────────────
         painter.setPen(QPen(QColor("#3a3a6a"), 1))
         for i in range(12):
-            x1, y1 = _angle_to_xy(cx, cy, Rs, i * 30)
-            x2, y2 = _angle_to_xy(cx, cy, R,  i * 30)
+            x1, y1 = _angle_to_xy(cx, cy, radius_zodiac_inner, i * 30)
+            x2, y2 = _angle_to_xy(cx, cy, radius_zodiac_outer, i * 30)
             painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
         # ── Sign glyphs ───────────────────────────────────────────
         glyph_font = QFont()
         glyph_font.setPointSize(16)
         painter.setFont(glyph_font)
-        label_r = (R + Rs) / 2
+        label_r = (radius_zodiac_outer + radius_zodiac_inner) / 2
         for i, glyph in enumerate(SIGN_GLYPHS):
             angle = i * 30 + 15
             x, y = _angle_to_xy(cx, cy, label_r, angle)
@@ -128,54 +155,64 @@ class _ZodiacWheel(QWidget):
         # ── Inner circle — covers centre of wedges ────────────────
         painter.setPen(QPen(QColor("#3a3a6a"), 1))
         painter.setBrush(QBrush(QColor("#0d0d1a")))
-        painter.drawEllipse(QPointF(cx, cy), Rs, Rs)
+        painter.drawEllipse(QPointF(cx, cy), radius_zodiac_inner, radius_zodiac_inner)
 
-        # ── Degree ticks on inner edge of sign band ───────────────
+        # ── Degree ticks on inner edge of zodiac band ─────────────
         for deg in range(360):
             if deg % 30 == 0:
                 continue            # sign boundary already drawn
-            tick_outer = Rs
+            tick_outer = radius_zodiac_inner
             if deg % 10 == 0:
-                tick_inner = Rs * 0.955
+                tick_inner = radius_zodiac_inner * 0.955
                 painter.setPen(QPen(QColor("#5555aa"), 1))
             elif deg % 5 == 0:
-                tick_inner = Rs * 0.970
+                tick_inner = radius_zodiac_inner * 0.970
                 painter.setPen(QPen(QColor("#44447a"), 1))
             else:
-                tick_inner = Rs * 0.984
+                tick_inner = radius_zodiac_inner * 0.984
                 painter.setPen(QPen(QColor("#2a2a55"), 1))
             x1, y1 = _angle_to_xy(cx, cy, tick_outer, deg)
             x2, y2 = _angle_to_xy(cx, cy, tick_inner, deg)
             painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
-        # ── Aspect circle border ──────────────────────────────────
+        # ── House ring border ─────────────────────────────────────
         painter.setPen(QPen(QColor("#2a2a50"), 1))
         painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawEllipse(QPointF(cx, cy), Ra, Ra)
+        painter.drawEllipse(QPointF(cx, cy), radius_house_ring, radius_house_ring)
 
         # ── Aspect lines ──────────────────────────────────────────
-        if self._chart and self._aspects:
+        if show_natal and self._chart and self._aspects:
             for asp in self._aspects:
                 lon1 = self._chart.positions[asp.planet1].longitude
                 lon2 = self._chart.positions[asp.planet2].longitude
-                x1, y1 = _angle_to_xy(cx, cy, Ra, lon1)
-                x2, y2 = _angle_to_xy(cx, cy, Ra, lon2)
+                x1, y1 = _angle_to_xy(cx, cy, radius_house_ring, lon1)
+                x2, y2 = _angle_to_xy(cx, cy, radius_house_ring, lon2)
                 color = QColor(ASPECT_COLORS.get(asp.aspect, "#888"))
                 color.setAlpha(160)
                 pen = QPen(color, 1.0)
                 painter.setPen(pen)
                 painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
-        # ── Planet glyphs ─────────────────────────────────────────────
-        if self._chart:
+        # ── Planet glyphs ─────────────────────────────────────────
+        if show_natal and self._chart:
             planet_font = QFont()
             planet_font.setPointSize(GLYPH_PT)
             painter.setFont(planet_font)
             half = GLYPH_PX / 2
             self._planet_positions.clear()
+
+            # Tick lines from glyph down to true position on house ring
+            for name, pos in self._chart.positions.items():
+                color = QColor(PLANET_COLORS.get(name, "#ffffff"))
+                color.setAlpha(140)
+                painter.setPen(QPen(color, 1.0))
+                tx, ty = _angle_to_xy(cx, cy, radius_house_ring, pos.longitude)
+                gx, gy = _angle_to_xy(cx, cy, radius_natal,      pos.longitude)
+                painter.drawLine(QPointF(tx, ty), QPointF(gx, gy))
+
             for name, pos in self._chart.positions.items():
                 glyph = PLANET_GLYPHS.get(name, name[:2])
-                gx, gy = _angle_to_xy(cx, cy, Rp, pos.longitude)
+                gx, gy = _angle_to_xy(cx, cy, radius_natal, pos.longitude)
                 self._planet_positions[name] = (gx, gy)
                 color = QColor(PLANET_COLORS.get(name, "#ffffff"))
                 is_hovered = name == self._hovered
@@ -189,10 +226,27 @@ class _ZodiacWheel(QWidget):
                 painter.drawText(QRectF(gx - half, gy - half, GLYPH_PX, GLYPH_PX),
                                  Qt.AlignmentFlag.AlignCenter, glyph)
 
+        # ── Circle labels ─────────────────────────────────────────
+        if show_labels:
+            label_font = QFont()
+            label_font.setPointSize(9)
+            painter.setFont(label_font)
+            painter.setPen(QPen(QColor("#4a4a7a")))
+            label_angle = 315
+            for radius, text in [
+                (radius_hub,          "Earth"),
+                (radius_house_ring,   "Houses"),
+                (radius_zodiac_inner, "Zodiac"),
+                (radius_natal,        "Natal"),
+            ]:
+                lx, ly = _angle_to_xy(cx, cy, radius + 8, label_angle)
+                painter.drawText(QRectF(lx - 24, ly - 10, 48, 20),
+                                 Qt.AlignmentFlag.AlignCenter, text)
+
         # ── Hub ───────────────────────────────────────────────────
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QBrush(QColor("#3a3a6a")))
-        painter.drawEllipse(QPointF(cx, cy), Rh, Rh)
+        painter.drawEllipse(QPointF(cx, cy), radius_hub, radius_hub)
 
 
 PLANET_INFO = {
