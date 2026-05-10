@@ -320,8 +320,12 @@ class _ZodiacWheel(QWidget):
             # Tick lines — full natal zone width
             for name, pos in self._chart.positions.items():
                 color = QColor(PLANET_COLORS.get(name, "#ffffff"))
-                color.setAlpha(140)
-                painter.setPen(QPen(color, 1.0))
+                if name == self._hovered:
+                    color = color.lighter(130)
+                    painter.setPen(QPen(color, 2.0))
+                else:
+                    color.setAlpha(140)
+                    painter.setPen(QPen(color, 1.0))
                 tx, ty = _angle_to_xy(cx, cy, radius_zodiac_inner, pos.longitude)
                 gx, gy = _angle_to_xy(cx, cy, radius_house_ring,   pos.longitude)
                 painter.drawLine(QPointF(tx, ty), QPointF(gx, gy))

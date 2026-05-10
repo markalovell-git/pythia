@@ -7,6 +7,7 @@
 
 ## Animations
 - [ ] **Hover glow pulse** on planets/signs — `QTimer` driving a sine-wave alpha value
+- [ ] **Hover glow effect** — tried multi-layer bloom (redrawing glyph at larger sizes with decreasing alpha); wasn't striking enough. Needs a different approach — maybe `QGraphicsEffect`, offscreen render + blur, or something else entirely.
 - [ ] **Chart load fade-in** — opacity animating from 0 to 1 when chart data arrives
 - [ ] **Smooth ring reveal** — rings drawing in sequentially on load
 - [ ] **Transit planet entry** — when transits are added, planets arc into position
