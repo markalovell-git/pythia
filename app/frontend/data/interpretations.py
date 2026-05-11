@@ -144,6 +144,34 @@ PLANET_IN_SIGN: dict[tuple[str, str], str] = {
     ("Pluto", "Capricorn"):   "Institutions, governments, and the structures of power are dismantled and rebuilt. A generation tears down what is not working and replaces it with something built to last.",
     ("Pluto", "Aquarius"):    "Transformation arrives through technology and the collective — a generation rebuilds society around new visions of community and human potential.",
     ("Pluto", "Pisces"):      "The deepest collective transformation — old spiritual frameworks dissolve and new ones emerge. The boundary between the individual and the whole finally gives way.",
+
+    # North Node — growth direction by sign
+    ("North Node", "Aries"):       "Growth calls toward courage, self-assertion, and the willingness to act without needing consensus. The soul is learning to trust its own instincts and pioneer its own path rather than defer to others.",
+    ("North Node", "Taurus"):      "The soul is growing toward simplicity, embodiment, and the quiet power of what endures. Learning to find security in the physical world — pleasure, steadiness, and trust in the here and now — is the work.",
+    ("North Node", "Gemini"):      "Growth comes through curiosity, adaptability, and the honest exchange of ideas. The soul is learning to hold multiple perspectives without needing a single grand theory to tie them all together.",
+    ("North Node", "Cancer"):      "The soul is growing toward emotional depth, vulnerability, and the courage to need and be needed. Nurturing oneself and others — rather than achieving and performing — is the evolutionary path.",
+    ("North Node", "Leo"):         "Growth calls toward creative self-expression, warmth, and the courage to be genuinely seen. The soul is learning to lead with heart rather than idea, and to invest deeply in the personal rather than the collective.",
+    ("North Node", "Virgo"):       "The soul is growing toward discernment, service, and the satisfaction of doing things well. Learning to be useful in concrete, practical ways — and to distinguish reality from illusion — is the evolutionary work.",
+    ("North Node", "Libra"):       "Growth calls toward partnership, diplomacy, and the art of genuine cooperation. The soul is learning that true strength includes the ability to consider others and seek harmony without losing itself.",
+    ("North Node", "Scorpio"):     "The soul is growing toward depth, transformation, and the willingness to meet loss and intensity without flinching. Shared resources — emotional, financial, and psychological — are the arena of growth.",
+    ("North Node", "Sagittarius"): "Growth calls toward vision, philosophy, and the willingness to commit to a truth and follow it to the horizon. The soul is learning to move from gathering information to living by wisdom.",
+    ("North Node", "Capricorn"):   "The soul is growing toward discipline, responsibility, and the building of lasting structures in the world. Taking authority over one's own life — rather than waiting to be held or rescued — is the evolutionary call.",
+    ("North Node", "Aquarius"):    "Growth calls toward collective vision, humanitarian ideals, and the willingness to serve something larger than personal glory. The soul is learning to release ego-investment and find meaning in the greater pattern.",
+    ("North Node", "Pisces"):      "The soul is growing toward compassion, surrender, and spiritual trust. Learning to release the grip of analysis and allow the deeper currents of life to carry you forward is the evolutionary invitation.",
+
+    # South Node — past-life comfort zone by sign
+    ("South Node", "Aries"):       "The past holds a warrior energy — self-reliance, impulsivity, and the habit of going it alone. The invitation is to channel that directness into relationship and cooperation rather than opposition.",
+    ("South Node", "Taurus"):      "A past of comfort, stability, and self-sufficiency has left a deeply ingrained desire for security and the familiar. The invitation is to release attachment to what is safe and allow genuine transformation.",
+    ("South Node", "Gemini"):      "The past is rich with wit, adaptability, and the restless collecting of facts and connections. The invitation is to move beyond clever commentary and toward meaning — from data to wisdom.",
+    ("South Node", "Cancer"):      "Deep roots in emotional security, family, and the comforts of belonging have left a pull toward dependency and the familiar nest. The invitation is to bring that emotional richness into the world through mature responsibility.",
+    ("South Node", "Leo"):         "The past holds a natural comfort with being the center — with recognition, creative expression, and the warmth of personal power. The invitation is to shift from personal radiance to collective contribution.",
+    ("South Node", "Virgo"):       "A past steeped in service, precision, and careful analysis has left a tendency toward criticism, worry, and the need for control. The invitation is to dissolve those boundaries into faith and compassionate flow.",
+    ("South Node", "Libra"):       "The comfort zone is deep — a past steeped in diplomacy, partnership, and the art of accommodation. Moving forward means releasing the compulsion to balance every scale and learning that independence is not selfishness.",
+    ("South Node", "Scorpio"):     "A past rich with intensity, transformation, and the hidden depths of power and loss runs deep. Growth means releasing the need to excavate everything and allowing life to be uncomplicated and trusting.",
+    ("South Node", "Sagittarius"): "A past of seeking the big picture — philosophy, travel, and ultimate truth — has left a comfortable certainty that can harden into dogma. The invitation is toward openness, nuance, and genuine curiosity over fixed belief.",
+    ("South Node", "Capricorn"):   "Competence, ambition, and emotional self-sufficiency are deeply ingrained from the past. The invitation is to let go of the need to prove worth through achievement and allow genuine feeling and vulnerability to guide the way.",
+    ("South Node", "Aquarius"):    "A cool, visionary detachment — a comfort in the group, the cause, and the principle over the personal — runs through the past. The invitation is to risk being singular, passionate, and fully present as an individual.",
+    ("South Node", "Pisces"):      "A past steeped in spirituality, compassion, and the dissolution of boundaries has left a tendency toward vagueness, escapism, or self-sacrifice. The invitation is to bring sensitivity into practical, grounded, and discerning service.",
 }
 
 

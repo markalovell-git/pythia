@@ -1577,7 +1577,10 @@ class ChartView(QWidget):
         element, description = SIGN_INFO.get(name, ("", ""))
         def in_sign(_name, pos, _is_transit):
             return pos.sign == name
-        occupants = self._occupants_html(in_sign)
+        occupants = self._occupants_html(
+            in_sign,
+            interp_fn=lambda pname, _pos: planet_in_sign_text(pname, name),
+        )
         html = f"""
         <p style="font-size:24px; color:#9090cc; margin:0 0 4px 0;">{glyph} <b>{name}</b></p>
         <p style="color:#7070a0; margin:0 0 10px 0; font-size:13px;">{element}</p>
@@ -1588,7 +1591,7 @@ class ChartView(QWidget):
         """
         self.info_panel.setHtml(html)
 
-    def _occupants_html(self, predicate) -> str:
+    def _occupants_html(self, predicate, interp_fn=None) -> str:
         rows = []
         if self._chart:
             for name, pos in self._chart.positions.items():
@@ -1605,19 +1608,27 @@ class ChartView(QWidget):
                     rows.append((name, pos, True))
         if not rows:
             return ""
-        lines = ""
+        blocks = ""
         for name, pos, is_transit in rows:
             glyph = PLANET_GLYPHS.get(name, name[:2])
             color = PLANET_COLORS.get(name, "#ffffff")
             tag = f" <span style='color:{COLOR_TRANSIT_TAG}; font-weight:600;'>· transit</span>" if is_transit else ""
-            lines += (
+            blocks += (
+                f"<p style='font-size:13px; line-height:1.8; margin:0;'>"
                 f'<span style="color:{color}; font-size:18px;">{glyph}</span> '
                 f'{name} '
-                f'<span style="color:#555">{pos.sign} {pos.degree:.1f}°</span>{tag}<br>'
+                f'<span style="color:#555">{pos.sign} {pos.degree:.1f}°</span>{tag}</p>'
             )
+            if interp_fn and not is_transit:
+                interp = interp_fn(name, pos)
+                if interp:
+                    blocks += (
+                        f"<p style='color:#5a5a7a; font-size:12px; line-height:1.5;"
+                        f" margin:0 0 8px 12px;'>{interp}</p>"
+                    )
         return (
-            "<p style='color:#666; font-size:13px; margin:8px 0 6px 0;'>Occupants:</p>"
-            f"<p style='font-size:13px; line-height:1.8; margin:0;'>{lines}</p>"
+            "<p style='color:#666; font-size:13px; margin:8px 0 4px 0;'>Occupants:</p>"
+            + blocks
         )
 
     def _on_error(self, msg: str):
