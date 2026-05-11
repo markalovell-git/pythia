@@ -41,15 +41,7 @@ class Transit:
 
 
 @dataclass
-class SkyAspect:
-    planet1: str
-    planet2: str
-    aspect: str
-    orb: float
-
-
-@dataclass
-class NatalAspect:
+class Aspect:
     planet1: str
     planet2: str
     aspect: str
@@ -92,12 +84,12 @@ def load_transits(user_id: str, date: str | None = None) -> TransitData:
     return TransitData(date=raw["date"], transits=transits)
 
 
-def load_sky_aspects(user_id: str, date: str | None = None) -> list[SkyAspect]:
+def load_sky_aspects(user_id: str, date: str | None = None) -> list[Aspect]:
     raw = api_client.get_sky_aspects(user_id, date=date)
     if not raw:
         return []
     return sorted(
-        [SkyAspect(planet1=a["planet1"], planet2=a["planet2"], aspect=a["aspect"], orb=a["orb"])
+        [Aspect(planet1=a["planet1"], planet2=a["planet2"], aspect=a["aspect"], orb=a["orb"])
          for a in raw["aspects"]],
         key=lambda a: a.orb,
     )
@@ -133,7 +125,7 @@ def set_house_system(user_id: str, house_system: str) -> None:
     api_client.update_user_settings(user_id, house_system=house_system)
 
 
-def compute_natal_aspects(chart: ChartData) -> list[NatalAspect]:
+def compute_natal_aspects(chart: ChartData) -> list[Aspect]:
     """Detect aspects between natal planets from their longitudes alone — no API call."""
     planets = list(chart.positions.items())
     results = []
@@ -146,7 +138,7 @@ def compute_natal_aspects(chart: ChartData) -> list[NatalAspect]:
                 diff = 360 - diff
             for aspect_name, (angle, orb) in _ASPECT_ANGLES.items():
                 if abs(diff - angle) <= orb:
-                    results.append(NatalAspect(
+                    results.append(Aspect(
                         planet1=name1, planet2=name2,
                         aspect=aspect_name,
                         orb=round(abs(diff - angle), 2),

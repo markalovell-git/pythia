@@ -29,6 +29,14 @@ class ApiWorker(QThread):
         _active.discard(self)
         log.debug("finished [%s]  active=%d", self.objectName(), len(_active))
 
+    def cancel(self) -> None:
+        """Disconnect all signals so this worker's result is ignored if it completes."""
+        for sig in (self.result, self.error):
+            try:
+                sig.disconnect()
+            except Exception:
+                pass
+
     def run(self):
         log.debug("running  [%s]", self.objectName())
         try:

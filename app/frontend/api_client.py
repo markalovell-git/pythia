@@ -4,7 +4,8 @@ from app.common.config import BACKEND_HOST, BACKEND_PORT
 
 BASE_URL = f"http://{BACKEND_HOST}:{BACKEND_PORT}/api"
 _HEALTH_URL = f"http://{BACKEND_HOST}:{BACKEND_PORT}/health"
-_TIMEOUT = 10.0
+_TIMEOUT        = 10.0
+_HEALTH_TIMEOUT = 1.0   # shorter fast-fail timeout for the health check
 
 
 def _get(path: str, **params) -> dict | list | None:
@@ -40,7 +41,7 @@ def _delete(path: str) -> dict:
 
 def health_check() -> bool:
     try:
-        httpx.get(_HEALTH_URL, timeout=1.0).raise_for_status()
+        httpx.get(_HEALTH_URL, timeout=_HEALTH_TIMEOUT).raise_for_status()
         return True
     except Exception:
         return False

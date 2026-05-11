@@ -6,15 +6,15 @@ from PyQt6.QtWidgets import (
 )
 
 from app.frontend.models import chart_model
+from app.frontend.widgets.chart_view import ASPECT_COLORS
 from app.frontend.workers.api_worker import ApiWorker
 
-ASPECT_COLORS = {
-    "conjunction": "#FFD700",
-    "sextile": "#90EE90",
-    "square": "#FF6B6B",
-    "trine": "#66BB6A",
-    "opposition": "#FF4500",
-}
+
+def _table_cell(text: str, color: str | None = None) -> QTableWidgetItem:
+    item = QTableWidgetItem(text)
+    if color:
+        item.setForeground(QColor(color))
+    return item
 
 
 class TransitView(QWidget):
@@ -91,6 +91,10 @@ class TransitView(QWidget):
     def _on_calculate(self):
         if not self._user_id:
             return
+        if self._worker is not None:
+            self._worker.cancel()
+        if self._sky_worker is not None:
+            self._sky_worker.cancel()
         date_str = self.dt_edit.dateTime().toString("yyyy-MM-ddTHH:mm:ss")
 
         self.status_label.setText("Calculating…")
@@ -110,38 +114,24 @@ class TransitView(QWidget):
         self.table.setRowCount(len(data.transits))
         for row, t in enumerate(data.transits):
             clr = ASPECT_COLORS.get(t.aspect)
-
-            def _cell(text, color=None):
-                item = QTableWidgetItem(text)
-                if color:
-                    item.setForeground(QColor(color))
-                return item
-
-            self.table.setItem(row, 0, _cell(t.transit_planet))
-            self.table.setItem(row, 1, _cell(t.aspect.title(), clr))
-            self.table.setItem(row, 2, _cell(t.natal_planet))
-            self.table.setItem(row, 3, _cell(f"{t.orb:.2f}°"))
-            self.table.setItem(row, 4, _cell(f"{t.transit_position.sign} {t.transit_position.degree:.1f}°"))
+            self.table.setItem(row, 0, _table_cell(t.transit_planet))
+            self.table.setItem(row, 1, _table_cell(t.aspect.title(), clr))
+            self.table.setItem(row, 2, _table_cell(t.natal_planet))
+            self.table.setItem(row, 3, _table_cell(f"{t.orb:.2f}°"))
+            self.table.setItem(row, 4, _table_cell(f"{t.transit_position.sign} {t.transit_position.degree:.1f}°"))
 
     def _on_error(self, msg: str):
         self.status_label.setText(f"Error: {msg}")
 
-    def _on_sky_result(self, aspects: list):
+    def _on_sky_result(self, aspects: list[chart_model.Aspect]):
         self.sky_status_label.setText(f"{len(aspects)} sky aspect(s)")
         self.sky_table.setRowCount(len(aspects))
         for row, a in enumerate(aspects):
             clr = ASPECT_COLORS.get(a.aspect)
-
-            def _cell(text, color=None):
-                item = QTableWidgetItem(text)
-                if color:
-                    item.setForeground(QColor(color))
-                return item
-
-            self.sky_table.setItem(row, 0, _cell(a.planet1))
-            self.sky_table.setItem(row, 1, _cell(a.aspect.title(), clr))
-            self.sky_table.setItem(row, 2, _cell(a.planet2))
-            self.sky_table.setItem(row, 3, _cell(f"{a.orb:.2f}°"))
+            self.sky_table.setItem(row, 0, _table_cell(a.planet1))
+            self.sky_table.setItem(row, 1, _table_cell(a.aspect.title(), clr))
+            self.sky_table.setItem(row, 2, _table_cell(a.planet2))
+            self.sky_table.setItem(row, 3, _table_cell(f"{a.orb:.2f}°"))
 
     def _on_sky_error(self, msg: str):
         self.sky_status_label.setText(f"Error: {msg}")

@@ -89,3 +89,99 @@ def test_load_chart_house_system_defaults_to_placidus(mock_api):
     mock_api["get_natal_chart"].return_value = _RAW_CHART  # no house_system field
     chart = chart_model.load_chart("u1")
     assert chart.house_system == "placidus"
+
+
+# ── compute_natal_aspects ────────────────────────────────────────────────────
+
+def _chart_with(**positions) -> chart_model.ChartData:
+    return chart_model.ChartData(
+        user_id="u1", zodiac_system="tropical", computed_at="2026-05-11T00:00:00",
+        positions=positions,
+    )
+
+
+def test_compute_natal_aspects_detects_conjunction():
+    chart = _chart_with(
+        Mars=chart_model.PlanetPosition(longitude=0.0, sign="Aries", degree=0.0),
+        Jupiter=chart_model.PlanetPosition(longitude=2.0, sign="Aries", degree=2.0),
+    )
+    aspects = chart_model.compute_natal_aspects(chart)
+    assert len(aspects) == 1
+    assert aspects[0].planet1 == "Mars"
+    assert aspects[0].planet2 == "Jupiter"
+    assert aspects[0].aspect == "conjunction"
+    assert aspects[0].orb == 2.0
+
+
+def test_compute_natal_aspects_skips_angle_angle_pairs():
+    chart = _chart_with(
+        ASC=chart_model.PlanetPosition(longitude=0.0,   sign="Aries", degree=0.0),
+        DSC=chart_model.PlanetPosition(longitude=180.0, sign="Libra", degree=0.0),
+    )
+    assert chart_model.compute_natal_aspects(chart) == []
+
+
+def test_compute_natal_aspects_planet_to_angle_is_included():
+    chart = _chart_with(
+        Sun=chart_model.PlanetPosition(longitude=0.0, sign="Aries", degree=0.0),
+        ASC=chart_model.PlanetPosition(longitude=2.0, sign="Aries", degree=2.0),
+    )
+    aspects = chart_model.compute_natal_aspects(chart)
+    assert len(aspects) == 1
+    assert aspects[0].aspect == "conjunction"
+
+
+def test_compute_natal_aspects_sorted_by_orb():
+    # Mars-Saturn sextile orb=0.5; Mars-Jupiter square orb=5.0; Jupiter-Saturn ~34.5° apart (no aspect)
+    chart = _chart_with(
+        Mars=chart_model.PlanetPosition(longitude=0.0,  sign="Aries",  degree=0.0),
+        Saturn=chart_model.PlanetPosition(longitude=60.5, sign="Gemini", degree=0.5),
+        Jupiter=chart_model.PlanetPosition(longitude=95.0, sign="Cancer", degree=5.0),
+    )
+    aspects = chart_model.compute_natal_aspects(chart)
+    assert len(aspects) == 2
+    assert aspects[0].orb == 0.5
+    assert aspects[1].orb == 5.0
+
+
+def test_compute_natal_aspects_no_aspects_for_distant_planets():
+    chart = _chart_with(
+        Mars=chart_model.PlanetPosition(longitude=0.0,  sign="Aries",  degree=0.0),
+        Jupiter=chart_model.PlanetPosition(longitude=45.0, sign="Taurus", degree=15.0),
+    )
+    assert chart_model.compute_natal_aspects(chart) == []
+
+
+# ── load_sky_aspects ─────────────────────────────────────────────────────────
+
+_RAW_SKY_ASPECTS = {
+    "user_id": "u1",
+    "date": "2026-05-11T12:00:00+00:00",
+    "aspects": [
+        {"planet1": "Mars", "planet2": "Jupiter", "aspect": "trine",  "orb": 1.5},
+        {"planet1": "Sun",  "planet2": "Saturn",  "aspect": "square", "orb": 0.3},
+    ],
+}
+
+
+def test_load_sky_aspects_sorted_by_orb(mock_api):
+    mock_api["get_sky_aspects"].return_value = _RAW_SKY_ASPECTS
+    aspects = chart_model.load_sky_aspects("u1")
+    assert len(aspects) == 2
+    assert aspects[0].orb == 0.3
+    assert aspects[0].planet1 == "Sun"
+    assert aspects[0].aspect == "square"
+    assert aspects[1].orb == 1.5
+
+
+def test_load_sky_aspects_returns_empty_list_when_api_returns_none(mock_api):
+    mock_api["get_sky_aspects"].return_value = None
+    assert chart_model.load_sky_aspects("u1") == []
+
+
+def test_load_sky_aspects_passes_date_param(mock_api):
+    mock_api["get_sky_aspects"].return_value = {
+        "user_id": "u1", "date": "2025-01-01T00:00:00+00:00", "aspects": [],
+    }
+    chart_model.load_sky_aspects("u1", date="2025-01-01T00:00:00")
+    mock_api["get_sky_aspects"].assert_called_once_with("u1", date="2025-01-01T00:00:00")

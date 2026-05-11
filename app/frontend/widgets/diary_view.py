@@ -13,6 +13,7 @@ class DiaryView(QWidget):
         super().__init__(parent)
         self._user_id: str | None = None
         self._current_entry: diary_model.DiaryEntry | None = None
+        self._load_worker: ApiWorker | None = None
         self._build_ui()
 
     def _build_ui(self):
@@ -65,12 +66,14 @@ class DiaryView(QWidget):
     def _on_date_changed(self):
         if not self._user_id:
             return
+        if self._load_worker is not None:
+            self._load_worker.cancel()
         date = self.calendar.selectedDate()
         date_str = date.toString("yyyy-MM-dd")
         self.date_label.setText(date.toString("dddd, MMMM d, yyyy"))
-        worker = ApiWorker(diary_model.get_entries, self._user_id, date_str)
-        worker.result.connect(self._on_entries_loaded)
-        worker.start()
+        self._load_worker = ApiWorker(diary_model.get_entries, self._user_id, date_str)
+        self._load_worker.result.connect(self._on_entries_loaded)
+        self._load_worker.start()
 
     def _on_entries_loaded(self, entries: list[diary_model.DiaryEntry]):
         self._current_entry = entries[0] if entries else None

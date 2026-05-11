@@ -6,18 +6,33 @@ from PyQt6.QtWidgets import (
 import httpx
 
 from app.frontend.models import chart_model, user_model
+from app.frontend.workers.api_worker import ApiWorker
 from app.common.constants import VALID_ZODIAC_SYSTEMS, VALID_HOUSE_SYSTEMS
 
 _HOUSE_SYSTEM_LABELS = {"placidus": "Placidus", "whole_sign": "Whole Sign"}
 
 
+def _calculate_chart_detail(user_id: str) -> chart_model.ChartData:
+    """Run calculate_chart and convert HTTPStatusError detail into a plain RuntimeError."""
+    try:
+        return chart_model.calculate_chart(user_id)
+    except httpx.HTTPStatusError as e:
+        try:
+            detail = e.response.json().get("detail", "")
+        except Exception:
+            detail = e.response.text
+        raise RuntimeError(detail or str(e))
+
+
 class SettingsView(QWidget):
-    user_deleted = pyqtSignal()      # main_window returns to Welcome
-    chart_changed = pyqtSignal()     # main_window refreshes Chart tab
+    user_deleted = pyqtSignal()
+    chart_changed = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._user_id: str | None = None
+        self._loaded_house: str = "placidus"
+        self._house_worker: ApiWorker | None = None
         self._build_ui()
 
     def _build_ui(self):
@@ -28,7 +43,6 @@ class SettingsView(QWidget):
         title.setStyleSheet("font-size: 18px; font-weight: bold;")
         layout.addWidget(title)
 
-        # Zodiac system
         zodiac_group = QGroupBox("Zodiac System")
         zodiac_layout = QHBoxLayout(zodiac_group)
         self.zodiac_combo = QComboBox()
@@ -41,7 +55,6 @@ class SettingsView(QWidget):
         zodiac_layout.addStretch()
         layout.addWidget(zodiac_group)
 
-        # House system
         house_group = QGroupBox("House System")
         house_layout = QHBoxLayout(house_group)
         self.house_combo = QComboBox()
@@ -55,7 +68,6 @@ class SettingsView(QWidget):
         house_layout.addStretch()
         layout.addWidget(house_group)
 
-        # Account
         account_group = QGroupBox("Account")
         account_layout = QVBoxLayout(account_group)
         delete_btn = QPushButton("Delete My Account…")
@@ -72,8 +84,8 @@ class SettingsView(QWidget):
         idx = self.zodiac_combo.findText(current_zodiac)
         if idx >= 0:
             self.zodiac_combo.setCurrentIndex(idx)
-        current_house = chart_model.get_house_system(user_id)
-        idx = self.house_combo.findData(current_house)
+        self._loaded_house = chart_model.get_house_system(user_id)
+        idx = self.house_combo.findData(self._loaded_house)
         if idx >= 0:
             self.house_combo.setCurrentIndex(idx)
 
@@ -87,28 +99,32 @@ class SettingsView(QWidget):
         if not self._user_id:
             return
         new_value = self.house_combo.currentData()
-        previous = chart_model.get_house_system(self._user_id)
+        previous = self._loaded_house
         chart_model.set_house_system(self._user_id, new_value)
-        try:
-            chart_model.calculate_chart(self._user_id)
-        except httpx.HTTPStatusError as e:
-            # Roll back the setting if the chart can't be computed under it.
-            chart_model.set_house_system(self._user_id, previous)
-            idx = self.house_combo.findData(previous)
-            if idx >= 0:
-                self.house_combo.setCurrentIndex(idx)
-            detail = ""
-            try:
-                detail = e.response.json().get("detail", "")
-            except Exception:
-                detail = e.response.text
-            QMessageBox.warning(
-                self,
-                "House system unavailable",
-                f"Couldn't switch to {_HOUSE_SYSTEM_LABELS[new_value]}:\n\n{detail}",
-            )
-            return
+        self.save_house_btn.setEnabled(False)
+        if self._house_worker is not None:
+            self._house_worker.cancel()
+        self._house_worker = ApiWorker(_calculate_chart_detail, self._user_id)
+        self._house_worker.result.connect(lambda _: self._on_house_saved(new_value))
+        self._house_worker.error.connect(lambda msg: self._on_house_failed(previous, new_value, msg))
+        self._house_worker.start()
+
+    def _on_house_saved(self, new_value: str):
+        self.save_house_btn.setEnabled(True)
+        self._loaded_house = new_value
         self.chart_changed.emit()
+
+    def _on_house_failed(self, previous: str, new_value: str, msg: str):
+        self.save_house_btn.setEnabled(True)
+        chart_model.set_house_system(self._user_id, previous)
+        idx = self.house_combo.findData(previous)
+        if idx >= 0:
+            self.house_combo.setCurrentIndex(idx)
+        QMessageBox.warning(
+            self,
+            "House system unavailable",
+            f"Couldn't switch to {_HOUSE_SYSTEM_LABELS[new_value]}:\n\n{msg}",
+        )
 
     def _on_delete_account(self):
         reply = QMessageBox.question(

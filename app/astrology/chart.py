@@ -44,7 +44,15 @@ EPHEMERIS_MAX_YEAR = 2053
 
 # Lahiri ayanamsa at J2000.0 and its annual rate (degrees)
 _LAHIRI_J2000 = 23.853105
-_LAHIRI_RATE = 0.013969
+_LAHIRI_RATE  = 0.013969
+
+# Standard astronomical constants
+_J2000             = 2451545.0       # Julian date of J2000.0 epoch
+_DAYS_PER_CENTURY  = 36525.0         # days in a Julian century
+_OBLIQUITY_J2000   = 23.439291111    # mean ecliptic obliquity at J2000.0 (degrees)
+_OBLIQUITY_RATE    = 0.013004167     # obliquity decrease per Julian century (degrees)
+_NN_LON_J2000      = 125.04452       # mean North Node ecliptic longitude at J2000.0 (degrees)
+_NN_RATE           = 1934.136261     # mean North Node retrograde rate per Julian century (degrees)
 
 
 @lru_cache(maxsize=1)
@@ -53,7 +61,7 @@ def _load_ephemeris():
 
 
 def _lahiri_ayanamsa(tt: float) -> float:
-    years_from_j2000 = (tt - 2451545.0) / 365.25
+    years_from_j2000 = (tt - _J2000) / (_DAYS_PER_CENTURY / 100)
     return _LAHIRI_J2000 + _LAHIRI_RATE * years_from_j2000
 
 
@@ -68,8 +76,8 @@ def compute_angles_and_cusps(
     gast  = t.gast
     lst   = (gast + birth_lon / 15.0) % 24
     ramc  = (lst * 15.0) % 360
-    T     = (t.tt - 2451545.0) / 36525.0
-    obliquity = 23.439291111 - 0.013004167 * T
+    T     = (t.tt - _J2000) / _DAYS_PER_CENTURY
+    obliquity = _OBLIQUITY_J2000 - _OBLIQUITY_RATE * T
     eps    = math.radians(obliquity)
     phi    = math.radians(birth_lat)
     ramc_r = math.radians(ramc)
@@ -262,8 +270,8 @@ def compute_planet_positions(dt_utc: datetime, zodiac_system: str) -> dict:
         }
 
     # Mean North Node via standard formula (accurate to ~0.1°)
-    T = (t.tt - 2451545.0) / 36525.0
-    north_node_lon = (125.04452 - 1934.136261 * T) % 360
+    T = (t.tt - _J2000) / _DAYS_PER_CENTURY
+    north_node_lon = (_NN_LON_J2000 - _NN_RATE * T) % 360
     if zodiac_system == "sidereal":
         north_node_lon = (north_node_lon - _lahiri_ayanamsa(t.tt)) % 360
     south_node_lon = (north_node_lon + 180.0) % 360

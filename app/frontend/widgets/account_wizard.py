@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
 
 from app.frontend.models import user_model
 from app.frontend import api_client
+from app.frontend.workers.api_worker import ApiWorker
 from app.common.constants import PLACIDUS_MAX_LATITUDE
 from app.common.logging_config import get_logger
 
@@ -121,12 +122,24 @@ class _LocationPage(QWizardPage):
         self._lat = 0.0
         self._lon = 0.0
         self._tz = ""
+        self._geocode_worker: ApiWorker | None = None
 
     def _on_search(self):
         query = self.search_edit.text().strip()
         if not query:
             return
-        result = api_client.geocode(query)
+        if self._geocode_worker is not None:
+            self._geocode_worker.cancel()
+        self.search_btn.setEnabled(False)
+        self.result_label.setText("Searching…")
+        self.result_label.setStyleSheet("color: #888;")
+        self._geocode_worker = ApiWorker(api_client.geocode, query)
+        self._geocode_worker.result.connect(self._on_geocode_result)
+        self._geocode_worker.error.connect(self._on_geocode_error)
+        self._geocode_worker.start()
+
+    def _on_geocode_result(self, result):
+        self.search_btn.setEnabled(True)
         if not result:
             self.result_label.setText("Location not found. Try a different search.")
             self.result_label.setStyleSheet("color: red;")
@@ -134,14 +147,17 @@ class _LocationPage(QWizardPage):
         self._location_str = result["display_name"]
         self._lat = float(result["lat"])
         self._lon = float(result["lon"])
-
         tz = _tz_from_coords(self._lat, self._lon)
         self._tz = tz or ""
-
         self.result_label.setText(f"Found: {self._location_str}")
         self.result_label.setStyleSheet("color: green;")
         self.tz_label.setText(f"Timezone: {self._tz or '(unknown — enter manually)'}")
         self.completeChanged.emit()
+
+    def _on_geocode_error(self, msg: str):
+        self.search_btn.setEnabled(True)
+        self.result_label.setText(f"Search failed: {msg}")
+        self.result_label.setStyleSheet("color: red;")
 
     def isComplete(self) -> bool:
         return bool(self._location_str) and bool(self._tz)
@@ -275,15 +291,30 @@ class AccountWizard(QWizard):
             "birth_lon": self._location_page._lon,
             "house_system": self._house_page.selected(),
         }
-        log.debug("wizard accept: creating user %s", payload.get("username"))
-        try:
-            self.created_user_id = user_model.create_user(payload)
-            log.debug("wizard accept: user created %s, calculating chart", self.created_user_id)
-            from app.frontend.models import chart_model
-            chart_model.calculate_chart(self.created_user_id)
-            log.debug("wizard accept: chart done, closing wizard")
-            super().accept()
-            log.debug("wizard accept: complete")
-        except Exception as exc:
-            log.error("wizard accept failed: %s", exc, exc_info=True)
-            QMessageBox.critical(self, "Error", f"Could not create profile:\n{exc}")
+        btn = self.button(QWizard.WizardButton.FinishButton)
+        btn.setEnabled(False)
+        btn.setText("Creating…")
+        self._create_worker = ApiWorker(self._create_profile, payload)
+        self._create_worker.result.connect(self._on_create_success)
+        self._create_worker.error.connect(self._on_create_error)
+        self._create_worker.start()
+
+    def _create_profile(self, payload: dict) -> str:
+        log.debug("creating user %s", payload.get("username"))
+        user_id = user_model.create_user(payload)
+        log.debug("user created %s, calculating chart", user_id)
+        from app.frontend.models import chart_model
+        chart_model.calculate_chart(user_id)
+        log.debug("chart done")
+        return user_id
+
+    def _on_create_success(self, user_id: str):
+        self.created_user_id = user_id
+        super().accept()
+
+    def _on_create_error(self, msg: str):
+        log.error("wizard create failed: %s", msg)
+        btn = self.button(QWizard.WizardButton.FinishButton)
+        btn.setEnabled(True)
+        btn.setText("Finish")
+        QMessageBox.critical(self, "Error", f"Could not create profile:\n{msg}")
