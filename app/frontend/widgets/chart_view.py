@@ -182,7 +182,6 @@ class _ZodiacWheel(QWidget):
         self._cb_natal_aspects   = QCheckBox("Natal Aspects")
         self._cb_transits        = QCheckBox("Transit Planets")
         self._cb_transit_aspects = QCheckBox("Transit Aspects")
-        self._cb_hover_aspects   = QCheckBox("Hover Aspects")
         self._cb_labels          = QCheckBox("Circle Labels")
         self._cb_houses          = QCheckBox("Houses")
         self._cb_angles          = QCheckBox("Angles")
@@ -190,7 +189,6 @@ class _ZodiacWheel(QWidget):
         self._cb_natal_aspects.setChecked(True)
         self._cb_transits.setChecked(True)
         self._cb_transit_aspects.setChecked(False)
-        self._cb_hover_aspects.setChecked(True)
         self._cb_labels.setChecked(True)
         self._cb_houses.setChecked(True)
         self._cb_angles.setChecked(True)
@@ -198,7 +196,6 @@ class _ZodiacWheel(QWidget):
         fb_layout.addWidget(self._cb_natal)
         fb_layout.addWidget(self._cb_natal_aspects)
         fb_layout.addWidget(self._cb_transits)
-        fb_layout.addWidget(self._cb_hover_aspects)
         fb_layout.addWidget(self._cb_houses)
         fb_layout.addWidget(self._cb_labels)
         fb_layout.addWidget(self._cb_transit_aspects)
@@ -206,7 +203,6 @@ class _ZodiacWheel(QWidget):
         self._cb_natal_aspects.toggled.connect(self.update)
         self._cb_transits.toggled.connect(self.update)
         self._cb_transit_aspects.toggled.connect(self.update)
-        self._cb_hover_aspects.toggled.connect(self.update)
         self._cb_labels.toggled.connect(self.update)
         self._cb_houses.toggled.connect(self.update)
         self._cb_angles.toggled.connect(self.update)
@@ -545,8 +541,8 @@ class _ZodiacWheel(QWidget):
         # ── Transit-to-natal aspect lines ────────────────────────
         show_transits_on = self._cb_transits.isChecked()
         show_all_t_asp   = show_transits_on and self._cb_transit_aspects.isChecked()
-        show_hover_t_asp = show_transits_on and self._cb_hover_aspects.isChecked() and bool(self._hovered_transit)
-        show_angle_t_asp = show_transits_on and self._cb_hover_aspects.isChecked() and self._hovered in ANGLE_NAMES
+        show_hover_t_asp = show_transits_on and bool(self._hovered_transit)
+        show_angle_t_asp = show_transits_on and self._hovered in ANGLE_NAMES
         if (show_all_t_asp or show_hover_t_asp or show_angle_t_asp) and self._transit_aspects and self._chart:
             dash_pen = QPen()
             dash_pen.setWidth(1)
