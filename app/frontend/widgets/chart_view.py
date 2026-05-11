@@ -25,11 +25,11 @@ PLANET_COLORS = {
     "Saturn": "#d4be96", "Uranus": "#00CED1", "Neptune": "#4169E1",
     "Pluto": "#C01F6A",
     "North Node": "#90d870", "South Node": "#90d870",
-    "ASC": "#e8c85a", "DSC": "#e8c85a", "MC": "#c8a8ff", "IC": "#c8a8ff",
+    "ASC": "#c8a8ff", "DSC": "#c8a8ff", "MC": "#c8a8ff", "IC": "#c8a8ff",
 }
 
 ANGLE_NAMES    = {"ASC", "DSC", "MC", "IC"}
-ANGLE_COLORS   = {"ASC": "#e8c85a", "DSC": "#e8c85a", "MC": "#c8a8ff", "IC": "#c8a8ff"}
+ANGLE_COLORS   = {"ASC": "#c8a8ff", "DSC": "#c8a8ff", "MC": "#c8a8ff", "IC": "#c8a8ff"}
 HOUSE_NUMERALS = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"]
 
 # ︎ = variation selector 15: forces text rendering instead of emoji
@@ -430,14 +430,20 @@ class _ZodiacWheel(QWidget):
                              Qt.AlignmentFlag.AlignCenter, angle_name)
 
         # ── Aspect lines ──────────────────────────────────────────
+        hov_active = bool(self._hovered) or bool(self._hovered_transit)
         if show_natal and self._cb_natal_aspects.isChecked() and self._chart and self._aspects:
             arc_step = radius_inner * 0.015
             for asp in self._aspects:
                 lon1 = self._chart.positions[asp.planet1].longitude
                 lon2 = self._chart.positions[asp.planet2].longitude
                 color = QColor(ASPECT_COLORS.get(asp.aspect, "#888"))
-                color.setAlpha(160)
-                painter.setPen(QPen(color, 1.0))
+                related = bool(self._hovered) and self._hovered in (asp.planet1, asp.planet2)
+                if hov_active:
+                    color.setAlpha(220 if related else 80)
+                else:
+                    color.setAlpha(160)
+                width = 1.6 if (hov_active and related) else 1.0
+                painter.setPen(QPen(color, width))
 
                 if asp.aspect == "conjunction":
                     # Three concentric arcs curving along the inner ring
@@ -480,7 +486,14 @@ class _ZodiacWheel(QWidget):
                 if not self._transits or t.transit_planet not in self._transits.positions:
                     continue
                 color = QColor(ASPECT_COLORS.get(t.aspect, "#888"))
-                color.setAlpha(110)
+                related = (
+                    (bool(self._hovered) and t.natal_planet == self._hovered)
+                    or (bool(self._hovered_transit) and t.transit_planet == self._hovered_transit)
+                )
+                if hov_active:
+                    color.setAlpha(200 if related else 55)
+                else:
+                    color.setAlpha(110)
                 dash_pen.setColor(color)
                 painter.setPen(dash_pen)
                 t_lon = self._transits.positions[t.transit_planet].longitude
