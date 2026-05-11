@@ -7,6 +7,7 @@
 
 ## Aspect Web
 - [ ] **Aspect symbols at line midpoints** — draw the standard aspect glyph (☌ conjunction, ☍ opposition, △ trine, □ square, ⚹ sextile) at the midpoint of each aspect line in the web
+- [ ] **Aspect symbols on transit-to-natal lines** — same glyphs at midpoints of the dashed transit aspect lines
 - [ ] **Aspect symbol key** — a legend panel or overlay mapping each symbol to its name and meaning
 
 ## Animations

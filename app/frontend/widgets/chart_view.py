@@ -355,8 +355,9 @@ class _ZodiacWheel(QWidget):
                     painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
         # ── Transit-to-natal aspect lines ────────────────────────
-        show_all_t_asp   = self._cb_transit_aspects.isChecked()
-        show_hover_t_asp = self._cb_hover_aspects.isChecked() and bool(self._hovered_transit)
+        show_transits_on = self._cb_transits.isChecked()
+        show_all_t_asp   = show_transits_on and self._cb_transit_aspects.isChecked()
+        show_hover_t_asp = show_transits_on and self._cb_hover_aspects.isChecked() and bool(self._hovered_transit)
         if (show_all_t_asp or show_hover_t_asp) and self._transit_aspects and self._chart:
             dash_pen = QPen()
             dash_pen.setWidth(1)
@@ -556,6 +557,7 @@ class ChartView(QWidget):
         self._aspects: list[chart_model.NatalAspect] = []
         self._transit_aspects: chart_model.TransitData | None = None
         self._planet_names: list[str] = []
+        self._table_mode: str = "natal"   # "natal" or "transit"
         self._build_ui()
 
     def _build_ui(self):
@@ -598,15 +600,16 @@ class ChartView(QWidget):
 
         # Planet table — sized to fit content exactly
         self.table = QTableWidget(0, 3)
-        self.table.setHorizontalHeaderLabels(["Planet", "Sign", "Degree"])
+        self.table.setHorizontalHeaderLabels(["Natal Planet", "Sign", "Degree"])
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.verticalHeader().setVisible(False)
         self.table.setShowGrid(False)
         self.table.setAlternatingRowColors(True)
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+        self.table.setColumnWidth(2, 72)
         self.table.currentCellChanged.connect(lambda row, *_: self._on_row_hover(row))
         sb_layout.addWidget(self.table)
 
@@ -696,31 +699,63 @@ class ChartView(QWidget):
         self.zodiac_label.setText(f"Zodiac: {chart.zodiac_system.title()}")
         self.wheel.set_chart(chart)
         self._fetch_transits()
+        self._populate_table_natal()
 
+    def _populate_table_natal(self):
+        if not self._chart:
+            return
+        self._table_mode = "natal"
+        self.table.setHorizontalHeaderLabels(["Natal Planet", "Sign", "Degree"])
         planet_font = QFont()
         planet_font.setPointSize(11)
-        self.table.setRowCount(len(chart.positions))
-        for row, (name, pos) in enumerate(chart.positions.items()):
+        self.table.setRowCount(len(self._chart.positions))
+        for row, (name, pos) in enumerate(self._chart.positions.items()):
             glyph = PLANET_GLYPHS.get(name, name)
-            glyph_item = QTableWidgetItem(f"{glyph}  {name}")
-            glyph_item.setForeground(QColor(PLANET_COLORS.get(name, "#ffffff")))
-            glyph_item.setFont(planet_font)
-            self.table.setItem(row, 0, glyph_item)
+            item = QTableWidgetItem(f"{glyph}  {name}")
+            item.setForeground(QColor(PLANET_COLORS.get(name, "#ffffff")))
+            item.setFont(planet_font)
+            self.table.setItem(row, 0, item)
             self.table.setItem(row, 1, QTableWidgetItem(pos.sign))
-            self.table.setItem(row, 2, QTableWidgetItem(f"{pos.degree:.2f}°"))
+            self.table.setItem(row, 2, QTableWidgetItem(f"  {pos.degree:.2f}°"))
+        self._resize_table()
 
-        # Shrink table to exact content height — no grey gap
+    def _populate_table_transit(self):
+        transits = self.wheel._transits
+        if not transits:
+            return
+        self._table_mode = "transit"
+        self.table.setHorizontalHeaderLabels(["Transit Planet", "Sign", "Degree"])
+        planet_font = QFont()
+        planet_font.setPointSize(11)
+        self.table.setRowCount(len(transits.positions))
+        for row, (name, pos) in enumerate(transits.positions.items()):
+            glyph = PLANET_GLYPHS.get(name, name)
+            item = QTableWidgetItem(f"{glyph}  {name}")
+            item.setForeground(QColor(PLANET_COLORS.get(name, "#ffffff")))
+            item.setFont(planet_font)
+            self.table.setItem(row, 0, item)
+            self.table.setItem(row, 1, QTableWidgetItem(pos.sign))
+            self.table.setItem(row, 2, QTableWidgetItem(f"  {pos.degree:.2f}°"))
+        self._resize_table()
+
+    def _resize_table(self):
         row_h = self.table.rowHeight(0) if self.table.rowCount() > 0 else 24
         header_h = self.table.horizontalHeader().height()
         self.table.setFixedHeight(row_h * self.table.rowCount() + header_h + 4)
 
     def _on_wheel_hover(self, name: str):
+        if self._table_mode == "transit" and name:
+            self._populate_table_natal()
         if name and name in self._planet_names:
             row = self._planet_names.index(name)
             self.table.selectRow(row)
+        else:
+            self.table.clearSelection()
         self._show_planet_info(name)
 
     def _on_row_hover(self, row: int):
+        if self._table_mode == "transit":
+            return
         if not self._chart or row < 0 or row >= len(self._planet_names):
             return
         self._show_planet_info(self._planet_names[row])
@@ -753,7 +788,7 @@ class ChartView(QWidget):
             "<p style='color:#cc3333; margin:0 0 4px 0; font-size:11px; letter-spacing:1px;'>℞ RETROGRADE</p>"
 
         html = f"""
-        <p style="font-size:24px; color:{color}; margin:0 0 4px 0;">{glyph} <b>{name}</b></p>
+        <p style="font-size:24px; color:{color}; margin:0 0 4px 0;">{glyph} {name}</p>
         <p style="color:#7070a0; margin:0 0 4px 0; font-size:13px;">{degree_line}</p>
         {retrograde_tag}<p style="color:#445588; margin:0 0 10px 0; font-size:11px; letter-spacing:1px;">NATAL PLANET</p>
         <p style="color:#a0a0c0; margin:0 0 14px 0; font-size:14px; line-height:1.6;">
@@ -766,9 +801,11 @@ class ChartView(QWidget):
 
     def _on_transit_hover(self, name: str):
         if name:
+            self._populate_table_transit()
             self._show_transit_info(name)
-        elif not self.wheel._hovered and not self.wheel._hovered_sign:
-            self._show_planet_info("")
+        else:
+            if not self.wheel._hovered and not self.wheel._hovered_sign:
+                self._show_planet_info("")
 
     def _show_transit_info(self, name: str):
         if not name or not self.wheel._transits or name not in self.wheel._transits.positions:
