@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from app.frontend import api_client
 
+_ANGLE_NAMES = {"ASC", "DSC", "MC", "IC"}
+
 _ASPECT_ANGLES = {
     "conjunction": (0,   8),
     "sextile":     (60,  6),
@@ -108,6 +110,8 @@ def compute_natal_aspects(chart: ChartData) -> list[NatalAspect]:
     results = []
     for i, (name1, pos1) in enumerate(planets):
         for name2, pos2 in planets[i + 1:]:
+            if name1 in _ANGLE_NAMES and name2 in _ANGLE_NAMES:
+                continue
             diff = abs(pos1.longitude - pos2.longitude) % 360
             if diff > 180:
                 diff = 360 - diff

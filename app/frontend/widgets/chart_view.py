@@ -392,7 +392,7 @@ class _ZodiacWheel(QWidget):
         axis_end      = radius_house_outer if houses_on else radius_zodiac_outer
         angle_label_r = (radius_cosmos + radius_house_outer) / 2 if houses_on else radius_zodiac_inner * 0.945
         lbl_font = QFont()
-        lbl_font.setPointSize(8)
+        lbl_font.setPointSize(16)
         lbl_font.setBold(True)
         for angle_name in ("ASC", "DSC", "MC", "IC"):
             if not self._chart or angle_name not in self._chart.positions:
@@ -417,7 +417,7 @@ class _ZodiacWheel(QWidget):
             if is_hov:
                 lbl_color = lbl_color.lighter(130)
             painter.setPen(QPen(lbl_color))
-            painter.drawText(QRectF(lx - 14, ly - 8, 28, 16),
+            painter.drawText(QRectF(lx - 24, ly - 12, 48, 24),
                              Qt.AlignmentFlag.AlignCenter, angle_name)
 
         # ── Aspect lines ──────────────────────────────────────────
@@ -431,7 +431,7 @@ class _ZodiacWheel(QWidget):
                 painter.setPen(QPen(color, 1.0))
 
                 if asp.aspect == "conjunction":
-                    # Three concentric arcs curving along the house ring
+                    # Three concentric arcs curving along the inner ring
                     a1, a2 = min(lon1, lon2), max(lon1, lon2)
                     if a2 - a1 > 180:
                         a1, a2 = a2, a1 + 360
@@ -453,13 +453,19 @@ class _ZodiacWheel(QWidget):
         show_transits_on = self._cb_transits.isChecked()
         show_all_t_asp   = show_transits_on and self._cb_transit_aspects.isChecked()
         show_hover_t_asp = show_transits_on and self._cb_hover_aspects.isChecked() and bool(self._hovered_transit)
-        if (show_all_t_asp or show_hover_t_asp) and self._transit_aspects and self._chart:
+        show_angle_t_asp = show_transits_on and self._cb_hover_aspects.isChecked() and self._hovered in ANGLE_NAMES
+        if (show_all_t_asp or show_hover_t_asp or show_angle_t_asp) and self._transit_aspects and self._chart:
             dash_pen = QPen()
             dash_pen.setWidth(1)
             dash_pen.setStyle(Qt.PenStyle.DashLine)
             for t in self._transit_aspects.transits:
-                if not show_all_t_asp and t.transit_planet != self._hovered_transit:
-                    continue
+                if not show_all_t_asp:
+                    if show_hover_t_asp and t.transit_planet == self._hovered_transit:
+                        pass
+                    elif show_angle_t_asp and t.natal_planet == self._hovered:
+                        pass
+                    else:
+                        continue
                 if t.natal_planet not in self._chart.positions:
                     continue
                 if not self._transits or t.transit_planet not in self._transits.positions:
@@ -471,7 +477,8 @@ class _ZodiacWheel(QWidget):
                 t_lon = self._transits.positions[t.transit_planet].longitude
                 n_lon = self._chart.positions[t.natal_planet].longitude
                 tx, ty = _angle_to_xy(cx, cy, radius_zodiac_outer, t_lon)
-                nx, ny = _angle_to_xy(cx, cy, radius_inner,   n_lon)
+                n_r    = radius_cosmos if t.natal_planet in ANGLE_NAMES else radius_inner
+                nx, ny = _angle_to_xy(cx, cy, n_r, n_lon)
                 painter.drawLine(QPointF(tx, ty), QPointF(nx, ny))
 
         # ── Planet glyphs ─────────────────────────────────────────
@@ -885,8 +892,20 @@ class ChartView(QWidget):
                 f'<span style="color:#555">(orb {a.orb:.1f}°)</span><br>'
             )
 
+        transit_aspect_lines = ""
+        if is_angle and self._transit_aspects:
+            for t in self._transit_aspects.transits:
+                if t.natal_planet != name:
+                    continue
+                asp_color = ASPECT_COLORS.get(t.aspect, "#888")
+                transit_aspect_lines += (
+                    f'<span style="color:{asp_color}">╌</span> '
+                    f'{t.aspect.title()} transit {t.transit_planet} '
+                    f'<span style="color:#555">(orb {t.orb:.1f}°)</span><br>'
+                )
+
         degree_line = f"{pos.sign} {pos.degree:.2f}°"
-        if not is_angle and self._chart.house_cusps:
+        if self._chart.house_cusps:
             h = chart_model.get_house_number(pos.longitude, self._chart.house_cusps)
             if h:
                 degree_line += f" &nbsp;·&nbsp; House {HOUSE_NUMERALS[h - 1]}"
@@ -910,6 +929,8 @@ class ChartView(QWidget):
         </p>
         {"<p style='color:#666; font-size:13px; margin:0 0 6px 0;'>Natal aspects:</p>" if aspect_lines else ""}
         <p style="font-size:13px; line-height:2.0; margin:0;">{aspect_lines}</p>
+        {"<p style='color:#666; font-size:13px; margin:0 0 6px 0;'>Transit aspects:</p>" if transit_aspect_lines else ""}
+        <p style="font-size:13px; line-height:2.0; margin:0;">{transit_aspect_lines}</p>
         """
         self.info_panel.setHtml(html)
 
