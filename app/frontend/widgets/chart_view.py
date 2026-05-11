@@ -1,5 +1,5 @@
 import math
-from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal
+from PyQt6.QtCore import Qt, QRectF, QPointF, QUrl, pyqtSignal
 from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QPainterPath
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 
 from app.frontend.models import chart_model
 from app.frontend.workers.api_worker import ApiWorker
+from app.frontend.data.interpretations import natal_aspect_text, planet_in_sign_text, planet_in_house_text
 
 PLANET_GLYPHS = {
     "Sun":        "☉︎", "Moon":      "☽︎", "Mercury":    "☿︎",
@@ -173,6 +174,11 @@ STATUS_HEIGHT      = 20
 RECALC_BTN_WIDTH   = 110
 TABLE_DEGREE_COL_W = 72   # fixed width of the degree column in the planet table
 
+# ── Lock indicator ───────────────────────────────────────────────────────────
+COLOR_LOCK      = "#00c8c8"   # teal ring + badge
+LOCK_RING_PEN_W = 2.5         # pen width for the teal ring
+LOCK_GLYPH_PT   = 9           # pt size of 🔒 drawn on wheel
+
 # ── Wheel colors ─────────────────────────────────────────────────────────────
 COLOR_BG            = "#0d0d1a"        # background fill
 COLOR_RING          = "#3a3a6a"        # rings, dividers, hub
@@ -235,6 +241,8 @@ class _ZodiacWheel(QWidget):
     transit_hovered = pyqtSignal(str)   # transit planet name, or "" for none
     sign_hovered    = pyqtSignal(str)   # sign name, or "" for none
     house_hovered   = pyqtSignal(int)   # house number 1-12, or 0 for none
+    planet_locked   = pyqtSignal(str)   # locked natal name, or "" to unlock
+    transit_locked  = pyqtSignal(str)   # locked transit name, or "" to unlock
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -250,6 +258,8 @@ class _ZodiacWheel(QWidget):
         self._hovered_transit: str = ""
         self._hovered_sign:    str = ""
         self._hovered_house:   int = 0
+        self._locked:          str = ""
+        self._locked_transit:  str = ""
         self._house_cusps: list[float] | None = None
         self._sky_aspects: list[chart_model.Aspect] = []
         self._scale: float = 1.0  # updated each paint; used by hit testing
@@ -400,6 +410,49 @@ class _ZodiacWheel(QWidget):
             self.house_hovered.emit(hit_house)
             self.update()
 
+    def mousePressEvent(self, event):
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        mx, my = event.position().x(), event.position().y()
+        s = self._scale
+
+        hit_natal = ""
+        for name, (px, py) in self._planet_positions.items():
+            half = (GLYPH_PX / 2 + PLANET_HIT_PAD) * s
+            if math.sqrt((mx - px) ** 2 + (my - py) ** 2) < half:
+                hit_natal = name
+                break
+
+        hit_transit = ""
+        if not hit_natal:
+            for name, (px, py) in self._transit_positions.items():
+                half = (TRANSIT_GLYPH_PX / 2 + PLANET_HIT_PAD) * s
+                if math.sqrt((mx - px) ** 2 + (my - py) ** 2) < half:
+                    hit_transit = name
+                    break
+
+        if hit_natal:
+            if self._locked == hit_natal:
+                self._locked = ""
+            else:
+                self._locked = hit_natal
+                self._locked_transit = ""
+            self.planet_locked.emit(self._locked)
+        elif hit_transit:
+            if self._locked_transit == hit_transit:
+                self._locked_transit = ""
+            else:
+                self._locked_transit = hit_transit
+                self._locked = ""
+            self.transit_locked.emit(self._locked_transit)
+        else:
+            if self._locked or self._locked_transit:
+                self._locked = ""
+                self._locked_transit = ""
+                self.planet_locked.emit("")
+                self.transit_locked.emit("")
+        self.update()
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -408,9 +461,14 @@ class _ZodiacWheel(QWidget):
         show_natal  = self._cb_natal.isChecked()
         show_labels = self._cb_labels.isChecked()
 
+        # Effective hover: locked state overrides physical hover for all highlights.
+        any_locked      = bool(self._locked or self._locked_transit)
+        eff_hov         = self._locked         or self._hovered
+        eff_hov_transit = self._locked_transit or self._hovered_transit
+
         # Spotlight: when a sign or house is hovered, occupants stay bright,
-        # everything else dims. Angles are never spotlit.
-        spotlight_active = bool(self._hovered_sign) or bool(self._hovered_house)
+        # everything else dims. Suppressed entirely when any planet is locked.
+        spotlight_active = not any_locked and (bool(self._hovered_sign) or bool(self._hovered_house))
         spotlit_natals: set[str] = set()
         spotlit_transits: set[str] = set()
         if spotlight_active:
@@ -497,11 +555,12 @@ class _ZodiacWheel(QWidget):
             angle = i * 30 + 15
             x, y = _angle_to_xy(cx, cy, label_r, angle, rot)
             self._sign_positions[name] = (x, y)
-            if name == self._hovered_sign:
+            show_sign_hov = not any_locked and name == self._hovered_sign
+            if show_sign_hov:
                 painter.setPen(Qt.PenStyle.NoPen)
                 painter.setBrush(QBrush(QColor(255, 255, 255, 30)))
                 painter.drawEllipse(QPointF(x, y), half_sign + 4 * scale, half_sign + 4 * scale)
-            painter.setPen(QPen(QColor(COLOR_SIGN_HOVERED) if name == self._hovered_sign else QColor(COLOR_SIGN_NORMAL)))
+            painter.setPen(QPen(QColor(COLOR_SIGN_HOVERED) if show_sign_hov else QColor(COLOR_SIGN_NORMAL)))
             painter.drawText(QRectF(x - half_sign, y - half_sign, sign_px, sign_px),
                              Qt.AlignmentFlag.AlignCenter, glyph)
 
@@ -576,7 +635,7 @@ class _ZodiacWheel(QWidget):
                 mid_lon     = (cusp_lon + sector_span / 2) % 360
                 lx, ly = _angle_to_xy(cx, cy, label_r_band, mid_lon, rot)
                 self._house_positions[i + 1] = (lx, ly)
-                is_house_hov = (i + 1) == self._hovered_house
+                is_house_hov = not any_locked and (i + 1) == self._hovered_house
                 if is_house_hov:
                     painter.setPen(Qt.PenStyle.NoPen)
                     painter.setBrush(QBrush(QColor(255, 255, 255, 30)))
@@ -608,7 +667,7 @@ class _ZodiacWheel(QWidget):
                 continue
             lon    = self._chart.positions[angle_name].longitude
             color  = QColor(ANGLE_COLORS[angle_name])
-            is_hov = angle_name == self._hovered
+            is_hov = angle_name == eff_hov
             width  = PEN_ANGLE_HOVERED if is_hov else PEN_ANGLE_NORMAL
             if is_hov:
                 color = color.lighter(130)
@@ -630,7 +689,7 @@ class _ZodiacWheel(QWidget):
                              Qt.AlignmentFlag.AlignCenter, angle_name)
 
         # ── Aspect lines ──────────────────────────────────────────
-        hov_active = bool(self._hovered) or bool(self._hovered_transit)
+        hov_active = bool(eff_hov) or bool(eff_hov_transit)
         if show_natal and self._cb_natal_aspects.isChecked() and self._chart and self._aspects:
             arc_step = radius_inner * CONJUNCTION_ARC_STEP_FRAC
             for asp in self._aspects:
@@ -639,7 +698,7 @@ class _ZodiacWheel(QWidget):
                 color = QColor(ASPECT_COLORS.get(asp.aspect, "#888"))
                 if not angles_on and (asp.planet1 in ANGLE_NAMES or asp.planet2 in ANGLE_NAMES):
                     continue
-                related = bool(self._hovered) and self._hovered in (asp.planet1, asp.planet2)
+                related = bool(eff_hov) and eff_hov in (asp.planet1, asp.planet2)
                 if hov_active:
                     color.setAlpha(ALPHA_NATAL_ASP_RELATED if related else ALPHA_NATAL_ASP_DIM)
                 else:
@@ -669,17 +728,17 @@ class _ZodiacWheel(QWidget):
         # ── Transit-to-natal aspect lines ────────────────────────
         show_transits_on = self._cb_transits.isChecked()
         show_all_t_asp   = show_transits_on and show_natal and self._cb_transit_aspects.isChecked()
-        show_hover_t_asp = show_transits_on and show_natal and bool(self._hovered_transit)
-        show_angle_t_asp = show_transits_on and show_natal and self._hovered in ANGLE_NAMES
+        show_hover_t_asp = show_transits_on and show_natal and bool(eff_hov_transit)
+        show_angle_t_asp = show_transits_on and show_natal and eff_hov in ANGLE_NAMES
         if (show_all_t_asp or show_hover_t_asp or show_angle_t_asp) and self._transit_aspects and self._chart:
             dash_pen = QPen()
             dash_pen.setWidth(1)
             dash_pen.setStyle(Qt.PenStyle.DashLine)
             for t in self._transit_aspects.transits:
                 if not show_all_t_asp:
-                    if show_hover_t_asp and t.transit_planet == self._hovered_transit:
+                    if show_hover_t_asp and t.transit_planet == eff_hov_transit:
                         pass
-                    elif show_angle_t_asp and t.natal_planet == self._hovered:
+                    elif show_angle_t_asp and t.natal_planet == eff_hov:
                         pass
                     else:
                         continue
@@ -691,8 +750,8 @@ class _ZodiacWheel(QWidget):
                     continue
                 color = QColor(ASPECT_COLORS.get(t.aspect, "#888"))
                 related = (
-                    (bool(self._hovered) and t.natal_planet == self._hovered)
-                    or (bool(self._hovered_transit) and t.transit_planet == self._hovered_transit)
+                    (bool(eff_hov) and t.natal_planet == eff_hov)
+                    or (bool(eff_hov_transit) and t.transit_planet == eff_hov_transit)
                 )
                 if hov_active:
                     color.setAlpha(ALPHA_TRANSIT_ASP_RELATED if related else ALPHA_TRANSIT_ASP_DIM)
@@ -709,18 +768,18 @@ class _ZodiacWheel(QWidget):
 
         # ── Transit-to-transit aspect lines (dotted, on hover or when filter on) ───
         show_all_sky = show_transits_on and self._cb_sky_aspects.isChecked()
-        show_hover_sky = show_transits_on and bool(self._hovered_transit)
+        show_hover_sky = show_transits_on and bool(eff_hov_transit)
         if (show_all_sky or show_hover_sky) and self._sky_aspects and self._transits:
             dot_pen = QPen()
             dot_pen.setWidth(1)
             dot_pen.setStyle(Qt.PenStyle.DotLine)
             for asp in self._sky_aspects:
-                if not show_all_sky and asp.planet1 != self._hovered_transit and asp.planet2 != self._hovered_transit:
+                if not show_all_sky and asp.planet1 != eff_hov_transit and asp.planet2 != eff_hov_transit:
                     continue
                 if asp.planet1 not in self._transits.positions or asp.planet2 not in self._transits.positions:
                     continue
                 color = QColor(ASPECT_COLORS.get(asp.aspect, "#888"))
-                related = not self._hovered_transit or asp.planet1 == self._hovered_transit or asp.planet2 == self._hovered_transit
+                related = not eff_hov_transit or asp.planet1 == eff_hov_transit or asp.planet2 == eff_hov_transit
                 color.setAlpha(ALPHA_TRANSIT_ASP_RELATED if related else ALPHA_TRANSIT_ASP_DIM)
                 dot_pen.setColor(color)
                 painter.setPen(dot_pen)
@@ -751,7 +810,7 @@ class _ZodiacWheel(QWidget):
             # Tick lines — full natal zone width (planets only)
             for name, pos in planet_positions_only.items():
                 color = QColor(PLANET_COLORS.get(name, "#ffffff"))
-                if name == self._hovered:
+                if name == eff_hov:
                     color = color.lighter(130)
                     painter.setPen(QPen(color, PEN_PLANET_HOVERED))
                 elif spotlight_active and name in spotlit_natals:
@@ -772,7 +831,7 @@ class _ZodiacWheel(QWidget):
                 gx, gy = _angle_to_xy(cx, cy, planet_radii[name], pos.longitude, rot)
                 self._planet_positions[name] = (gx, gy)
                 color = QColor(PLANET_COLORS.get(name, "#ffffff"))
-                is_hovered = name == self._hovered
+                is_hovered = name == eff_hov
                 is_spotlit = spotlight_active and name in spotlit_natals
                 is_dimmed  = spotlight_active and not is_spotlit
 
@@ -795,6 +854,22 @@ class _ZodiacWheel(QWidget):
                 painter.drawText(QRectF(gx - half, gy - half, glyph_px, glyph_px),
                                  Qt.AlignmentFlag.AlignCenter, glyph)
 
+                if name == self._locked:
+                    ring_r = half + PLANET_HIT_PAD * scale
+                    painter.setPen(QPen(QColor(COLOR_LOCK), LOCK_RING_PEN_W))
+                    painter.setBrush(Qt.BrushStyle.NoBrush)
+                    painter.drawEllipse(QPointF(gx, gy), ring_r, ring_r)
+                    lock_font = QFont()
+                    lock_font.setPointSize(max(FONT_FLOOR_SMALL, round(LOCK_GLYPH_PT * scale)))
+                    painter.setFont(lock_font)
+                    painter.setPen(QPen(QColor(COLOR_LOCK)))
+                    text_w = half * 6
+                    y_base = gy + ring_r + 2 * scale
+                    painter.drawText(QRectF(gx - text_w / 2, y_base, text_w, 14 * scale),
+                                     Qt.AlignmentFlag.AlignCenter, "LOCKED")
+                    painter.drawText(QRectF(gx - text_w / 2, y_base + 13 * scale, text_w, 12 * scale),
+                                     Qt.AlignmentFlag.AlignCenter, "Click to unlock")
+
         # ── Transit planet glyphs ─────────────────────────────────
         show_transits = self._cb_transits.isChecked()
         if show_transits and self._transits:
@@ -815,7 +890,7 @@ class _ZodiacWheel(QWidget):
             # Tick lines across transit zone
             for name, pos in self._transits.positions.items():
                 color = QColor(PLANET_COLORS.get(name, "#ffffff"))
-                if name == self._hovered_transit:
+                if name == eff_hov_transit:
                     color = color.lighter(130)
                     painter.setPen(QPen(color, PEN_PLANET_HOVERED))
                 elif spotlight_active and name in spotlit_transits:
@@ -838,7 +913,7 @@ class _ZodiacWheel(QWidget):
                 gx, gy = _angle_to_xy(cx, cy, transit_radii[name], pos.longitude, rot)
                 self._transit_positions[name] = (gx, gy)
                 color = QColor(PLANET_COLORS.get(name, "#ffffff"))
-                is_hovered = name == self._hovered_transit
+                is_hovered = name == eff_hov_transit
                 is_spotlit = spotlight_active and name in spotlit_transits
                 is_dimmed  = spotlight_active and not is_spotlit
 
@@ -873,6 +948,22 @@ class _ZodiacWheel(QWidget):
                     painter.drawText(QRectF(gx + half_t - 6 * scale, gy - half_t - 2 * scale,
                                             16 * scale, 14 * scale),
                                      Qt.AlignmentFlag.AlignLeft, "℞")
+
+                if name == self._locked_transit:
+                    ring_r_t = half_t + PLANET_HIT_PAD * scale
+                    painter.setPen(QPen(QColor(COLOR_LOCK), LOCK_RING_PEN_W))
+                    painter.setBrush(Qt.BrushStyle.NoBrush)
+                    painter.drawEllipse(QPointF(gx, gy), ring_r_t, ring_r_t)
+                    lock_font = QFont()
+                    lock_font.setPointSize(max(FONT_FLOOR_SMALL, round(LOCK_GLYPH_PT * scale)))
+                    painter.setFont(lock_font)
+                    painter.setPen(QPen(QColor(COLOR_LOCK)))
+                    text_w_t = half_t * 6
+                    y_base_t = gy + ring_r_t + 2 * scale
+                    painter.drawText(QRectF(gx - text_w_t / 2, y_base_t, text_w_t, 14 * scale),
+                                     Qt.AlignmentFlag.AlignCenter, "LOCKED")
+                    painter.drawText(QRectF(gx - text_w_t / 2, y_base_t + 13 * scale, text_w_t, 12 * scale),
+                                     Qt.AlignmentFlag.AlignCenter, "Click to unlock")
 
         # ── Hub ───────────────────────────────────────────────────
         painter.setPen(Qt.PenStyle.NoPen)
@@ -939,6 +1030,9 @@ class ChartView(QWidget):
         self._transit_aspects: chart_model.TransitData | None = None
         self._planet_names: list[str] = []
         self._table_mode: str = "natal"   # "natal" or "transit"
+        self._locked_planet: str = ""
+        self._locked_transit: str = ""
+        self._panel_expanded: set[str] = {"placement"}   # expanded by default
         self._build_ui()
 
     def _build_ui(self):
@@ -1002,7 +1096,8 @@ class ChartView(QWidget):
 
         # Planet info panel
         self.info_panel = QTextBrowser()
-        self.info_panel.setOpenExternalLinks(False)
+        self.info_panel.setOpenLinks(False)
+        self.info_panel.anchorClicked.connect(self._on_info_anchor)
         self.info_panel.setStyleSheet("""
             QTextBrowser {
                 background: transparent;
@@ -1023,6 +1118,8 @@ class ChartView(QWidget):
         self.wheel.transit_hovered.connect(self._on_transit_hover)
         self.wheel.sign_hovered.connect(self._on_sign_hover)
         self.wheel.house_hovered.connect(self._on_house_hover)
+        self.wheel.planet_locked.connect(self._on_planet_locked)
+        self.wheel.transit_locked.connect(self._on_transit_locked)
 
         self.status_label = QLabel("")
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -1146,6 +1243,8 @@ class ChartView(QWidget):
             self.table.selectRow(row)
         else:
             self.table.clearSelection()
+        if self._locked_planet:
+            return
         self._show_planet_info(name)
 
     def _on_row_hover(self, row: int):
@@ -1154,6 +1253,45 @@ class ChartView(QWidget):
         if not self._chart or row < 0 or row >= len(self._planet_names):
             return
         self._show_planet_info(self._planet_names[row])
+
+    def _on_planet_locked(self, name: str):
+        self._locked_planet = name
+        self._locked_transit = ""
+        if name:
+            self._show_planet_info(name)
+
+    def _on_transit_locked(self, name: str):
+        self._locked_transit = name
+        self._locked_planet = ""
+        if name:
+            self._show_transit_info(name)
+        else:
+            self._show_planet_info("")
+
+    def _on_info_anchor(self, url: QUrl):
+        href = url.toString()
+        if not href.startswith("toggle:"):
+            return
+        section = href[7:]
+        if section in self._panel_expanded:
+            self._panel_expanded.discard(section)
+        else:
+            self._panel_expanded.add(section)
+        name = self._locked_planet or self.wheel.hovered
+        if name:
+            self._show_planet_info(name)
+        else:
+            t = self._locked_transit or self.wheel.hovered_transit
+            if t:
+                self._show_transit_info(t)
+
+    def _section_header(self, key: str, label: str) -> str:
+        arrow = "▼" if key in self._panel_expanded else "▶"
+        return (
+            f"<p style='margin:8px 0 4px 0;'>"
+            f"<a href='toggle:{key}' style='color:#7070a0; text-decoration:none; font-size:13px;'>"
+            f"{arrow} {label}</a></p>"
+        )
 
     def _show_planet_info(self, name: str):
         if not name or not self._chart or name not in self._chart.positions:
@@ -1166,37 +1304,20 @@ class ChartView(QWidget):
         ruling, description = PLANET_INFO.get(name, ("", ""))
         is_angle = name in ANGLE_NAMES
 
-        my_aspects = [a for a in self.wheel.aspects if a.planet1 == name or a.planet2 == name]
-        aspect_lines = ""
-        for a in my_aspects:
-            other = a.planet2 if a.planet1 == name else a.planet1
-            asp_color = ASPECT_COLORS.get(a.aspect, "#888")
-            aspect_lines += (
-                f'<span style="color:{asp_color}">■</span> '
-                f'{a.aspect.title()} {other} '
-                f'<span style="color:#555">(orb {a.orb:.1f}°)</span><br>'
-            )
-
-        transit_aspect_lines = ""
-        if is_angle and self._transit_aspects:
-            for t in self._transit_aspects.transits:
-                if t.natal_planet != name:
-                    continue
-                asp_color = ASPECT_COLORS.get(t.aspect, "#888")
-                transit_aspect_lines += (
-                    f'<span style="color:{asp_color}">╌</span> '
-                    f'{t.aspect.title()} transit {t.transit_planet} '
-                    f'<span style="color:#555">(orb {t.orb:.1f}°)</span><br>'
-                )
-
+        # ── Header meta ─────────────────────────────────────────────────────
         degree_line = f"{pos.sign} {pos.degree:.2f}°"
+        house_num: int | None = None
         if self._chart.house_cusps:
-            h = chart_model.get_house_number(pos.longitude, self._chart.house_cusps)
-            if h:
-                degree_line += f" &nbsp;·&nbsp; House {HOUSE_NUMERALS[h - 1]}"
+            house_num = chart_model.get_house_number(pos.longitude, self._chart.house_cusps)
+            if house_num:
+                degree_line += f" &nbsp;·&nbsp; House {HOUSE_NUMERALS[house_num - 1]}"
         if ruling:
             degree_line += f" &nbsp;·&nbsp; rules {ruling}"
 
+        lock_badge = (
+            f"<p style='color:{COLOR_LOCK}; font-size:11px; margin:0 0 8px 0;'>🔒 Locked · click to unlock</p>"
+            if name == self._locked_planet else ""
+        )
         retrograde_tag = "" if is_angle or not pos.retrograde or name in ("North Node", "South Node") else \
             "<p style='color:#cc3333; margin:0 0 4px 0; font-size:11px; letter-spacing:1px;'>℞ RETROGRADE</p>"
         category_tag = (
@@ -1205,21 +1326,81 @@ class ChartView(QWidget):
             "<p style='color:#445588; margin:0 0 10px 0; font-size:11px; letter-spacing:1px;'>NATAL PLANET</p>"
         )
 
-        html = f"""
-        <p style="font-size:24px; color:{color}; margin:0 0 4px 0;">{glyph} {name}</p>
-        <p style="color:#7070a0; margin:0 0 4px 0; font-size:13px;">{degree_line}</p>
-        {retrograde_tag}{category_tag}
-        <p style="color:#a0a0c0; margin:0 0 14px 0; font-size:14px; line-height:1.6;">
-            {description}
-        </p>
-        {"<p style='color:#666; font-size:13px; margin:0 0 6px 0;'>Natal aspects:</p>" if aspect_lines else ""}
-        <p style="font-size:13px; line-height:2.0; margin:0;">{aspect_lines}</p>
-        {"<p style='color:#666; font-size:13px; margin:0 0 6px 0;'>Transit aspects:</p>" if transit_aspect_lines else ""}
-        <p style="font-size:13px; line-height:2.0; margin:0;">{transit_aspect_lines}</p>
-        """
+        # ── Placement section ────────────────────────────────────────────────
+        placement_content = ""
+        if "placement" in self._panel_expanded:
+            sign_interp = planet_in_sign_text(name, pos.sign)
+            if sign_interp:
+                placement_content += (
+                    f"<p style='color:#7070a0; font-size:12px; margin:2px 0 2px 12px;'>"
+                    f"<i>in {pos.sign}:</i></p>"
+                    f"<p style='color:#5a5a7a; font-size:12px; line-height:1.5; margin:0 0 6px 12px;'>"
+                    f"{sign_interp}</p>"
+                )
+            if house_num and not is_angle:
+                house_interp = planet_in_house_text(name, house_num)
+                if house_interp:
+                    placement_content += (
+                        f"<p style='color:#7070a0; font-size:12px; margin:2px 0 2px 12px;'>"
+                        f"<i>in House {HOUSE_NUMERALS[house_num - 1]}:</i></p>"
+                        f"<p style='color:#5a5a7a; font-size:12px; line-height:1.5; margin:0 0 4px 12px;'>"
+                        f"{house_interp}</p>"
+                    )
+
+        # ── Natal aspects section ────────────────────────────────────────────
+        my_aspects = [a for a in self.wheel.aspects if a.planet1 == name or a.planet2 == name]
+
+        transit_aspect_lines_html = ""
+        if is_angle and self._transit_aspects:
+            for t in self._transit_aspects.transits:
+                if t.natal_planet != name:
+                    continue
+                asp_color = ASPECT_COLORS.get(t.aspect, "#888")
+                transit_aspect_lines_html += (
+                    f'<span style="color:{asp_color}">╌</span> '
+                    f'{t.aspect.title()} transit {t.transit_planet} '
+                    f'<span style="color:#555">(orb {t.orb:.1f}°)</span><br>'
+                )
+
+        aspects_content = ""
+        if "natal_aspects" in self._panel_expanded:
+            for a in my_aspects:
+                other = a.planet2 if a.planet1 == name else a.planet1
+                asp_color = ASPECT_COLORS.get(a.aspect, "#888")
+                interp = natal_aspect_text(name, other, a.aspect)
+                interp_html = (
+                    f"<p style='color:#5a5a7a; font-size:12px; line-height:1.5; margin:0 0 6px 16px;'>"
+                    f"{interp}</p>"
+                ) if interp else ""
+                aspects_content += (
+                    f"<p style='font-size:13px; line-height:1.8; margin:0 0 0 12px;'>"
+                    f'<span style="color:{asp_color}">■</span> '
+                    f'{a.aspect.title()} {other} '
+                    f'<span style="color:#555">(orb {a.orb:.1f}°)</span></p>'
+                    f"{interp_html}"
+                )
+            if transit_aspect_lines_html:
+                aspects_content += (
+                    f"<p style='color:#666; font-size:12px; margin:6px 0 4px 12px;'>Active transits:</p>"
+                    f"<p style='font-size:13px; line-height:2.0; margin:0 0 0 12px;'>{transit_aspect_lines_html}</p>"
+                )
+
+        html = (
+            f"{lock_badge}"
+            f"<p style='font-size:24px; color:{color}; margin:0 0 4px 0;'>{glyph} {name}</p>"
+            f"<p style='color:#7070a0; margin:0 0 4px 0; font-size:13px;'>{degree_line}</p>"
+            f"{retrograde_tag}{category_tag}"
+            f"<p style='color:#a0a0c0; margin:0 0 12px 0; font-size:14px; line-height:1.6;'>{description}</p>"
+            f"{self._section_header('placement', 'Placement')}"
+            f"{placement_content}"
+            f"{self._section_header('natal_aspects', f'Natal Aspects ({len(my_aspects)})')}"
+            f"{aspects_content}"
+        )
         self.info_panel.setHtml(html)
 
     def _on_transit_hover(self, name: str):
+        if self._locked_transit:
+            return
         if name:
             self._populate_table_transit()
             self._show_transit_info(name)
@@ -1283,12 +1464,16 @@ class ChartView(QWidget):
         self.info_panel.setHtml(html)
 
     def _on_sign_hover(self, name: str):
+        if self._locked_planet or self._locked_transit:
+            return
         if name:
             self._show_sign_info(name)
         elif not self.wheel.hovered and not self.wheel.hovered_house and not self.wheel.hovered_transit:
             self._show_planet_info("")
 
     def _on_house_hover(self, hnum: int):
+        if self._locked_planet or self._locked_transit:
+            return
         if hnum:
             self._show_house_info(hnum)
         elif not self.wheel.hovered and not self.wheel.hovered_sign and not self.wheel.hovered_transit:

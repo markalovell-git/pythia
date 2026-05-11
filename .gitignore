@@ -9,7 +9,7 @@ __pycache__/
 *.db
 
 # Skyfield ephemeris files
-data/
+/data/
 
 # Logs
 *.log
