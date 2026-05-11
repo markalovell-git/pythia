@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -36,6 +37,8 @@ ASPECTS = [
     ("opposition", 180, 8),
 ]
 
+ANGLE_NAMES = {"ASC", "DSC", "MC", "IC"}
+
 EPHEMERIS_MIN_YEAR = 1900
 EPHEMERIS_MAX_YEAR = 2053
 
@@ -52,6 +55,50 @@ def _load_ephemeris():
 def _lahiri_ayanamsa(tt: float) -> float:
     years_from_j2000 = (tt - 2451545.0) / 365.25
     return _LAHIRI_J2000 + _LAHIRI_RATE * years_from_j2000
+
+
+def compute_angles_and_cusps(
+    t, birth_lat: float, birth_lon: float, zodiac_system: str
+) -> tuple[dict, list[float]]:
+    """Return (angle_positions_dict, whole_sign_cusps) for the given birth location."""
+    gast  = t.gast
+    lst   = (gast + birth_lon / 15.0) % 24
+    ramc  = (lst * 15.0) % 360
+    T     = (t.tt - 2451545.0) / 36525.0
+    obliquity = 23.439291111 - 0.013004167 * T
+    eps    = math.radians(obliquity)
+    phi    = math.radians(birth_lat)
+    ramc_r = math.radians(ramc)
+
+    mc_trop  = math.degrees(math.atan2(math.sin(ramc_r), math.cos(ramc_r) * math.cos(eps))) % 360
+    asc_trop = math.degrees(math.atan2(
+        -math.cos(ramc_r),
+        math.sin(ramc_r) * math.cos(eps) + math.tan(phi) * math.sin(eps)
+    )) % 360
+
+    if zodiac_system == "sidereal":
+        ayanamsa = _lahiri_ayanamsa(t.tt)
+        asc = (asc_trop - ayanamsa) % 360
+        mc  = (mc_trop  - ayanamsa) % 360
+    else:
+        asc, mc = asc_trop, mc_trop
+
+    dsc = (asc + 180.0) % 360
+    ic  = (mc  + 180.0) % 360
+
+    h1    = int(asc // 30) * 30.0
+    cusps = [(h1 + i * 30.0) % 360.0 for i in range(12)]
+
+    angles = {}
+    for name, lon in [("ASC", asc), ("DSC", dsc), ("MC", mc), ("IC", ic)]:
+        sign, degree = _longitude_to_sign(lon)
+        angles[name] = {
+            "longitude": round(lon, 4),
+            "sign":      sign,
+            "degree":    round(degree, 4),
+            "retrograde": False,
+        }
+    return angles, cusps
 
 
 def _longitude_to_sign(lon: float) -> tuple[str, float]:
@@ -130,16 +177,27 @@ def compute_planet_positions(dt_utc: datetime, zodiac_system: str) -> dict:
 
 
 def compute_natal_chart(
-    birth_datetime: datetime, birth_timezone: str, zodiac_system: str
-) -> dict:
-    """Compute natal planet positions from local birth time and timezone."""
+    birth_datetime: datetime,
+    birth_timezone: str,
+    zodiac_system: str,
+    birth_lat: float,
+    birth_lon: float,
+) -> tuple[dict, list[float]]:
+    """Compute natal positions (planets + angles) and Whole Sign house cusps."""
     try:
         tz = ZoneInfo(birth_timezone)
     except ZoneInfoNotFoundError:
         raise ValueError(f"Unknown timezone in stored data: {birth_timezone!r}")
     dt_local = birth_datetime.replace(tzinfo=tz) if birth_datetime.tzinfo is None else birth_datetime.astimezone(tz)
     dt_utc = dt_local.astimezone(timezone.utc)
-    return compute_planet_positions(dt_utc, zodiac_system)
+
+    _, ts = _load_ephemeris()
+    t = ts.from_datetime(dt_utc)
+
+    positions = compute_planet_positions(dt_utc, zodiac_system)
+    angles, cusps = compute_angles_and_cusps(t, birth_lat, birth_lon, zodiac_system)
+    positions.update(angles)
+    return positions, cusps
 
 
 def compute_transits(natal_positions: dict, zodiac_system: str, dt: datetime | None = None) -> list:

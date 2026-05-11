@@ -24,6 +24,7 @@ class ChartData:
     zodiac_system: str
     positions: dict[str, PlanetPosition]
     computed_at: str
+    house_cusps: list[float] | None = None
 
 
 @dataclass
@@ -121,6 +122,22 @@ def compute_natal_aspects(chart: ChartData) -> list[NatalAspect]:
     return sorted(results, key=lambda a: a.orb)
 
 
+def get_house_number(longitude: float, cusps: list[float]) -> int | None:
+    """Return 1-based Whole Sign house number for a longitude, or None."""
+    if not cusps or len(cusps) != 12:
+        return None
+    for i in range(12):
+        start = cusps[i]
+        end   = cusps[(i + 1) % 12]
+        if end > start:
+            if start <= longitude < end:
+                return i + 1
+        else:
+            if longitude >= start or longitude < end:
+                return i + 1
+    return 1
+
+
 def _parse_chart(raw: dict) -> ChartData:
     return ChartData(
         user_id=raw["user_id"],
@@ -129,4 +146,5 @@ def _parse_chart(raw: dict) -> ChartData:
             name: PlanetPosition(**pos) for name, pos in raw["positions"].items()
         },
         computed_at=raw["computed_at"],
+        house_cusps=raw.get("house_cusps"),
     )

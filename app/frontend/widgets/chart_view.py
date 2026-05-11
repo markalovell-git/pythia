@@ -16,6 +16,7 @@ PLANET_GLYPHS = {
     "Saturn":     "♄︎", "Uranus":    "♅︎", "Neptune":    "♆︎",
     "Pluto":      "⯓",
     "North Node": "☊︎", "South Node": "☋︎",
+    "ASC": "Asc", "DSC": "Dsc", "MC": "MC", "IC": "IC",
 }
 
 PLANET_COLORS = {
@@ -24,7 +25,12 @@ PLANET_COLORS = {
     "Saturn": "#d4be96", "Uranus": "#00CED1", "Neptune": "#4169E1",
     "Pluto": "#C01F6A",
     "North Node": "#90d870", "South Node": "#90d870",
+    "ASC": "#e8c85a", "DSC": "#e8c85a", "MC": "#c8a8ff", "IC": "#c8a8ff",
 }
+
+ANGLE_NAMES    = {"ASC", "DSC", "MC", "IC"}
+ANGLE_COLORS   = {"ASC": "#e8c85a", "DSC": "#e8c85a", "MC": "#c8a8ff", "IC": "#c8a8ff"}
+HOUSE_NUMERALS = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"]
 
 # ︎ = variation selector 15: forces text rendering instead of emoji
 SIGN_GLYPHS = [s + "︎" for s in ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]]
@@ -83,7 +89,7 @@ def _angle_to_xy(cx, cy, r, longitude_deg):
 
 
 def _assign_radii(positions: dict, radius_natal: float,
-                  radius_house_ring: float, radius_zodiac_inner: float,
+                  radius_inner: float, radius_zodiac_inner: float,
                   stack_step: float,
                   cluster_threshold: float = CLUSTER_THRESHOLD_DEG) -> dict:
     """Return {name: radius} with conjunct planets zigzag-stacked in the natal zone."""
@@ -109,7 +115,7 @@ def _assign_radii(positions: dict, radius_natal: float,
                 offsets.append(-(k // 2) * stack_step)
         for (name, _), offset in zip(cluster, offsets):
             r = radius_natal + offset
-            r = max(r, radius_house_ring)
+            r = max(r, radius_inner)
             r = min(r, radius_zodiac_inner)
             radii[name] = r
         i = j
@@ -133,6 +139,7 @@ class _ZodiacWheel(QWidget):
         self._hovered:         str = ""
         self._hovered_transit: str = ""
         self._hovered_sign:    str = ""
+        self._house_cusps: list[float] | None = None
         self.setMinimumSize(420, 420)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setMouseTracking(True)
@@ -156,30 +163,35 @@ class _ZodiacWheel(QWidget):
         self._cb_transit_aspects = QCheckBox("Transit Aspects")
         self._cb_hover_aspects   = QCheckBox("Hover Aspects")
         self._cb_labels          = QCheckBox("Circle Labels")
+        self._cb_houses          = QCheckBox("Houses")
         self._cb_natal.setChecked(True)
         self._cb_natal_aspects.setChecked(True)
         self._cb_transits.setChecked(True)
         self._cb_transit_aspects.setChecked(False)
         self._cb_hover_aspects.setChecked(True)
         self._cb_labels.setChecked(True)
+        self._cb_houses.setChecked(True)
         fb_layout.addWidget(self._cb_natal)
         fb_layout.addWidget(self._cb_natal_aspects)
         fb_layout.addWidget(self._cb_transits)
         fb_layout.addWidget(self._cb_transit_aspects)
         fb_layout.addWidget(self._cb_hover_aspects)
         fb_layout.addWidget(self._cb_labels)
+        fb_layout.addWidget(self._cb_houses)
         self._cb_natal.toggled.connect(self.update)
         self._cb_natal_aspects.toggled.connect(self.update)
         self._cb_transits.toggled.connect(self.update)
         self._cb_transit_aspects.toggled.connect(self.update)
         self._cb_hover_aspects.toggled.connect(self.update)
         self._cb_labels.toggled.connect(self.update)
+        self._cb_houses.toggled.connect(self.update)
         self._filter_box.adjustSize()
         self._filter_box.move(10, 10)
 
     def set_chart(self, chart: chart_model.ChartData | None):
         self._chart = chart
         self._aspects = chart_model.compute_natal_aspects(chart) if chart else []
+        self._house_cusps = chart.house_cusps if chart else None
         self._planet_positions.clear()
         self.update()
 
@@ -238,11 +250,12 @@ class _ZodiacWheel(QWidget):
         w, h = self.width(), self.height()
         size = min(w, h) - 24
         cx, cy = w / 2, h / 2
-        radius_cosmos       = size / 2                      # outer border of chart
+        radius_house_outer  = size / 2                       # new outermost edge (house band outer)
+        radius_cosmos       = radius_house_outer * 0.87     # transit zone outer / house band inner
         radius_zodiac_outer = radius_cosmos * 0.82          # outer edge of zodiac band (Ecliptic)
         radius_zodiac_inner = radius_zodiac_outer * 0.87    # inner edge of zodiac band
-        radius_house_ring   = radius_zodiac_outer * 0.60    # house ring / aspect web boundary
-        radius_natal        = (radius_zodiac_inner + radius_house_ring) / 2  # natal planet zone midpoint
+        radius_inner        = radius_zodiac_outer * 0.60    # inner boundary: aspect web / natal zone
+        radius_natal        = (radius_zodiac_inner + radius_inner) / 2  # natal planet zone midpoint
         radius_hub          = radius_zodiac_outer * 0.04    # earth hub
 
         outer_rect = QRectF(cx - radius_zodiac_outer, cy - radius_zodiac_outer,
@@ -251,7 +264,7 @@ class _ZodiacWheel(QWidget):
         # ── Base circle ───────────────────────────────────────────
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QBrush(QColor("#0d0d1a")))
-        painter.drawEllipse(QPointF(cx, cy), radius_cosmos, radius_cosmos)
+        painter.drawEllipse(QPointF(cx, cy), radius_house_outer, radius_house_outer)
 
         # ── Cosmos ring (outer chart border) ──────────────────────
         painter.setPen(QPen(QColor("#3a3a6a"), 1))
@@ -323,11 +336,93 @@ class _ZodiacWheel(QWidget):
         # ── House ring border ─────────────────────────────────────
         painter.setPen(QPen(QColor("#2a2a50"), 1))
         painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawEllipse(QPointF(cx, cy), radius_house_ring, radius_house_ring)
+        painter.drawEllipse(QPointF(cx, cy), radius_inner, radius_inner)
+
+        # ── Outer house band + angle axes ─────────────────────────
+        self._planet_positions.clear()
+        houses_on = self._cb_houses.isChecked() and bool(self._house_cusps)
+        if houses_on:
+            cusps = self._house_cusps
+            house_outer_rect = QRectF(cx - radius_house_outer, cy - radius_house_outer,
+                                      2 * radius_house_outer, 2 * radius_house_outer)
+            cosmos_rect      = QRectF(cx - radius_cosmos, cy - radius_cosmos,
+                                      2 * radius_cosmos,      2 * radius_cosmos)
+            HOUSE_COLORS = ["#1a1a40", "#141436"] * 6
+
+            # Filled annular sectors
+            for i, cusp_lon in enumerate(cusps):
+                next_cusp   = cusps[(i + 1) % 12]
+                sector_span = (next_cusp - cusp_lon) % 360
+                qt_start    = cusp_lon - 90
+                path = QPainterPath()
+                path.arcMoveTo(house_outer_rect, qt_start)
+                path.arcTo(house_outer_rect, qt_start, sector_span)
+                path.arcTo(cosmos_rect, qt_start + sector_span, -sector_span)
+                path.closeSubpath()
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.fillPath(path, QBrush(QColor(HOUSE_COLORS[i])))
+
+            # Cusp divider lines: cosmos → house_outer
+            painter.setPen(QPen(QColor("#3a3a6a"), 1))
+            for cusp_lon in cusps:
+                x1, y1 = _angle_to_xy(cx, cy, radius_cosmos,      cusp_lon)
+                x2, y2 = _angle_to_xy(cx, cy, radius_house_outer,  cusp_lon)
+                painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+
+            # House numerals centred in each sector
+            num_font = QFont()
+            num_font.setPointSize(8)
+            painter.setFont(num_font)
+            label_r_band = (radius_cosmos + radius_house_outer) / 2
+            for i, cusp_lon in enumerate(cusps):
+                next_cusp   = cusps[(i + 1) % 12]
+                sector_span = (next_cusp - cusp_lon) % 360
+                mid_lon     = (cusp_lon + sector_span / 2) % 360
+                lx, ly = _angle_to_xy(cx, cy, label_r_band, mid_lon)
+                painter.setPen(QPen(QColor("#7070a0")))
+                painter.drawText(QRectF(lx - 10, ly - 8, 20, 16),
+                                 Qt.AlignmentFlag.AlignCenter, HOUSE_NUMERALS[i])
+
+            # Outer ring border
+            painter.setPen(QPen(QColor("#2a2a50"), 1))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawEllipse(QPointF(cx, cy), radius_house_outer, radius_house_outer)
+
+        # Angle axes (always visible when chart loaded; length depends on Houses toggle)
+        axis_end      = radius_house_outer if houses_on else radius_zodiac_outer
+        angle_label_r = (radius_cosmos + radius_house_outer) / 2 if houses_on else radius_zodiac_inner * 0.945
+        lbl_font = QFont()
+        lbl_font.setPointSize(8)
+        lbl_font.setBold(True)
+        for angle_name in ("ASC", "DSC", "MC", "IC"):
+            if not self._chart or angle_name not in self._chart.positions:
+                continue
+            lon    = self._chart.positions[angle_name].longitude
+            color  = QColor(ANGLE_COLORS[angle_name])
+            is_hov = angle_name == self._hovered
+            width  = 2.5 if is_hov else 1.5
+            if is_hov:
+                color = color.lighter(130)
+            else:
+                color.setAlpha(200)
+            painter.setPen(QPen(color, width))
+            x1, y1 = _angle_to_xy(cx, cy, radius_hub, lon)
+            x2, y2 = _angle_to_xy(cx, cy, axis_end,   lon)
+            painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+
+            lx, ly = _angle_to_xy(cx, cy, angle_label_r, lon)
+            self._planet_positions[angle_name] = (lx, ly)
+            painter.setFont(lbl_font)
+            lbl_color = QColor(ANGLE_COLORS[angle_name])
+            if is_hov:
+                lbl_color = lbl_color.lighter(130)
+            painter.setPen(QPen(lbl_color))
+            painter.drawText(QRectF(lx - 14, ly - 8, 28, 16),
+                             Qt.AlignmentFlag.AlignCenter, angle_name)
 
         # ── Aspect lines ──────────────────────────────────────────
         if show_natal and self._cb_natal_aspects.isChecked() and self._chart and self._aspects:
-            arc_step = radius_house_ring * 0.015
+            arc_step = radius_inner * 0.015
             for asp in self._aspects:
                 lon1 = self._chart.positions[asp.planet1].longitude
                 lon2 = self._chart.positions[asp.planet2].longitude
@@ -343,15 +438,15 @@ class _ZodiacWheel(QWidget):
                     start_qt = a1 - 90
                     sweep_qt = a2 - a1
                     for k in range(3):
-                        r = radius_house_ring + k * arc_step
+                        r = radius_inner + k * arc_step
                         rect = QRectF(cx - r, cy - r, 2 * r, 2 * r)
                         path = QPainterPath()
                         path.arcMoveTo(rect, start_qt)
                         path.arcTo(rect, start_qt, sweep_qt)
                         painter.drawPath(path)
                 else:
-                    x1, y1 = _angle_to_xy(cx, cy, radius_house_ring, lon1)
-                    x2, y2 = _angle_to_xy(cx, cy, radius_house_ring, lon2)
+                    x1, y1 = _angle_to_xy(cx, cy, radius_inner, lon1)
+                    x2, y2 = _angle_to_xy(cx, cy, radius_inner, lon2)
                     painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
         # ── Transit-to-natal aspect lines ────────────────────────
@@ -376,25 +471,28 @@ class _ZodiacWheel(QWidget):
                 t_lon = self._transits.positions[t.transit_planet].longitude
                 n_lon = self._chart.positions[t.natal_planet].longitude
                 tx, ty = _angle_to_xy(cx, cy, radius_zodiac_outer, t_lon)
-                nx, ny = _angle_to_xy(cx, cy, radius_house_ring,   n_lon)
+                nx, ny = _angle_to_xy(cx, cy, radius_inner,   n_lon)
                 painter.drawLine(QPointF(tx, ty), QPointF(nx, ny))
 
         # ── Planet glyphs ─────────────────────────────────────────
         if show_natal and self._chart:
-            natal_zone = radius_zodiac_inner - radius_house_ring
+            natal_zone = radius_zodiac_inner - radius_inner
+            planet_positions_only = {
+                name: pos for name, pos in self._chart.positions.items()
+                if name not in ANGLE_NAMES
+            }
             planet_radii = _assign_radii(
-                self._chart.positions,
-                radius_natal, radius_house_ring, radius_zodiac_inner,
+                planet_positions_only,
+                radius_natal, radius_inner, radius_zodiac_inner,
                 stack_step=natal_zone * STACK_STEP_FRACTION,
             )
             planet_font = QFont()
             planet_font.setPointSize(GLYPH_PT)
             painter.setFont(planet_font)
             half = GLYPH_PX / 2
-            self._planet_positions.clear()
 
-            # Tick lines — full natal zone width
-            for name, pos in self._chart.positions.items():
+            # Tick lines — full natal zone width (planets only)
+            for name, pos in planet_positions_only.items():
                 color = QColor(PLANET_COLORS.get(name, "#ffffff"))
                 if name == self._hovered:
                     color = color.lighter(130)
@@ -403,10 +501,10 @@ class _ZodiacWheel(QWidget):
                     color.setAlpha(140)
                     painter.setPen(QPen(color, 1.0))
                 tx, ty = _angle_to_xy(cx, cy, radius_zodiac_inner, pos.longitude)
-                gx, gy = _angle_to_xy(cx, cy, radius_house_ring,   pos.longitude)
+                gx, gy = _angle_to_xy(cx, cy, radius_inner,   pos.longitude)
                 painter.drawLine(QPointF(tx, ty), QPointF(gx, gy))
 
-            for name, pos in self._chart.positions.items():
+            for name, pos in planet_positions_only.items():
                 glyph = PLANET_GLYPHS.get(name, name[:2])
                 gx, gy = _angle_to_xy(cx, cy, planet_radii[name], pos.longitude)
                 self._planet_positions[name] = (gx, gy)
@@ -509,17 +607,17 @@ class _ZodiacWheel(QWidget):
             label_font.setPointSize(9)
             painter.setFont(label_font)
             label_angle = 215
-            radius_aspects     = (radius_hub + radius_house_ring) / 2
+            radius_aspects     = (radius_hub + radius_inner) / 2
             radius_transit_mid = (radius_zodiac_outer + radius_cosmos) / 2
+            radius_zodiac_mid  = (radius_zodiac_inner + radius_zodiac_outer) / 2
+            radius_house_mid   = (radius_cosmos + radius_house_outer) / 2
             for radius, text, offset in [
                 (radius_hub,          "Earth",           20),
                 (radius_aspects,      "Aspects",          8),
-                (radius_house_ring,   "Houses",           8),
-                (radius_zodiac_inner, "Zodiac",          -4),
-                (radius_natal,        "Natal Planets",   12),
-                (radius_zodiac_outer, "Ecliptic",         8),
+                (radius_natal,        "Natal Planets",    0),
+                (radius_zodiac_mid,   "Zodiac",           0),
                 (radius_transit_mid,  "Transit Planets",  0),
-                (radius_cosmos,       "Cosmos",           8),
+                (radius_house_mid,    "Houses",           0),
             ]:
                 lx, ly = _angle_to_xy(cx, cy, radius + offset, label_angle)
                 rect = QRectF(lx - 44, ly - 10, 88, 20)
@@ -543,6 +641,10 @@ PLANET_INFO = {
     "Pluto":      ("Scorpio",    "Transformation, power, death and rebirth, the shadow. Where deep and irreversible change happens."),
     "North Node": ("",           "Your karmic path forward — the direction of growth, destiny, and soul evolution in this lifetime."),
     "South Node": ("",           "Your karmic past — innate gifts carried from prior experience, and patterns to release or transcend."),
+    "ASC": ("", "The Ascendant — the degree rising on the eastern horizon at birth. Governs the physical body, outward personality, and how others perceive you."),
+    "DSC": ("", "The Descendant — the western horizon, opposite the Ascendant. Governs partnerships, close relationships, and the qualities you seek or project onto others."),
+    "MC":  ("", "The Midheaven (Medium Coeli) — the highest point of the ecliptic at birth. Governs career, public reputation, ambition, and your relationship with authority."),
+    "IC":  ("", "The Imum Coeli — the lowest point, opposite the Midheaven. Governs home, family, ancestry, psychological roots, and private life."),
 }
 
 
@@ -694,7 +796,7 @@ class ChartView(QWidget):
 
         self._chart = chart
         self._aspects = chart_model.compute_natal_aspects(chart)
-        self._planet_names = list(chart.positions.keys())
+        self._planet_names = [n for n in chart.positions if n not in ANGLE_NAMES]
         self.status_label.setText("")
         self.zodiac_label.setText(f"Zodiac: {chart.zodiac_system.title()}")
         self.wheel.set_chart(chart)
@@ -708,8 +810,9 @@ class ChartView(QWidget):
         self.table.setHorizontalHeaderLabels(["Natal Planet", "Sign", "Degree"])
         planet_font = QFont()
         planet_font.setPointSize(11)
-        self.table.setRowCount(len(self._chart.positions))
-        for row, (name, pos) in enumerate(self._chart.positions.items()):
+        planet_rows = [(n, p) for n, p in self._chart.positions.items() if n not in ANGLE_NAMES]
+        self.table.setRowCount(len(planet_rows))
+        for row, (name, pos) in enumerate(planet_rows):
             glyph = PLANET_GLYPHS.get(name, name)
             item = QTableWidgetItem(f"{glyph}  {name}")
             item.setForeground(QColor(PLANET_COLORS.get(name, "#ffffff")))
@@ -769,6 +872,7 @@ class ChartView(QWidget):
         glyph = PLANET_GLYPHS.get(name, name)
         color = PLANET_COLORS.get(name, "#ffffff")
         ruling, description = PLANET_INFO.get(name, ("", ""))
+        is_angle = name in ANGLE_NAMES
 
         my_aspects = [a for a in self._aspects if a.planet1 == name or a.planet2 == name]
         aspect_lines = ""
@@ -782,15 +886,25 @@ class ChartView(QWidget):
             )
 
         degree_line = f"{pos.sign} {pos.degree:.2f}°"
+        if not is_angle and self._chart.house_cusps:
+            h = chart_model.get_house_number(pos.longitude, self._chart.house_cusps)
+            if h:
+                degree_line += f" &nbsp;·&nbsp; House {HOUSE_NUMERALS[h - 1]}"
         if ruling:
             degree_line += f" &nbsp;·&nbsp; rules {ruling}"
-        retrograde_tag = "" if not pos.retrograde or name in ("North Node", "South Node") else \
+
+        retrograde_tag = "" if is_angle or not pos.retrograde or name in ("North Node", "South Node") else \
             "<p style='color:#cc3333; margin:0 0 4px 0; font-size:11px; letter-spacing:1px;'>℞ RETROGRADE</p>"
+        category_tag = (
+            "<p style='color:#886633; margin:0 0 10px 0; font-size:11px; letter-spacing:1px;'>NATAL ANGLE</p>"
+            if is_angle else
+            "<p style='color:#445588; margin:0 0 10px 0; font-size:11px; letter-spacing:1px;'>NATAL PLANET</p>"
+        )
 
         html = f"""
         <p style="font-size:24px; color:{color}; margin:0 0 4px 0;">{glyph} {name}</p>
         <p style="color:#7070a0; margin:0 0 4px 0; font-size:13px;">{degree_line}</p>
-        {retrograde_tag}<p style="color:#445588; margin:0 0 10px 0; font-size:11px; letter-spacing:1px;">NATAL PLANET</p>
+        {retrograde_tag}{category_tag}
         <p style="color:#a0a0c0; margin:0 0 14px 0; font-size:14px; line-height:1.6;">
             {description}
         </p>
@@ -828,7 +942,7 @@ class ChartView(QWidget):
 
         html = f"""
         <p style="font-size:24px; color:{color}; margin:0 0 4px 0;">{glyph} <b>{name}</b></p>
-        <p style="color:#7070a0; margin:0 0 4px 0; font-size:13px;">{pos.sign} {pos.degree:.2f}°</p>
+        <p style="color:#7070a0; margin:0 0 4px 0; font-size:13px;">{pos.sign} {pos.degree:.2f}°{f" &nbsp;·&nbsp; House {HOUSE_NUMERALS[chart_model.get_house_number(pos.longitude, self._chart.house_cusps) - 1]}" if self._chart and self._chart.house_cusps else ""}</p>
         {"<p style='color:#cc3333; margin:0 0 4px 0; font-size:11px; letter-spacing:1px;'>℞ RETROGRADE</p>" if pos.retrograde and name not in ("North Node", "South Node") else ""}
         <p style="color:#4466aa; margin:0 0 10px 0; font-size:11px; letter-spacing:1px;">TRANSIT PLANET</p>
         <p style="color:#a0a0c0; margin:0 0 14px 0; font-size:14px; line-height:1.6;">

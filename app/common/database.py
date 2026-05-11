@@ -41,6 +41,7 @@ class NatalChart(Base):
     user_id = Column(String, ForeignKey("user_data.user_id"), primary_key=True)
     computed_at = Column(DateTime, nullable=False)
     positions = Column(JSON, nullable=False)
+    house_cusps = Column(JSON, nullable=True)
 
     user = relationship("UserData", back_populates="natal_chart")
 
