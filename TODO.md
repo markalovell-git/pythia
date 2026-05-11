@@ -26,5 +26,12 @@
     - **NASA Tycho all-sky mosaic** — public domain but equirectangular projection, would need crop+warp to a ring.
     Tradeoffs for HYG approach: constellations span ~30° of ecliptic latitude, so you need a radial band (lat → radius) rather than a single ring, or accept squashed shapes. Also: in tropical mode the real constellation Aries sits ~24° into Pisces sign (precession). Treat the ring as an astronomical reference layer, not aligned to the labeled signs. Probably most natural as the most decorative option (Hevelius engravings per sign) unless we want the astronomy lesson.
 
+## Time & Info Controls
+- [ ] **Natal info readout** — show name, birthplace, birthdate/time, lat/lon, and timezone somewhere visible (header bar above the chart or sidebar panel).
+- [ ] **Current transits list** — sorted list of active transit-to-natal aspects with orbs. The existing table shows transit *positions*; this should surface the actual aspects.
+- [ ] **Current date display** — prominently show the date the displayed transits are computed for (defaults to "now" but changes when scrubbing time).
+- [ ] **Play forward / play backward** — buttons that step transits through time (e.g. 1 day per tick, configurable rate). Re-fetches transits at the new date and animates positions.
+- [ ] **Custom date input** — a date/time picker or text box to jump transits to any date.
+
 ## Code Quality
 - [ ] Pull all magic numbers out of `chart_view.py` into a dedicated constants section or `ChartStyle` dataclass (radius fractions, STACK_STEP_FRACTION, CLUSTER_THRESHOLD_DEG, arc_step, glyph sizes, etc.)
