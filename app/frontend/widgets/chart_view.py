@@ -74,6 +74,21 @@ SIGN_INFO = {
     "Pisces":      ("Water · Mutable",  "Dreamy, compassionate, boundless. The mystic — dissolves boundaries and feels everything. Rules spirituality and the unconscious."),
 }
 
+HOUSE_INFO = {
+    1:  ("Self · Identity",         "The rising mask. Body, persona, first impressions, the way you arrive in a room."),
+    2:  ("Possessions · Values",    "Money, belongings, talents, and what you consider yours. The seat of self-worth."),
+    3:  ("Communication · Mind",    "Daily talk, siblings, neighbors, short trips, learning by doing. The mind in motion."),
+    4:  ("Home · Roots",            "Family, ancestry, the inner sanctuary. Where you come from and where you retreat."),
+    5:  ("Creativity · Romance",    "Play, romance, children, performance. The joy of making something just because you can."),
+    6:  ("Work · Routine",          "Daily labor, service, habits, health. The unglamorous shape your days take."),
+    7:  ("Partnership · Others",    "One-on-one relationships, marriage, contracts, the people who mirror you back."),
+    8:  ("Transformation · Shared", "Sex, death, debt, inheritance, occult depths. What you share and what you surrender."),
+    9:  ("Wisdom · Horizons",       "Higher learning, long journeys, foreign cultures, philosophy. The search for meaning."),
+    10: ("Career · Reputation",     "Public life, calling, authority, legacy. What the world remembers you for."),
+    11: ("Community · Ideals",      "Friends, networks, groups, hopes for the future. The wider tribe."),
+    12: ("Unconscious · Surrender", "Solitude, hidden things, dreams, dissolution. Where the self thins out."),
+}
+
 ASPECT_COLORS = {
     "conjunction": "#FFD700",
     "sextile":     "#4488ff",
@@ -128,6 +143,7 @@ class _ZodiacWheel(QWidget):
     planet_hovered  = pyqtSignal(str)   # natal planet name, or "" for none
     transit_hovered = pyqtSignal(str)   # transit planet name, or "" for none
     sign_hovered    = pyqtSignal(str)   # sign name, or "" for none
+    house_hovered   = pyqtSignal(int)   # house number 1-12, or 0 for none
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -138,9 +154,11 @@ class _ZodiacWheel(QWidget):
         self._planet_positions: dict[str, tuple[float, float]] = {}
         self._transit_positions: dict[str, tuple[float, float]] = {}
         self._sign_positions:   dict[str, tuple[float, float]] = {}
+        self._house_positions:  dict[int, tuple[float, float]] = {}
         self._hovered:         str = ""
         self._hovered_transit: str = ""
         self._hovered_sign:    str = ""
+        self._hovered_house:   int = 0
         self._house_cusps: list[float] | None = None
         self.setMinimumSize(420, 420)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -166,6 +184,7 @@ class _ZodiacWheel(QWidget):
         self._cb_hover_aspects   = QCheckBox("Hover Aspects")
         self._cb_labels          = QCheckBox("Circle Labels")
         self._cb_houses          = QCheckBox("Houses")
+        self._cb_angles          = QCheckBox("Angles")
         self._cb_natal.setChecked(True)
         self._cb_natal_aspects.setChecked(True)
         self._cb_transits.setChecked(True)
@@ -173,13 +192,15 @@ class _ZodiacWheel(QWidget):
         self._cb_hover_aspects.setChecked(True)
         self._cb_labels.setChecked(True)
         self._cb_houses.setChecked(True)
+        self._cb_angles.setChecked(True)
+        fb_layout.addWidget(self._cb_angles)
         fb_layout.addWidget(self._cb_natal)
         fb_layout.addWidget(self._cb_natal_aspects)
         fb_layout.addWidget(self._cb_transits)
-        fb_layout.addWidget(self._cb_transit_aspects)
         fb_layout.addWidget(self._cb_hover_aspects)
         fb_layout.addWidget(self._cb_labels)
         fb_layout.addWidget(self._cb_houses)
+        fb_layout.addWidget(self._cb_transit_aspects)
         self._cb_natal.toggled.connect(self.update)
         self._cb_natal_aspects.toggled.connect(self.update)
         self._cb_transits.toggled.connect(self.update)
@@ -187,6 +208,7 @@ class _ZodiacWheel(QWidget):
         self._cb_hover_aspects.toggled.connect(self.update)
         self._cb_labels.toggled.connect(self.update)
         self._cb_houses.toggled.connect(self.update)
+        self._cb_angles.toggled.connect(self.update)
         self._filter_box.adjustSize()
         self._filter_box.move(10, 10)
 
@@ -228,6 +250,13 @@ class _ZodiacWheel(QWidget):
                     hit_sign = name
                     break
 
+        hit_house = 0
+        if not hit_planet and not hit_transit and not hit_sign:
+            for hnum, (hx, hy) in self._house_positions.items():
+                if math.sqrt((mx - hx) ** 2 + (my - hy) ** 2) < 22:
+                    hit_house = hnum
+                    break
+
         if hit_planet != self._hovered:
             self._hovered = hit_planet
             self.planet_hovered.emit(hit_planet)
@@ -239,6 +268,10 @@ class _ZodiacWheel(QWidget):
         if hit_sign != self._hovered_sign:
             self._hovered_sign = hit_sign
             self.sign_hovered.emit(hit_sign)
+            self.update()
+        if hit_house != self._hovered_house:
+            self._hovered_house = hit_house
+            self.house_hovered.emit(hit_house)
             self.update()
 
     def paintEvent(self, event):
@@ -380,16 +413,21 @@ class _ZodiacWheel(QWidget):
 
             # House numerals centred in each sector
             num_font = QFont()
-            num_font.setPointSize(8)
+            num_font.setPointSize(24)
             painter.setFont(num_font)
             label_r_band = (radius_cosmos + radius_house_outer) / 2
+            self._house_positions.clear()
             for i, cusp_lon in enumerate(cusps):
                 next_cusp   = cusps[(i + 1) % 12]
                 sector_span = (next_cusp - cusp_lon) % 360
                 mid_lon     = (cusp_lon + sector_span / 2) % 360
                 lx, ly = _angle_to_xy(cx, cy, label_r_band, mid_lon, rot)
-                painter.setPen(QPen(QColor("#7070a0")))
-                painter.drawText(QRectF(lx - 10, ly - 8, 20, 16),
+                self._house_positions[i + 1] = (lx, ly)
+                num_color = QColor("#7070a0")
+                if (i + 1) == self._hovered_house:
+                    num_color = num_color.lighter(160)
+                painter.setPen(QPen(num_color))
+                painter.drawText(QRectF(lx - 30, ly - 24, 60, 48),
                                  Qt.AlignmentFlag.AlignCenter, HOUSE_NUMERALS[i])
 
             # Outer ring border
@@ -397,13 +435,16 @@ class _ZodiacWheel(QWidget):
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawEllipse(QPointF(cx, cy), radius_house_outer, radius_house_outer)
 
-        # Angle axes (always visible when chart loaded; length depends on Houses toggle)
+        # Angle axes (length depends on Houses toggle)
         axis_end      = radius_house_outer if houses_on else radius_zodiac_outer
         angle_label_r = (radius_cosmos + radius_house_outer) / 2 if houses_on else radius_zodiac_inner * 0.945
         lbl_font = QFont()
         lbl_font.setPointSize(16)
         lbl_font.setBold(True)
+        angles_on = self._cb_angles.isChecked()
         for angle_name in ("ASC", "DSC", "MC", "IC"):
+            if not angles_on:
+                continue
             if not self._chart or angle_name not in self._chart.positions:
                 continue
             lon    = self._chart.positions[angle_name].longitude
@@ -761,7 +802,7 @@ class ChartView(QWidget):
                 font-size: 14px;
             }
         """)
-        self.info_panel.setPlaceholderText("Hover a planet or sign to see details.")
+        self.info_panel.setPlaceholderText("Hover a planet, sign, or house to see details.")
         sb_layout.addWidget(self.info_panel, stretch=1)
 
         splitter.addWidget(sidebar)
@@ -772,6 +813,7 @@ class ChartView(QWidget):
         self.wheel.planet_hovered.connect(self._on_wheel_hover)
         self.wheel.transit_hovered.connect(self._on_transit_hover)
         self.wheel.sign_hovered.connect(self._on_sign_hover)
+        self.wheel.house_hovered.connect(self._on_house_hover)
 
         self.status_label = QLabel("")
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -896,7 +938,7 @@ class ChartView(QWidget):
 
     def _show_planet_info(self, name: str):
         if not name or not self._chart or name not in self._chart.positions:
-            self.info_panel.setPlaceholderText("Hover a planet or sign to see details.")
+            self.info_panel.setPlaceholderText("Hover a planet, sign, or house to see details.")
             self.info_panel.setHtml("")
             return
         pos = self._chart.positions[name]
@@ -1001,8 +1043,28 @@ class ChartView(QWidget):
     def _on_sign_hover(self, name: str):
         if name:
             self._show_sign_info(name)
-        elif not self.wheel._hovered:
+        elif not self.wheel._hovered and not self.wheel._hovered_house:
             self._show_planet_info("")
+
+    def _on_house_hover(self, hnum: int):
+        if hnum:
+            self._show_house_info(hnum)
+        elif not self.wheel._hovered and not self.wheel._hovered_sign and not self.wheel._hovered_transit:
+            self._show_planet_info("")
+
+    def _show_house_info(self, hnum: int):
+        if not hnum:
+            return
+        numeral = HOUSE_NUMERALS[hnum - 1]
+        subtitle, description = HOUSE_INFO.get(hnum, ("", ""))
+        html = f"""
+        <p style="font-size:24px; color:#9090cc; margin:0 0 4px 0;"><b>House {numeral}</b></p>
+        <p style="color:#7070a0; margin:0 0 10px 0; font-size:13px;">{subtitle}</p>
+        <p style="color:#a0a0c0; margin:0 0 14px 0; font-size:14px; line-height:1.6;">
+            {description}
+        </p>
+        """
+        self.info_panel.setHtml(html)
 
     def _show_sign_info(self, name: str):
         if not name:
