@@ -1236,19 +1236,27 @@ class ChartView(QWidget):
         self.table.setFixedHeight(row_h * self.table.rowCount() + header_h + 4)
 
     def _on_wheel_hover(self, name: str):
+        if self._locked_planet:
+            # Keep natal table visible with the locked planet's row selected.
+            if self._table_mode == "transit":
+                self._populate_table_natal()
+            if self._locked_planet in self._planet_names:
+                self.table.selectRow(self._planet_names.index(self._locked_planet))
+            return
+        if self._locked_transit:
+            return  # transit locked — leave table and text alone
         if self._table_mode == "transit" and name:
             self._populate_table_natal()
         if name and name in self._planet_names:
-            row = self._planet_names.index(name)
-            self.table.selectRow(row)
+            self.table.selectRow(self._planet_names.index(name))
         else:
             self.table.clearSelection()
-        if self._locked_planet:
-            return
         self._show_planet_info(name)
 
     def _on_row_hover(self, row: int):
         if self._table_mode == "transit":
+            return
+        if self._locked_planet or self._locked_transit:
             return
         if not self._chart or row < 0 or row >= len(self._planet_names):
             return
@@ -1258,15 +1266,43 @@ class ChartView(QWidget):
         self._locked_planet = name
         self._locked_transit = ""
         if name:
+            if self._table_mode == "transit":
+                self._populate_table_natal()
+            if name in self._planet_names:
+                self.table.selectRow(self._planet_names.index(name))
+            else:
+                self.table.clearSelection()  # angle — not in table
             self._show_planet_info(name)
+        else:
+            # Unlocked — restore to whatever is currently hovered
+            hov = self.wheel.hovered
+            if hov and hov in self._planet_names:
+                self.table.selectRow(self._planet_names.index(hov))
+            else:
+                self.table.clearSelection()
+            self._show_planet_info(hov)
 
     def _on_transit_locked(self, name: str):
         self._locked_transit = name
         self._locked_planet = ""
         if name:
+            self._populate_table_transit()
+            transits = self.wheel.transits
+            if transits:
+                transit_names = list(transits.positions.keys())
+                if name in transit_names:
+                    self.table.selectRow(transit_names.index(name))
             self._show_transit_info(name)
         else:
-            self._show_planet_info("")
+            # Unlocked — restore to whatever is currently hovered
+            hov = self.wheel.hovered
+            if hov and hov in self._planet_names:
+                if self._table_mode == "transit":
+                    self._populate_table_natal()
+                self.table.selectRow(self._planet_names.index(hov))
+            else:
+                self.table.clearSelection()
+            self._show_planet_info(hov)
 
     def _on_info_anchor(self, url: QUrl):
         href = url.toString()
@@ -1400,7 +1436,17 @@ class ChartView(QWidget):
 
     def _on_transit_hover(self, name: str):
         if self._locked_transit:
+            # Keep transit table visible with the locked planet's row selected.
+            if self._table_mode != "transit":
+                self._populate_table_transit()
+            transits = self.wheel.transits
+            if transits:
+                transit_names = list(transits.positions.keys())
+                if self._locked_transit in transit_names:
+                    self.table.selectRow(transit_names.index(self._locked_transit))
             return
+        if self._locked_planet:
+            return  # natal locked — leave table and text alone
         if name:
             self._populate_table_transit()
             self._show_transit_info(name)
