@@ -622,7 +622,7 @@ class _ZodiacWheel(QWidget):
             label_font = QFont()
             label_font.setPointSize(9)
             painter.setFont(label_font)
-            label_angle = 215
+            label_angle = 265
             radius_aspects     = (radius_hub + radius_inner) / 2
             radius_transit_mid = (radius_zodiac_outer + radius_cosmos) / 2
             radius_zodiac_mid  = (radius_zodiac_inner + radius_zodiac_outer) / 2
