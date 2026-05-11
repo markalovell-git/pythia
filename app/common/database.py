@@ -31,6 +31,7 @@ class UserSettings(Base):
 
     user_id = Column(String, ForeignKey("user_data.user_id"), primary_key=True)
     zodiac_system = Column(String, nullable=False)
+    house_system = Column(String, nullable=False, default="placidus")
 
     user = relationship("UserData", back_populates="settings")
 

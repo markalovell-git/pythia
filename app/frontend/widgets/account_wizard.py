@@ -2,11 +2,12 @@ from PyQt6.QtCore import Qt, pyqtSignal, QDate, QTime
 from PyQt6.QtWidgets import (
     QWizard, QWizardPage, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLabel, QLineEdit, QPushButton, QCalendarWidget, QTimeEdit,
-    QComboBox, QTextEdit, QMessageBox,
+    QComboBox, QTextEdit, QMessageBox, QRadioButton, QButtonGroup,
 )
 
 from app.frontend.models import user_model
 from app.frontend import api_client
+from app.common.constants import PLACIDUS_MAX_LATITUDE
 from app.common.logging_config import get_logger
 
 log = get_logger(__name__)
@@ -146,6 +147,74 @@ class _LocationPage(QWizardPage):
         return bool(self._location_str) and bool(self._tz)
 
 
+class _HouseSystemPage(QWizardPage):
+    def __init__(self):
+        super().__init__()
+        self.setTitle("House System")
+        layout = QVBoxLayout(self)
+
+        intro = QLabel(
+            "Choose how the chart divides into houses. You can change this later in Settings."
+        )
+        intro.setWordWrap(True)
+        layout.addWidget(intro)
+
+        self._group = QButtonGroup(self)
+        self._placidus_rb = QRadioButton("Placidus")
+        self._whole_sign_rb = QRadioButton("Whole Sign")
+        self._placidus_rb.setChecked(True)
+        self._group.addButton(self._placidus_rb)
+        self._group.addButton(self._whole_sign_rb)
+
+        layout.addWidget(self._placidus_rb)
+        placidus_desc = QLabel(
+            "    Time-based division of the diurnal arcs. The standard modern Western system.\n"
+            "    Undefined above ~66.5° latitude (Arctic/Antarctic)."
+        )
+        placidus_desc.setStyleSheet("color: #888;")
+        layout.addWidget(placidus_desc)
+
+        layout.addSpacing(8)
+        layout.addWidget(self._whole_sign_rb)
+        whole_sign_desc = QLabel(
+            "    Each zodiac sign is one house. The traditional Hellenistic system.\n"
+            "    Works at any latitude."
+        )
+        whole_sign_desc.setStyleSheet("color: #888;")
+        layout.addWidget(whole_sign_desc)
+
+        self._error_label = QLabel("")
+        self._error_label.setStyleSheet("color: #c33; padding-top: 12px;")
+        self._error_label.setWordWrap(True)
+        layout.addWidget(self._error_label)
+        layout.addStretch()
+
+        self._placidus_rb.toggled.connect(self._refresh_error)
+
+    def selected(self) -> str:
+        return "placidus" if self._placidus_rb.isChecked() else "whole_sign"
+
+    def initializePage(self):
+        self._refresh_error()
+
+    def _refresh_error(self):
+        lat = self.wizard()._location_page._lat
+        if self.selected() == "placidus" and abs(lat) > PLACIDUS_MAX_LATITUDE:
+            self._error_label.setText(
+                f"Placidus is undefined this far from the equator "
+                f"(latitude {lat:.1f}°). Please choose Whole Sign."
+            )
+        else:
+            self._error_label.setText("")
+        self.completeChanged.emit()
+
+    def isComplete(self) -> bool:
+        lat = self.wizard()._location_page._lat
+        if self.selected() == "placidus" and abs(lat) > PLACIDUS_MAX_LATITUDE:
+            return False
+        return True
+
+
 class _ReviewPage(QWizardPage):
     def __init__(self):
         super().__init__()
@@ -156,12 +225,15 @@ class _ReviewPage(QWizardPage):
 
     def initializePage(self):
         w = self.wizard()
+        hs = w._house_page.selected()
+        hs_label = "Placidus" if hs == "placidus" else "Whole Sign"
         self.summary.setText(
             f"Name: {w.field('name')}\n"
             f"Username: {w.field('username')}\n"
             f"Birth date/time: {w._date_page.birth_datetime_str()}\n"
             f"Location: {w._location_page._location_str}\n"
-            f"Timezone: {w._location_page._tz}"
+            f"Timezone: {w._location_page._tz}\n"
+            f"House system: {hs_label}"
         )
 
 
@@ -183,11 +255,13 @@ class AccountWizard(QWizard):
         self._info_page = _BasicInfoPage()
         self._date_page = _BirthDatePage()
         self._location_page = _LocationPage()
+        self._house_page = _HouseSystemPage()
         self._review_page = _ReviewPage()
 
         self.addPage(self._info_page)
         self.addPage(self._date_page)
         self.addPage(self._location_page)
+        self.addPage(self._house_page)
         self.addPage(self._review_page)
 
     def accept(self):
@@ -199,6 +273,7 @@ class AccountWizard(QWizard):
             "birth_location": self._location_page._location_str,
             "birth_lat": self._location_page._lat,
             "birth_lon": self._location_page._lon,
+            "house_system": self._house_page.selected(),
         }
         log.debug("wizard accept: creating user %s", payload.get("username"))
         try:

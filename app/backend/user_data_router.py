@@ -6,7 +6,9 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import uuid
 
 from app.common.database import get_db, UserData, UserSettings, NatalChart
-from app.common.constants import DEFAULT_ZODIAC_SYSTEM
+from app.common.constants import (
+    DEFAULT_ZODIAC_SYSTEM, DEFAULT_HOUSE_SYSTEM, VALID_HOUSE_SYSTEMS,
+)
 
 user_data_router = APIRouter()
 
@@ -45,6 +47,14 @@ class UserInputBase(BaseModel):
 
 class UserInput(UserInputBase):
     username: str
+    house_system: str = DEFAULT_HOUSE_SYSTEM
+
+    @field_validator("house_system")
+    @classmethod
+    def validate_house_system(cls, v: str) -> str:
+        if v not in VALID_HOUSE_SYSTEMS:
+            raise ValueError(f"house_system must be one of {sorted(VALID_HOUSE_SYSTEMS)}")
+        return v
 
 
 class UserUpdateInput(UserInputBase):
@@ -66,7 +76,11 @@ async def submit_user_data(user_input: UserInput, db: Session = Depends(get_db))
         birth_lat=user_input.birth_lat,
         birth_lon=user_input.birth_lon,
     ))
-    db.add(UserSettings(user_id=user_id, zodiac_system=DEFAULT_ZODIAC_SYSTEM))
+    db.add(UserSettings(
+        user_id=user_id,
+        zodiac_system=DEFAULT_ZODIAC_SYSTEM,
+        house_system=user_input.house_system,
+    ))
     db.commit()
     return {
         "message": "User data submitted successfully",

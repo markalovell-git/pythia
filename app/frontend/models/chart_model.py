@@ -27,6 +27,7 @@ class ChartData:
     positions: dict[str, PlanetPosition]
     computed_at: str
     house_cusps: list[float] | None = None
+    house_system: str = "placidus"
 
 
 @dataclass
@@ -101,7 +102,16 @@ def get_zodiac_system(user_id: str) -> str:
 
 
 def set_zodiac_system(user_id: str, zodiac_system: str) -> None:
-    api_client.update_user_settings(user_id, zodiac_system)
+    api_client.update_user_settings(user_id, zodiac_system=zodiac_system)
+
+
+def get_house_system(user_id: str) -> str:
+    raw = api_client.get_user_settings(user_id)
+    return raw.get("house_system", "placidus") if raw else "placidus"
+
+
+def set_house_system(user_id: str, house_system: str) -> None:
+    api_client.update_user_settings(user_id, house_system=house_system)
 
 
 def compute_natal_aspects(chart: ChartData) -> list[NatalAspect]:
@@ -151,4 +161,5 @@ def _parse_chart(raw: dict) -> ChartData:
         },
         computed_at=raw["computed_at"],
         house_cusps=raw.get("house_cusps"),
+        house_system=raw.get("house_system", "placidus"),
     )

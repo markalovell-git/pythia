@@ -18,7 +18,7 @@ async def calculate_natal_chart(user_id: str, db: Session = Depends(get_db)):
     try:
         positions, cusps = compute_natal_chart(
             user.birth_datetime, user.birth_timezone, settings.zodiac_system,
-            user.birth_lat, user.birth_lon,
+            user.birth_lat, user.birth_lon, settings.house_system,
         )
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
@@ -38,10 +38,11 @@ async def calculate_natal_chart(user_id: str, db: Session = Depends(get_db)):
     db.commit()
 
     return {
-        "user_id":      user_id,
+        "user_id":       user_id,
         "zodiac_system": settings.zodiac_system,
-        "positions":    positions,
-        "house_cusps":  cusps,
+        "house_system":  settings.house_system,
+        "positions":     positions,
+        "house_cusps":   cusps,
     }
 
 
@@ -55,11 +56,12 @@ async def get_natal_chart(user_id: str, db: Session = Depends(get_db)):
         )
     settings = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
     return {
-        "user_id":      user_id,
+        "user_id":       user_id,
         "zodiac_system": settings.zodiac_system,
-        "computed_at":  chart.computed_at,
-        "positions":    chart.positions,
-        "house_cusps":  chart.house_cusps,
+        "house_system":  settings.house_system,
+        "computed_at":   chart.computed_at,
+        "positions":     chart.positions,
+        "house_cusps":   chart.house_cusps,
     }
 
 

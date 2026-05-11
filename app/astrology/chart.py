@@ -58,9 +58,13 @@ def _lahiri_ayanamsa(tt: float) -> float:
 
 
 def compute_angles_and_cusps(
-    t, birth_lat: float, birth_lon: float, zodiac_system: str
+    t, birth_lat: float, birth_lon: float, zodiac_system: str, house_system: str = "placidus"
 ) -> tuple[dict, list[float]]:
-    """Return (angle_positions_dict, whole_sign_cusps) for the given birth location."""
+    """Return (angle_positions_dict, house_cusps) for the given birth location.
+
+    house_system: "placidus" or "whole_sign". Placidus falls back to Whole Sign
+    automatically at polar latitudes where it is mathematically undefined.
+    """
     gast  = t.gast
     lst   = (gast + birth_lon / 15.0) % 24
     ramc  = (lst * 15.0) % 360
@@ -71,23 +75,28 @@ def compute_angles_and_cusps(
     ramc_r = math.radians(ramc)
 
     mc_trop  = math.degrees(math.atan2(math.sin(ramc_r), math.cos(ramc_r) * math.cos(eps))) % 360
-    asc_trop = math.degrees(math.atan2(
+    # The atan2 form below returns the descending node (180° off the true ASC).
+    # The standard Meeus formula needs a 180° adjustment to land on the ascending node.
+    asc_trop = (math.degrees(math.atan2(
         -math.cos(ramc_r),
         math.sin(ramc_r) * math.cos(eps) + math.tan(phi) * math.sin(eps)
-    )) % 360
+    )) + 180) % 360
 
     if zodiac_system == "sidereal":
         ayanamsa = _lahiri_ayanamsa(t.tt)
         asc = (asc_trop - ayanamsa) % 360
         mc  = (mc_trop  - ayanamsa) % 360
     else:
+        ayanamsa = 0.0
         asc, mc = asc_trop, mc_trop
 
     dsc = (asc + 180.0) % 360
     ic  = (mc  + 180.0) % 360
 
-    h1    = int(asc // 30) * 30.0
-    cusps = [(h1 + i * 30.0) % 360.0 for i in range(12)]
+    if house_system == "placidus":
+        cusps = compute_placidus_cusps(ramc, birth_lat, obliquity, asc_trop, mc_trop, ayanamsa)
+    else:
+        cusps = _whole_sign_cusps(asc)
 
     angles = {}
     for name, lon in [("ASC", asc), ("DSC", dsc), ("MC", mc), ("IC", ic)]:
@@ -99,6 +108,101 @@ def compute_angles_and_cusps(
             "retrograde": False,
         }
     return angles, cusps
+
+
+def _whole_sign_cusps(asc: float) -> list[float]:
+    h1 = int(asc // 30) * 30.0
+    return [(h1 + i * 30.0) % 360.0 for i in range(12)]
+
+
+def compute_placidus_cusps(
+    ramc_deg: float, lat_deg: float, obliquity_deg: float,
+    asc_trop: float, mc_trop: float, ayanamsa: float = 0.0,
+) -> list[float]:
+    """Compute Placidus house cusps via fixed-point iteration.
+
+    Inputs are tropical (asc_trop, mc_trop). Ayanamsa is subtracted from
+    each cusp at the end if sidereal. Raises ValueError if the latitude
+    is too high for Placidus to be defined.
+    """
+    phi = math.radians(lat_deg)
+    eps = math.radians(obliquity_deg)
+
+    # House 11: F=1/3, n=1; House 12: F=2/3, n=2 (diurnal, west of MC)
+    # House 2:  F=2/3, n=4; House 3:  F=1/3, n=5 (nocturnal, east of IC)
+    PARAMS = {
+        11: (1/3, 1, True),
+        12: (2/3, 2, True),
+        2:  (2/3, 4, False),
+        3:  (1/3, 5, False),
+    }
+
+    computed = {}
+    for cusp_num, (F, n, diurnal) in PARAMS.items():
+        computed[cusp_num] = _placidus_one_cusp(F, n, diurnal, ramc_deg, phi, eps)
+
+    # Compose 12 cusps. House 1 = ASC, 4 = IC, 7 = DSC, 10 = MC.
+    # Opposite cusps mirror by 180°.
+    ic_trop  = (mc_trop  + 180.0) % 360
+    dsc_trop = (asc_trop + 180.0) % 360
+    raw_cusps = [
+        asc_trop,                        # 1
+        computed[2],                     # 2
+        computed[3],                     # 3
+        ic_trop,                         # 4
+        (computed[11] + 180.0) % 360,    # 5 (opposite of 11)
+        (computed[12] + 180.0) % 360,    # 6 (opposite of 12)
+        dsc_trop,                        # 7
+        (computed[2] + 180.0) % 360,     # 8
+        (computed[3] + 180.0) % 360,     # 9
+        mc_trop,                         # 10
+        computed[11],                    # 11
+        computed[12],                    # 12
+    ]
+    return [(c - ayanamsa) % 360 for c in raw_cusps]
+
+
+def _placidus_one_cusp(
+    F: float, n: int, diurnal: bool, ramc_deg: float, phi: float, eps: float,
+    max_iter: int = 30, tol_deg: float = 1e-8,
+) -> float:
+    """Fixed-point iteration for one Placidus intermediate cusp.
+
+    F: semi-arc fraction (1/3 or 2/3).
+    n: integer offset so initial guess of α = RAMC + n×30° (n ∈ {1, 2, 4, 5}).
+    diurnal: True for cusps 11, 12 (above horizon); False for 2, 3 (below).
+    Returns tropical ecliptic longitude in degrees.
+
+    For diurnal cusps: α = RAMC + F · D_diurnal where D_diurnal = arccos(-tan φ · tan δ).
+    For nocturnal cusps: α = RAMC + 180° - F · D_nocturnal where D_nocturnal = arccos(+tan φ · tan δ).
+    """
+    ramc_r = math.radians(ramc_deg)
+    lam = math.radians((ramc_deg + n * 30.0) % 360)  # initial guess
+    for _ in range(max_iter):
+        delta = math.asin(math.sin(eps) * math.sin(lam))
+        arg = -math.tan(phi) * math.tan(delta) if diurnal else math.tan(phi) * math.tan(delta)
+        if abs(arg) >= 1.0:
+            raise ValueError(
+                f"Placidus is undefined at latitude {math.degrees(phi):.1f}°: "
+                f"the cusp's declination is circumpolar."
+            )
+        D = math.acos(arg)  # semi-arc in radians
+        if diurnal:
+            alpha = ramc_r + F * D
+        else:
+            alpha = ramc_r + math.pi - F * D
+        # Convert α (RA) back to ecliptic longitude using the current δ.
+        # For (α, δ) → λ on the ecliptic (β=0):
+        #   λ = atan2(sin α · cos ε + tan δ · sin ε,  cos α)
+        lam_new = math.atan2(
+            math.sin(alpha) * math.cos(eps) + math.tan(delta) * math.sin(eps),
+            math.cos(alpha),
+        ) % (2 * math.pi)
+        if abs(math.degrees((lam_new - lam + math.pi) % (2 * math.pi) - math.pi)) < tol_deg:
+            lam = lam_new
+            break
+        lam = lam_new
+    return math.degrees(lam) % 360
 
 
 def _longitude_to_sign(lon: float) -> tuple[str, float]:
@@ -182,8 +286,9 @@ def compute_natal_chart(
     zodiac_system: str,
     birth_lat: float,
     birth_lon: float,
+    house_system: str = "placidus",
 ) -> tuple[dict, list[float]]:
-    """Compute natal positions (planets + angles) and Whole Sign house cusps."""
+    """Compute natal positions (planets + angles) and house cusps."""
     try:
         tz = ZoneInfo(birth_timezone)
     except ZoneInfoNotFoundError:
@@ -195,7 +300,7 @@ def compute_natal_chart(
     t = ts.from_datetime(dt_utc)
 
     positions = compute_planet_positions(dt_utc, zodiac_system)
-    angles, cusps = compute_angles_and_cusps(t, birth_lat, birth_lon, zodiac_system)
+    angles, cusps = compute_angles_and_cusps(t, birth_lat, birth_lon, zodiac_system, house_system)
     positions.update(angles)
     return positions, cusps
 

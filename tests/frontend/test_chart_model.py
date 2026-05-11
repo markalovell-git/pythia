@@ -56,3 +56,36 @@ def test_get_zodiac_system(mock_api):
 def test_get_zodiac_system_fallback(mock_api):
     mock_api["get_user_settings"].return_value = None
     assert chart_model.get_zodiac_system("u1") == "sidereal"
+
+
+def test_get_house_system(mock_api):
+    mock_api["get_user_settings"].return_value = {"zodiac_system": "sidereal", "house_system": "whole_sign"}
+    assert chart_model.get_house_system("u1") == "whole_sign"
+
+
+def test_get_house_system_default_placidus(mock_api):
+    mock_api["get_user_settings"].return_value = None
+    assert chart_model.get_house_system("u1") == "placidus"
+
+
+def test_get_house_system_missing_field_defaults_to_placidus(mock_api):
+    # Backwards compatibility: an old settings payload may not include house_system
+    mock_api["get_user_settings"].return_value = {"zodiac_system": "sidereal"}
+    assert chart_model.get_house_system("u1") == "placidus"
+
+
+def test_set_house_system_calls_api(mock_api):
+    chart_model.set_house_system("u1", "whole_sign")
+    mock_api["update_user_settings"].assert_called_once_with("u1", house_system="whole_sign")
+
+
+def test_load_chart_includes_house_system(mock_api):
+    mock_api["get_natal_chart"].return_value = {**_RAW_CHART, "house_system": "whole_sign"}
+    chart = chart_model.load_chart("u1")
+    assert chart.house_system == "whole_sign"
+
+
+def test_load_chart_house_system_defaults_to_placidus(mock_api):
+    mock_api["get_natal_chart"].return_value = _RAW_CHART  # no house_system field
+    chart = chart_model.load_chart("u1")
+    assert chart.house_system == "placidus"

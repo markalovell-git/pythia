@@ -1,11 +1,14 @@
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QComboBox, QGroupBox, QMessageBox,
 )
+import httpx
 
 from app.frontend.models import chart_model, user_model
-from app.common.constants import VALID_ZODIAC_SYSTEMS
+from app.common.constants import VALID_ZODIAC_SYSTEMS, VALID_HOUSE_SYSTEMS
+
+_HOUSE_SYSTEM_LABELS = {"placidus": "Placidus", "whole_sign": "Whole Sign"}
 
 
 class SettingsView(QWidget):
@@ -19,7 +22,7 @@ class SettingsView(QWidget):
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
-        layout.setAlignment(__import__("PyQt6.QtCore", fromlist=["Qt"]).Qt.AlignmentFlag.AlignTop)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         title = QLabel("Settings")
         title.setStyleSheet("font-size: 18px; font-weight: bold;")
@@ -38,6 +41,20 @@ class SettingsView(QWidget):
         zodiac_layout.addStretch()
         layout.addWidget(zodiac_group)
 
+        # House system
+        house_group = QGroupBox("House System")
+        house_layout = QHBoxLayout(house_group)
+        self.house_combo = QComboBox()
+        for key in ("placidus", "whole_sign"):
+            self.house_combo.addItem(_HOUSE_SYSTEM_LABELS[key], userData=key)
+        self.save_house_btn = QPushButton("Save")
+        self.save_house_btn.clicked.connect(self._on_save_house)
+        house_layout.addWidget(QLabel("System:"))
+        house_layout.addWidget(self.house_combo)
+        house_layout.addWidget(self.save_house_btn)
+        house_layout.addStretch()
+        layout.addWidget(house_group)
+
         # Account
         account_group = QGroupBox("Account")
         account_layout = QVBoxLayout(account_group)
@@ -51,15 +68,46 @@ class SettingsView(QWidget):
 
     def load(self, user_id: str):
         self._user_id = user_id
-        current = chart_model.get_zodiac_system(user_id)
-        idx = self.zodiac_combo.findText(current)
+        current_zodiac = chart_model.get_zodiac_system(user_id)
+        idx = self.zodiac_combo.findText(current_zodiac)
         if idx >= 0:
             self.zodiac_combo.setCurrentIndex(idx)
+        current_house = chart_model.get_house_system(user_id)
+        idx = self.house_combo.findData(current_house)
+        if idx >= 0:
+            self.house_combo.setCurrentIndex(idx)
 
     def _on_save_zodiac(self):
         if not self._user_id:
             return
         chart_model.set_zodiac_system(self._user_id, self.zodiac_combo.currentText())
+        self.chart_changed.emit()
+
+    def _on_save_house(self):
+        if not self._user_id:
+            return
+        new_value = self.house_combo.currentData()
+        previous = chart_model.get_house_system(self._user_id)
+        chart_model.set_house_system(self._user_id, new_value)
+        try:
+            chart_model.calculate_chart(self._user_id)
+        except httpx.HTTPStatusError as e:
+            # Roll back the setting if the chart can't be computed under it.
+            chart_model.set_house_system(self._user_id, previous)
+            idx = self.house_combo.findData(previous)
+            if idx >= 0:
+                self.house_combo.setCurrentIndex(idx)
+            detail = ""
+            try:
+                detail = e.response.json().get("detail", "")
+            except Exception:
+                detail = e.response.text
+            QMessageBox.warning(
+                self,
+                "House system unavailable",
+                f"Couldn't switch to {_HOUSE_SYSTEM_LABELS[new_value]}:\n\n{detail}",
+            )
+            return
         self.chart_changed.emit()
 
     def _on_delete_account(self):

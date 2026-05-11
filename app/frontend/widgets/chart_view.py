@@ -83,8 +83,10 @@ ASPECT_COLORS = {
 }
 
 
-def _angle_to_xy(cx, cy, r, longitude_deg):
-    rad = math.radians(90 - longitude_deg)
+def _angle_to_xy(cx, cy, r, longitude_deg, offset_deg=0):
+    # offset_deg rotates the whole chart CW visually. To put ASC at the left
+    # (screen 9 o'clock = math angle 180°), pass offset_deg = 90 + asc_longitude.
+    rad = math.radians(90 - longitude_deg + offset_deg)
     return cx + r * math.cos(rad), cy + r * math.sin(rad)
 
 
@@ -247,6 +249,13 @@ class _ZodiacWheel(QWidget):
         show_natal  = self._cb_natal.isChecked()
         show_labels = self._cb_labels.isChecked()
 
+        # Rotate the whole chart so ASC lands at the left (the horizon line is horizontal).
+        # When no chart is loaded, fall back to the legacy "Aries at bottom" layout.
+        if self._chart and "ASC" in self._chart.positions:
+            rot = (90 + self._chart.positions["ASC"].longitude) % 360
+        else:
+            rot = 0.0
+
         w, h = self.width(), self.height()
         size = min(w, h) - 24
         cx, cy = w / 2, h / 2
@@ -273,7 +282,7 @@ class _ZodiacWheel(QWidget):
 
         # ── Zodiac band — 12 alternating wedges ───────────────────
         for i in range(12):
-            start = -(i * 30 - 90)
+            start = -(i * 30 - 90) - rot
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QBrush(QColor(SIGN_COLORS[i])))
             painter.drawPie(outer_rect, int(start * 16), int(30 * 16))
@@ -281,8 +290,8 @@ class _ZodiacWheel(QWidget):
         # ── Radial dividers across zodiac band ────────────────────
         painter.setPen(QPen(QColor("#3a3a6a"), 1))
         for i in range(12):
-            x1, y1 = _angle_to_xy(cx, cy, radius_zodiac_inner, i * 30)
-            x2, y2 = _angle_to_xy(cx, cy, radius_zodiac_outer, i * 30)
+            x1, y1 = _angle_to_xy(cx, cy, radius_zodiac_inner, i * 30, rot)
+            x2, y2 = _angle_to_xy(cx, cy, radius_zodiac_outer, i * 30, rot)
             painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
         # ── Ecliptic ring ─────────────────────────────────────────
@@ -300,7 +309,7 @@ class _ZodiacWheel(QWidget):
         for i, glyph in enumerate(SIGN_GLYPHS):
             name = SIGN_NAMES[i]
             angle = i * 30 + 15
-            x, y = _angle_to_xy(cx, cy, label_r, angle)
+            x, y = _angle_to_xy(cx, cy, label_r, angle, rot)
             self._sign_positions[name] = (x, y)
             if name == self._hovered_sign:
                 painter.setPen(Qt.PenStyle.NoPen)
@@ -329,8 +338,8 @@ class _ZodiacWheel(QWidget):
             else:
                 tick_inner = radius_zodiac_inner * 0.984
                 painter.setPen(QPen(QColor("#2a2a55"), 1))
-            x1, y1 = _angle_to_xy(cx, cy, tick_outer, deg)
-            x2, y2 = _angle_to_xy(cx, cy, tick_inner, deg)
+            x1, y1 = _angle_to_xy(cx, cy, tick_outer, deg, rot)
+            x2, y2 = _angle_to_xy(cx, cy, tick_inner, deg, rot)
             painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
         # ── House ring border ─────────────────────────────────────
@@ -353,7 +362,7 @@ class _ZodiacWheel(QWidget):
             for i, cusp_lon in enumerate(cusps):
                 next_cusp   = cusps[(i + 1) % 12]
                 sector_span = (next_cusp - cusp_lon) % 360
-                qt_start    = cusp_lon - 90
+                qt_start    = cusp_lon - 90 - rot
                 path = QPainterPath()
                 path.arcMoveTo(house_outer_rect, qt_start)
                 path.arcTo(house_outer_rect, qt_start, sector_span)
@@ -365,8 +374,8 @@ class _ZodiacWheel(QWidget):
             # Cusp divider lines: cosmos → house_outer
             painter.setPen(QPen(QColor("#3a3a6a"), 1))
             for cusp_lon in cusps:
-                x1, y1 = _angle_to_xy(cx, cy, radius_cosmos,      cusp_lon)
-                x2, y2 = _angle_to_xy(cx, cy, radius_house_outer,  cusp_lon)
+                x1, y1 = _angle_to_xy(cx, cy, radius_cosmos,      cusp_lon, rot)
+                x2, y2 = _angle_to_xy(cx, cy, radius_house_outer,  cusp_lon, rot)
                 painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
             # House numerals centred in each sector
@@ -378,7 +387,7 @@ class _ZodiacWheel(QWidget):
                 next_cusp   = cusps[(i + 1) % 12]
                 sector_span = (next_cusp - cusp_lon) % 360
                 mid_lon     = (cusp_lon + sector_span / 2) % 360
-                lx, ly = _angle_to_xy(cx, cy, label_r_band, mid_lon)
+                lx, ly = _angle_to_xy(cx, cy, label_r_band, mid_lon, rot)
                 painter.setPen(QPen(QColor("#7070a0")))
                 painter.drawText(QRectF(lx - 10, ly - 8, 20, 16),
                                  Qt.AlignmentFlag.AlignCenter, HOUSE_NUMERALS[i])
@@ -406,11 +415,11 @@ class _ZodiacWheel(QWidget):
             else:
                 color.setAlpha(200)
             painter.setPen(QPen(color, width))
-            x1, y1 = _angle_to_xy(cx, cy, radius_hub, lon)
-            x2, y2 = _angle_to_xy(cx, cy, axis_end,   lon)
+            x1, y1 = _angle_to_xy(cx, cy, radius_hub, lon, rot)
+            x2, y2 = _angle_to_xy(cx, cy, axis_end,   lon, rot)
             painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
-            lx, ly = _angle_to_xy(cx, cy, angle_label_r, lon)
+            lx, ly = _angle_to_xy(cx, cy, angle_label_r, lon, rot)
             self._planet_positions[angle_name] = (lx, ly)
             painter.setFont(lbl_font)
             lbl_color = QColor(ANGLE_COLORS[angle_name])
@@ -435,7 +444,7 @@ class _ZodiacWheel(QWidget):
                     a1, a2 = min(lon1, lon2), max(lon1, lon2)
                     if a2 - a1 > 180:
                         a1, a2 = a2, a1 + 360
-                    start_qt = a1 - 90
+                    start_qt = a1 - 90 - rot
                     sweep_qt = a2 - a1
                     for k in range(3):
                         r = radius_inner + k * arc_step
@@ -445,8 +454,8 @@ class _ZodiacWheel(QWidget):
                         path.arcTo(rect, start_qt, sweep_qt)
                         painter.drawPath(path)
                 else:
-                    x1, y1 = _angle_to_xy(cx, cy, radius_inner, lon1)
-                    x2, y2 = _angle_to_xy(cx, cy, radius_inner, lon2)
+                    x1, y1 = _angle_to_xy(cx, cy, radius_inner, lon1, rot)
+                    x2, y2 = _angle_to_xy(cx, cy, radius_inner, lon2, rot)
                     painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
         # ── Transit-to-natal aspect lines ────────────────────────
@@ -476,9 +485,9 @@ class _ZodiacWheel(QWidget):
                 painter.setPen(dash_pen)
                 t_lon = self._transits.positions[t.transit_planet].longitude
                 n_lon = self._chart.positions[t.natal_planet].longitude
-                tx, ty = _angle_to_xy(cx, cy, radius_zodiac_outer, t_lon)
+                tx, ty = _angle_to_xy(cx, cy, radius_zodiac_outer, t_lon, rot)
                 n_r    = radius_cosmos if t.natal_planet in ANGLE_NAMES else radius_inner
-                nx, ny = _angle_to_xy(cx, cy, n_r, n_lon)
+                nx, ny = _angle_to_xy(cx, cy, n_r, n_lon, rot)
                 painter.drawLine(QPointF(tx, ty), QPointF(nx, ny))
 
         # ── Planet glyphs ─────────────────────────────────────────
@@ -507,13 +516,13 @@ class _ZodiacWheel(QWidget):
                 else:
                     color.setAlpha(140)
                     painter.setPen(QPen(color, 1.0))
-                tx, ty = _angle_to_xy(cx, cy, radius_zodiac_inner, pos.longitude)
-                gx, gy = _angle_to_xy(cx, cy, radius_inner,   pos.longitude)
+                tx, ty = _angle_to_xy(cx, cy, radius_zodiac_inner, pos.longitude, rot)
+                gx, gy = _angle_to_xy(cx, cy, radius_inner,   pos.longitude, rot)
                 painter.drawLine(QPointF(tx, ty), QPointF(gx, gy))
 
             for name, pos in planet_positions_only.items():
                 glyph = PLANET_GLYPHS.get(name, name[:2])
-                gx, gy = _angle_to_xy(cx, cy, planet_radii[name], pos.longitude)
+                gx, gy = _angle_to_xy(cx, cy, planet_radii[name], pos.longitude, rot)
                 self._planet_positions[name] = (gx, gy)
                 color = QColor(PLANET_COLORS.get(name, "#ffffff"))
                 is_hovered = name == self._hovered
@@ -560,15 +569,15 @@ class _ZodiacWheel(QWidget):
                 else:
                     color.setAlpha(100)
                     painter.setPen(QPen(color, 1.0))
-                tx, ty = _angle_to_xy(cx, cy, radius_cosmos,       pos.longitude)
-                gx, gy = _angle_to_xy(cx, cy, radius_zodiac_outer, pos.longitude)
+                tx, ty = _angle_to_xy(cx, cy, radius_cosmos,       pos.longitude, rot)
+                gx, gy = _angle_to_xy(cx, cy, radius_zodiac_outer, pos.longitude, rot)
                 painter.drawLine(QPointF(tx, ty), QPointF(gx, gy))
 
             # Glyphs — normal color base + blue ghost overlay
             self._transit_positions.clear()
             for name, pos in self._transits.positions.items():
                 glyph = PLANET_GLYPHS.get(name, name[:2])
-                gx, gy = _angle_to_xy(cx, cy, transit_radii[name], pos.longitude)
+                gx, gy = _angle_to_xy(cx, cy, transit_radii[name], pos.longitude, rot)
                 self._transit_positions[name] = (gx, gy)
                 color = QColor(PLANET_COLORS.get(name, "#ffffff"))
                 is_hovered = name == self._hovered_transit
@@ -626,7 +635,7 @@ class _ZodiacWheel(QWidget):
                 (radius_transit_mid,  "Transit Planets",  0),
                 (radius_house_mid,    "Houses",           0),
             ]:
-                lx, ly = _angle_to_xy(cx, cy, radius + offset, label_angle)
+                lx, ly = _angle_to_xy(cx, cy, radius + offset, label_angle, rot)
                 rect = QRectF(lx - 44, ly - 10, 88, 20)
                 painter.setPen(QPen(QColor(0, 0, 0, 200)))
                 for dx, dy in ((1, 1), (-1, 1), (1, -1), (-1, -1)):
@@ -805,7 +814,9 @@ class ChartView(QWidget):
         self._aspects = chart_model.compute_natal_aspects(chart)
         self._planet_names = [n for n in chart.positions if n not in ANGLE_NAMES]
         self.status_label.setText("")
-        self.zodiac_label.setText(f"Zodiac: {chart.zodiac_system.title()}")
+        self.zodiac_label.setText(
+            f"{chart.zodiac_system.title()} · {chart.house_system.replace('_', ' ').title()}"
+        )
         self.wheel.set_chart(chart)
         self._fetch_transits()
         self._populate_table_natal()

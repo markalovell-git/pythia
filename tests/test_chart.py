@@ -12,6 +12,8 @@ MOCK_POSITIONS = {
     "Neptune": {"longitude": 285.10, "sign": "Capricorn", "degree": 15.10},
     "Pluto":   {"longitude": 234.80, "sign": "Scorpio",   "degree": 24.80},
 }
+MOCK_CUSPS = [i * 30.0 for i in range(12)]
+MOCK_CHART_RETURN = (MOCK_POSITIONS, MOCK_CUSPS)
 
 MOCK_TRANSITS = [
     {
@@ -26,7 +28,7 @@ MOCK_TRANSITS = [
 
 
 def test_calculate_natal_chart_success(client, created_user):
-    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_POSITIONS):
+    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_CHART_RETURN):
         response = client.post(f"/api/calculate_natal_chart/{created_user}")
     assert response.status_code == 200
     data = response.json()
@@ -36,13 +38,13 @@ def test_calculate_natal_chart_success(client, created_user):
 
 
 def test_calculate_natal_chart_user_not_found(client):
-    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_POSITIONS):
+    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_CHART_RETURN):
         response = client.post("/api/calculate_natal_chart/nonexistent-uuid")
     assert response.status_code == 404
 
 
 def test_calculate_natal_chart_overwrites_previous(client, created_user):
-    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_POSITIONS):
+    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_CHART_RETURN):
         client.post(f"/api/calculate_natal_chart/{created_user}")
         response = client.post(f"/api/calculate_natal_chart/{created_user}")
     assert response.status_code == 200
@@ -65,7 +67,7 @@ def test_calculate_natal_chart_out_of_range_birth_date(client):
 
 
 def test_get_natal_chart_success(client, created_user):
-    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_POSITIONS):
+    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_CHART_RETURN):
         client.post(f"/api/calculate_natal_chart/{created_user}")
     response = client.get(f"/api/get_natal_chart/{created_user}")
     assert response.status_code == 200
@@ -81,7 +83,7 @@ def test_get_natal_chart_not_found(client, created_user):
 
 
 def test_calculate_transits_success(client, created_user):
-    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_POSITIONS):
+    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_CHART_RETURN):
         client.post(f"/api/calculate_natal_chart/{created_user}")
     with patch("app.backend.chart_router.compute_transits", return_value=MOCK_TRANSITS):
         response = client.get(f"/api/calculate_transits/{created_user}")
@@ -100,7 +102,7 @@ def test_calculate_transits_no_natal_chart(client, created_user):
 
 
 def test_calculate_transits_with_past_date(client, created_user):
-    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_POSITIONS):
+    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_CHART_RETURN):
         client.post(f"/api/calculate_natal_chart/{created_user}")
     with patch("app.backend.chart_router.compute_transits", return_value=MOCK_TRANSITS) as mock:
         response = client.get(f"/api/calculate_transits/{created_user}", params={"date": "1997-04-15T12:00:00"})
@@ -110,7 +112,7 @@ def test_calculate_transits_with_past_date(client, created_user):
 
 
 def test_calculate_transits_with_future_date(client, created_user):
-    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_POSITIONS):
+    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_CHART_RETURN):
         client.post(f"/api/calculate_natal_chart/{created_user}")
     with patch("app.backend.chart_router.compute_transits", return_value=MOCK_TRANSITS) as mock:
         response = client.get(f"/api/calculate_transits/{created_user}", params={"date": "2044-06-15T12:00:00"})
@@ -119,14 +121,14 @@ def test_calculate_transits_with_future_date(client, created_user):
 
 
 def test_calculate_transits_invalid_date(client, created_user):
-    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_POSITIONS):
+    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_CHART_RETURN):
         client.post(f"/api/calculate_natal_chart/{created_user}")
     response = client.get(f"/api/calculate_transits/{created_user}", params={"date": "not-a-date"})
     assert response.status_code == 422
 
 
 def test_calculate_transits_out_of_range_date(client, created_user):
-    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_POSITIONS):
+    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_CHART_RETURN):
         client.post(f"/api/calculate_natal_chart/{created_user}")
     response = client.get(f"/api/calculate_transits/{created_user}", params={"date": "1850-01-01T00:00:00"})
     assert response.status_code == 422

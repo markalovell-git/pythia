@@ -22,6 +22,7 @@ UPDATED_PAYLOAD = {
 MOCK_POSITIONS = {
     "Sun": {"longitude": 84.50, "sign": "Gemini", "degree": 24.50},
 }
+MOCK_CHART_RETURN = (MOCK_POSITIONS, [i * 30.0 for i in range(12)])
 
 
 def test_submit_user_data_success(client):
@@ -30,6 +31,25 @@ def test_submit_user_data_success(client):
     data = response.json()
     assert data["user_data"]["username"] == "jdoe"
     assert "user_id" in data
+
+
+def test_submit_user_data_default_house_system_is_placidus(client):
+    response = client.post("/api/submit_user_data", json=VALID_PAYLOAD)
+    user_id = response.json()["user_id"]
+    settings = client.get(f"/api/get_user_settings/{user_id}").json()
+    assert settings["house_system"] == "placidus"
+
+
+def test_submit_user_data_with_whole_sign(client):
+    response = client.post("/api/submit_user_data", json={**VALID_PAYLOAD, "house_system": "whole_sign"})
+    user_id = response.json()["user_id"]
+    settings = client.get(f"/api/get_user_settings/{user_id}").json()
+    assert settings["house_system"] == "whole_sign"
+
+
+def test_submit_user_data_invalid_house_system(client):
+    response = client.post("/api/submit_user_data", json={**VALID_PAYLOAD, "house_system": "regiomontanus"})
+    assert response.status_code == 422
 
 
 def test_submit_user_data_duplicate_username(client):
@@ -145,7 +165,7 @@ def test_update_user_data_invalidates_natal_chart(client):
     submit = client.post("/api/submit_user_data", json=VALID_PAYLOAD)
     user_id = submit.json()["user_id"]
 
-    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_POSITIONS):
+    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_CHART_RETURN):
         client.post(f"/api/calculate_natal_chart/{user_id}")
 
     assert client.get(f"/api/get_natal_chart/{user_id}").status_code == 200
@@ -200,7 +220,7 @@ def test_delete_user_removes_settings(client, created_user):
 
 
 def test_delete_user_removes_natal_chart(client, created_user):
-    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_POSITIONS):
+    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_CHART_RETURN):
         client.post(f"/api/calculate_natal_chart/{created_user}")
     client.delete(f"/api/delete_user/{created_user}")
     assert client.get(f"/api/get_natal_chart/{created_user}").status_code == 404

@@ -78,8 +78,17 @@ def get_user_settings(user_id: str) -> dict | None:
     return _get(f"/get_user_settings/{user_id}")
 
 
-def update_user_settings(user_id: str, zodiac_system: str) -> dict:
-    return _put(f"/update_user_settings/{user_id}", json={"zodiac_system": zodiac_system})
+def update_user_settings(
+    user_id: str,
+    zodiac_system: str | None = None,
+    house_system: str | None = None,
+) -> dict:
+    payload: dict = {}
+    if zodiac_system is not None:
+        payload["zodiac_system"] = zodiac_system
+    if house_system is not None:
+        payload["house_system"] = house_system
+    return _put(f"/update_user_settings/{user_id}", json=payload)
 
 
 # ── Charts ────────────────────────────────────────────────────────────────────
