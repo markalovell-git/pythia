@@ -862,6 +862,132 @@ NATAL_ASPECT: dict[tuple[str, str, str], str] = {
     ("MC", "Venus", "square"):      "The desire for a beautiful or pleasant career and the reality of what the professional path requires can conflict. Learning that love of the work is compatible with its challenges is the practice.",
     ("MC", "Venus", "trine"):       "Love and career flow together harmoniously. The professional life is marked by beauty, warm relationships, and the satisfaction of doing work you genuinely value.",
     ("MC", "Venus", "opposition"):  "The love of beauty and the demands of the career may stand in opposition. What you want professionally and what you love privately may not initially agree on direction.",
+
+    # ── North Node aspects ────────────────────────────────────────────────────
+    # keyed (*sorted([planet, "North Node"]), aspect)
+
+    ("Jupiter", "North Node", "conjunction"): "Expansion and soul growth reinforce each other powerfully. Optimism, generosity, and philosophy are not just gifts — they are evolutionary tools pointing toward your destiny.",
+    ("Jupiter", "North Node", "sextile"):     "Abundance and destiny support each other with ease. Growth tends to come with opportunity, and the soul's direction opens doors rather than closing them.",
+    ("Jupiter", "North Node", "square"):      "The abundance principle and the soul's direction may create friction. Excess, overreach, or misplaced faith can slow evolutionary progress until wisdom catches up with enthusiasm.",
+    ("Jupiter", "North Node", "trine"):       "Growth and good fortune cooperate harmoniously. The path of soul development tends to be paved with well-timed opportunities and genuine expansion.",
+    ("Jupiter", "North Node", "opposition"):  "Expansion and soul growth stand across from each other. The challenge is keeping optimism and opportunity in service of genuine development rather than comfortable distraction.",
+
+    ("Mars", "North Node", "conjunction"): "Drive, initiative, and assertiveness are evolutionary tools. Action taken in the direction of your soul's purpose tends to have unusual force and significance.",
+    ("Mars", "North Node", "sextile"):     "Will and soul direction work together with ease. Assertive energy can be channeled productively toward growth without requiring enormous effort.",
+    ("Mars", "North Node", "square"):      "Desire and destiny create friction. The impulse to fight, push, or compete may need to be redirected before it truly serves the evolutionary path.",
+    ("Mars", "North Node", "trine"):       "Action and growth harmonize naturally. You move toward your soul's direction with genuine energy, and assertiveness rarely takes you too far off course.",
+    ("Mars", "North Node", "opposition"):  "Drive and soul growth face each other across the axis. The challenge is channeling energy away from old battles and toward the real work of development.",
+
+    ("Mercury", "North Node", "conjunction"): "Communication and learning are central to your evolutionary path. Words, teaching, and the play of ideas are how you grow and help others grow alongside you.",
+    ("Mercury", "North Node", "sextile"):     "Intelligence and destiny cooperate naturally. Curiosity leads toward growth, and the mind is a genuine asset in moving forward on your life's path.",
+    ("Mercury", "North Node", "square"):      "The way you think or communicate creates friction with your evolutionary direction. Growth involves updating how you process information and express yourself.",
+    ("Mercury", "North Node", "trine"):       "Mind and soul direction flow effortlessly together. Learning, writing, and honest conversation are both natural talents and pathways to development.",
+    ("Mercury", "North Node", "opposition"):  "Communication patterns and soul growth may pull in opposite directions. The challenge is using words in service of where you are going, not just where you have been.",
+
+    ("Moon", "North Node", "conjunction"): "Emotional instincts are aligned with growth. Nurturing others, following your feelings, and honoring vulnerability are woven into your evolutionary path.",
+    ("Moon", "North Node", "sextile"):     "Emotional intelligence supports your soul's direction. Feelings are a useful guide toward the growth experiences that matter most.",
+    ("Moon", "North Node", "square"):      "Emotional habits and evolutionary direction create tension. Old comfort patterns can resist the soul's call to expand into new emotional territory.",
+    ("Moon", "North Node", "trine"):       "Feeling and destiny flow in harmony. The emotional life naturally carries you in the direction of growth; following your instincts rarely leads you astray.",
+    ("Moon", "North Node", "opposition"):  "Emotional needs and soul growth stand across from each other. Learning to balance personal security with relational openness is a central lifetime theme.",
+
+    ("Neptune", "North Node", "conjunction"): "Spirituality, compassion, and the dissolving of boundaries are part of the evolutionary path. Growth comes through surrender and faith rather than control.",
+    ("Neptune", "North Node", "sextile"):     "Spiritual sensitivity and soul direction support each other gently. Intuition and imagination are quiet assets on the path forward.",
+    ("Neptune", "North Node", "square"):      "Spiritual idealism and evolutionary direction create friction. Illusions or escapism may need to be released before the soul can progress clearly.",
+    ("Neptune", "North Node", "trine"):       "Spiritual awareness and destiny flow harmoniously. The path of development often runs through art, healing, or a deepening relationship with the unseen.",
+    ("Neptune", "North Node", "opposition"):  "Spiritual longings and soul growth face each other. The challenge is channeling Neptune's dissolving force in service of growth rather than confusion.",
+
+    ("North Node", "Pluto", "conjunction"): "Transformation and soul evolution are deeply intertwined. Radical change, loss, and renewal are part of the design — power moves you toward your destiny.",
+    ("North Node", "Pluto", "sextile"):     "Depth and soul direction cooperate. The willingness to confront what is hidden supports forward progress on the evolutionary path.",
+    ("North Node", "Pluto", "square"):      "Transformation and soul growth create friction. Power struggles, obsessions, or buried fears may need to be metabolized before real progress becomes possible.",
+    ("North Node", "Pluto", "trine"):       "Depth and destiny harmonize. The capacity for radical self-renewal carries you naturally toward your soul's purpose.",
+    ("North Node", "Pluto", "opposition"):  "Transformation and soul growth face each other across the axis. The challenge is releasing the grip of power, control, or buried material in service of genuine development.",
+
+    ("North Node", "Saturn", "conjunction"): "Discipline, responsibility, and maturity are central to the evolutionary path. Growth requires effort and patience but yields genuine, lasting achievement.",
+    ("North Node", "Saturn", "sextile"):     "Structure and soul direction support each other. Discipline applied in the right areas accelerates growth and builds real foundations.",
+    ("North Node", "Saturn", "square"):      "Responsibility and soul growth create friction. Old structures, fears, or limiting beliefs may need to be actively confronted before real progress is possible.",
+    ("North Node", "Saturn", "trine"):       "Effort and destiny flow together steadily. Consistent work toward your soul's direction is rewarded, and the path forward is disciplined and purposeful.",
+    ("North Node", "Saturn", "opposition"):  "Discipline and soul growth face each other. The challenge is releasing outgrown structures and applying effort toward what the soul is actually calling for.",
+
+    ("North Node", "Sun", "conjunction"): "Identity and destiny align. Your life purpose and personal vitality point toward the same horizon, making growth feel natural and deeply personal.",
+    ("North Node", "Sun", "sextile"):     "The self and the soul's direction support each other with ease. There is an innate talent for moving in your evolutionary direction without forcing it.",
+    ("North Node", "Sun", "square"):      "Identity and soul growth pull against each other. You may feel torn between who you are now and who you are being called to become.",
+    ("North Node", "Sun", "trine"):       "Personal identity and life purpose flow together. You grow into your destiny naturally, and self-expression doubles as spiritual development.",
+    ("North Node", "Sun", "opposition"):  "The core self and the soul's direction face each other across the axis. Growth often comes through encounters with others who embody the qualities you are here to develop.",
+
+    ("North Node", "Uranus", "conjunction"): "Innovation, rebellion, and awakening are part of the evolutionary design. Growth often comes through upheaval and the willingness to be radically different.",
+    ("North Node", "Uranus", "sextile"):     "Originality and destiny cooperate. Unusual ideas and unconventional paths support forward movement on the soul's journey.",
+    ("North Node", "Uranus", "square"):      "Disruption and soul growth create friction. Change may arrive in ways that challenge the direction of development rather than supporting it.",
+    ("North Node", "Uranus", "trine"):       "Innovation and soul direction harmonize. The willingness to break with convention carries you naturally toward growth and awakening.",
+    ("North Node", "Uranus", "opposition"):  "Awakening and soul growth stand across from each other. The challenge is making peace with disruption and allowing sudden change to serve evolutionary ends.",
+
+    ("North Node", "Venus", "conjunction"): "Love, beauty, and relationships are core to your evolutionary purpose. Growing through genuine connection and developing real values are central themes.",
+    ("North Node", "Venus", "sextile"):     "Relational ease supports your path forward. Harmonious relationships and an appreciation of beauty help carry you in your soul's direction.",
+    ("North Node", "Venus", "square"):      "Values, pleasure, or relationship patterns may resist the direction of growth. What feels comfortable and attractive may not always align with what the soul needs to explore.",
+    ("North Node", "Venus", "trine"):       "Love and destiny move together naturally. Relationships, beauty, and creative work carry you toward growth rather than away from it.",
+    ("North Node", "Venus", "opposition"):  "The desire for comfort or harmony and the direction of soul growth can stand in opposition. True intimacy may require stretching toward unfamiliar values.",
+
+    # ── South Node aspects ────────────────────────────────────────────────────
+    # keyed (*sorted([planet, "South Node"]), aspect)
+
+    ("Jupiter", "South Node", "conjunction"): "Expansive gifts from past experience are deeply available. Philosophy, travel, or abundance may feel natural and familiar — sometimes so comfortable they become substitutes for genuine growth.",
+    ("Jupiter", "South Node", "sextile"):     "Abundance and past life patterns cooperate easily. Natural generosity and optimism are accessible, though the ease of past-life luck can delay the soul from pursuing real development.",
+    ("Jupiter", "South Node", "square"):      "Expansion and past life comfort create friction. Over-reliance on old beliefs, cultural assumptions, or past luck may need to be challenged before growth becomes possible.",
+    ("Jupiter", "South Node", "trine"):       "Philosophy and past life comfort flow together naturally. Genuine wisdom and optimism are gifts from before, though the temptation to rest in familiar philosophies can arise.",
+    ("Jupiter", "South Node", "opposition"):  "Expansion and past life comfort stand across from each other. Growth requires stepping beyond the boundaries of what once felt abundantly comfortable.",
+
+    ("Mars", "South Node", "conjunction"): "Drive, assertiveness, and old battles are deeply rooted. Past life warrior energy is accessible, but the temptation to fight old wars rather than channel energy toward new purpose is real.",
+    ("Mars", "South Node", "sextile"):     "Will and past life patterns cooperate. Assertive energy is readily available from deep in the soul, though it may be more comfortable to direct it in familiar rather than growth-oriented ways.",
+    ("Mars", "South Node", "square"):      "Drive and past life habits create friction. Old anger, aggression, or competitive patterns may resurface and need to be redirected before energy can serve current evolution.",
+    ("Mars", "South Node", "trine"):       "Will and past life comfort flow easily together. Natural drive and courage are genuine gifts, though the temptation to keep fighting old battles rather than pursuing new growth is present.",
+    ("Mars", "South Node", "opposition"):  "Assertive energy and past life comfort stand across from each other. Growth comes from channeling drive toward new territory rather than replaying familiar conflicts.",
+
+    ("Mercury", "South Node", "conjunction"): "Communication and thinking patterns are deeply ingrained from past experience. Real intelligence is present, but familiar mental habits may limit openness to genuinely new ideas.",
+    ("Mercury", "South Node", "sextile"):     "The mind and past life patterns cooperate easily. Intellectual gifts are accessible, though the risk is relying on old frameworks rather than developing new perspectives.",
+    ("Mercury", "South Node", "square"):      "Thinking patterns and past life habits create friction. The way you communicate or process information may need deliberate updating to serve the soul's current direction.",
+    ("Mercury", "South Node", "trine"):       "Mind and past life comfort flow naturally together. Natural intelligence is a genuine asset, though it may subtly discourage exploration of unfamiliar intellectual territory.",
+    ("Mercury", "South Node", "opposition"):  "Communication patterns and past life comfort stand across from each other. Growth comes through questioning familiar mental habits and risking new forms of expression.",
+
+    ("Moon", "South Node", "conjunction"): "Emotional patterns run deep and familiar. Instinctive responses, family dynamics, and nurturing behaviors are deeply ingrained from a prior chapter of soul experience.",
+    ("Moon", "South Node", "sextile"):     "Emotional intelligence and past life patterns cooperate. Inner resources are readily available, though they may anchor the soul in familiar rather than new emotional territory.",
+    ("Moon", "South Node", "square"):      "Emotional habits and past life patterns create friction. Old conditioning may need to be actively questioned before the emotional body can grow in a new direction.",
+    ("Moon", "South Node", "trine"):       "Feeling and past life comfort flow together easily. Emotional sensitivity is a genuine gift, though it may encourage returning to comfortable patterns rather than new growth.",
+    ("Moon", "South Node", "opposition"):  "Emotional needs and past life comfort stand across from each other. The pull between the familiar emotional world and genuine relational growth can be strong.",
+
+    ("Neptune", "South Node", "conjunction"): "Spirituality, fantasy, and dissolution are deeply rooted in past experience. Genuine sensitivity and spiritual awareness are present, but the temptation toward escapism may be strong.",
+    ("Neptune", "South Node", "sextile"):     "Spiritual gifts and past life patterns cooperate. Intuition and imagination are readily available, though they may be most comfortable in familiar, past-oriented expressions.",
+    ("Neptune", "South Node", "square"):      "Spiritual idealism and past life habits create friction. Old illusions, fantasies, or spiritual bypassing may need to be confronted before the soul can move clearly forward.",
+    ("Neptune", "South Node", "trine"):       "Spiritual awareness and past life comfort flow together naturally. Deep sensitivity and imaginative gifts are genuine, though the ease of retreat into familiar spiritual worlds can delay growth.",
+    ("Neptune", "South Node", "opposition"):  "Spiritual longing and past life comfort stand across from each other. Growth comes through applying spiritual gifts in service of present reality rather than familiar dissolution.",
+
+    ("Pluto", "South Node", "conjunction"): "Transformation, power, and intensity are deeply ingrained from past experience. The capacity for radical change is genuine, but old power dynamics or destructive patterns may need releasing.",
+    ("Pluto", "South Node", "sextile"):     "Depth and past life patterns cooperate. The capacity for transformation is accessible, though old psychological material may surface in familiar rather than new ways.",
+    ("Pluto", "South Node", "square"):      "Transformation and past life habits create friction. Old power struggles, compulsions, or buried material may resurface with force before the soul can move toward real renewal.",
+    ("Pluto", "South Node", "trine"):       "Depth and past life comfort flow naturally together. The capacity for profound change is a genuine gift from prior experience, though it may be more comfortable in familiar territory.",
+    ("Pluto", "South Node", "opposition"):  "Transformation and past life comfort stand across from each other. Growth requires releasing old patterns of power, control, or intensity in favor of genuinely new engagement with depth.",
+
+    ("Saturn", "South Node", "conjunction"): "Discipline, structure, and limitation are deeply ingrained from past experience. Genuine mastery is present, but familiar constraints may need to be questioned rather than simply relied upon.",
+    ("Saturn", "South Node", "sextile"):     "Structure and past life patterns cooperate. Natural discipline and responsibility are accessible, though old structures may be more comfort than genuine support.",
+    ("Saturn", "South Node", "square"):      "Discipline and past life habits create friction. Old fears, rigid structures, or karmic obligations may surface as obstacles before the soul can move toward genuine freedom.",
+    ("Saturn", "South Node", "trine"):       "Effort and past life comfort flow together naturally. Real competence and reliability are present, though the temptation to rely on familiar structures rather than building new ones can limit growth.",
+    ("Saturn", "South Node", "opposition"):  "Discipline and past life comfort stand across from each other. Growth requires releasing old authorities, obligations, or self-imposed limitations.",
+
+    ("South Node", "Sun", "conjunction"): "The identity is deeply familiar — perhaps too familiar. Old patterns of self-expression feel comfortable but may limit the soul's forward movement.",
+    ("South Node", "Sun", "sextile"):     "The core self and past life patterns support each other. Natural gifts from before are accessible and can be put to good use without requiring significant effort to access.",
+    ("South Node", "Sun", "square"):      "Identity and past life patterns create friction. The comfortable self-image may need to be disrupted before the soul can move toward genuine growth.",
+    ("South Node", "Sun", "trine"):       "The identity and past life gifts flow easily together. Innate talents come naturally, but the gift can become a crutch that substitutes for new development.",
+    ("South Node", "Sun", "opposition"):  "Self-expression and past life comfort stand across from each other. Growth often requires stepping away from the familiar and risking a different kind of identity.",
+
+    ("South Node", "Uranus", "conjunction"): "Rebellion and radical change are deeply familiar. Unconventional behavior may feel second nature, but the comfort of being different can become as limiting as any conformity.",
+    ("South Node", "Uranus", "sextile"):     "Originality and past life patterns cooperate. Unconventional gifts are accessible from deep in the soul, though the ease of being different may not always serve the soul's current direction.",
+    ("South Node", "Uranus", "square"):      "Disruption and past life habits create friction. Old patterns of rebellion or restlessness may need to be examined before innovation can serve genuine growth.",
+    ("South Node", "Uranus", "trine"):       "Innovation and past life comfort flow naturally together. The capacity for original thought is real and accessible, though the comfort of being unconventional may substitute for deeper development.",
+    ("South Node", "Uranus", "opposition"):  "Awakening and past life comfort stand across from each other. Growth comes through applying the gift of originality in service of genuine evolution rather than familiar disruption.",
+
+    ("South Node", "Venus", "conjunction"): "Relationship patterns and values are deeply rooted in past experience. Real gifts in love and beauty are present, but familiar relationship dynamics may need to evolve.",
+    ("South Node", "Venus", "sextile"):     "Love and past life patterns cooperate naturally. Relational gifts are accessible, though the comfort of familiar attachment styles may limit the soul's relational growth.",
+    ("South Node", "Venus", "square"):      "Relationship patterns and past life habits create friction. Old values or ways of relating may need conscious examination before the soul can move toward healthier connection.",
+    ("South Node", "Venus", "trine"):       "Love and past life comfort flow together easily. Genuine charm and relational grace are present, though the pull toward comfortable love can resist the deeper relational work of growth.",
+    ("South Node", "Venus", "opposition"):  "Relational values and past life comfort stand across from each other. Growth requires moving beyond familiar pleasures and cultivating a more evolved relationship with love.",
 }
 
 

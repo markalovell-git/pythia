@@ -168,7 +168,8 @@ ALPHA_LABEL_SHADOW         = 200  # drop-shadow behind circle labels
 
 # ── UI dimensions (px) ───────────────────────────────────────────────────────
 WHEEL_MIN_SIZE     = 420
-SIDEBAR_WIDTH      = 340
+SIDEBAR_MIN        = 340
+SIDEBAR_MAX        = 550
 HEADER_HEIGHT      = 40
 STATUS_HEIGHT      = 20
 RECALC_BTN_WIDTH   = 110
@@ -687,6 +688,21 @@ class _ZodiacWheel(QWidget):
             painter.setPen(QPen(lbl_color))
             painter.drawText(QRectF(lx - angle_w / 2, ly - angle_h / 2, angle_w, angle_h),
                              Qt.AlignmentFlag.AlignCenter, angle_name)
+            if angle_name == self._locked:
+                ring_r = (GLYPH_PX / 2 + PLANET_HIT_PAD) * scale
+                painter.setPen(QPen(QColor(COLOR_LOCK), LOCK_RING_PEN_W))
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.drawEllipse(QPointF(lx, ly), ring_r, ring_r)
+                lock_font = QFont()
+                lock_font.setPointSize(max(FONT_FLOOR_SMALL, round(LOCK_GLYPH_PT * scale)))
+                painter.setFont(lock_font)
+                painter.setPen(QPen(QColor(COLOR_LOCK)))
+                text_w = angle_w * 3
+                y_base = ly + ring_r + 2 * scale
+                painter.drawText(QRectF(lx - text_w / 2, y_base, text_w, 14 * scale),
+                                 Qt.AlignmentFlag.AlignCenter, "LOCKED")
+                painter.drawText(QRectF(lx - text_w / 2, y_base + 13 * scale, text_w, 12 * scale),
+                                 Qt.AlignmentFlag.AlignCenter, "Click to unlock")
 
         # ── Aspect lines ──────────────────────────────────────────
         hov_active = bool(eff_hov) or bool(eff_hov_transit)
@@ -1035,6 +1051,12 @@ class ChartView(QWidget):
         self._panel_expanded: set[str] = {"placement"}   # expanded by default
         self._build_ui()
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        sidebar_w = max(SIDEBAR_MIN, min(SIDEBAR_MAX, round(self.width() * 0.20)))
+        wheel_w   = max(0, self.width() - sidebar_w)
+        self._splitter.setSizes([wheel_w, sidebar_w])
+
     def _build_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -1060,7 +1082,8 @@ class ChartView(QWidget):
         layout.addWidget(header_bar)
 
         # ── Main area ─────────────────────────────────────────────
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        self._splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter = self._splitter
         splitter.setChildrenCollapsible(False)
 
         self.wheel = _ZodiacWheel()
@@ -1068,7 +1091,8 @@ class ChartView(QWidget):
 
         # ── Right sidebar ─────────────────────────────────────────
         sidebar = QWidget()
-        sidebar.setFixedWidth(SIDEBAR_WIDTH)
+        sidebar.setMinimumWidth(SIDEBAR_MIN)
+        sidebar.setMaximumWidth(SIDEBAR_MAX)
         sb_layout = QVBoxLayout(sidebar)
         sb_layout.setContentsMargins(8, 8, 8, 8)
         sb_layout.setSpacing(0)
@@ -1112,6 +1136,7 @@ class ChartView(QWidget):
         splitter.addWidget(sidebar)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 0)
+        splitter.setSizes([10000 - SIDEBAR_MIN, SIDEBAR_MIN])
         layout.addWidget(splitter, stretch=1)
 
         self.wheel.planet_hovered.connect(self._on_wheel_hover)
@@ -1368,7 +1393,7 @@ class ChartView(QWidget):
             sign_interp = planet_in_sign_text(name, pos.sign)
             if sign_interp:
                 placement_content += (
-                    f"<p style='color:#7070a0; font-size:12px; margin:2px 0 2px 12px;'>"
+                    f"<p style='font-size:12px; margin:2px 0 2px 12px;'>"
                     f"<i>in {pos.sign}:</i></p>"
                     f"<p style='color:#5a5a7a; font-size:12px; line-height:1.5; margin:0 0 6px 12px;'>"
                     f"{sign_interp}</p>"
@@ -1377,7 +1402,7 @@ class ChartView(QWidget):
                 house_interp = planet_in_house_text(name, house_num)
                 if house_interp:
                     placement_content += (
-                        f"<p style='color:#7070a0; font-size:12px; margin:2px 0 2px 12px;'>"
+                        f"<p style='font-size:12px; margin:2px 0 2px 12px;'>"
                         f"<i>in House {HOUSE_NUMERALS[house_num - 1]}:</i></p>"
                         f"<p style='color:#5a5a7a; font-size:12px; line-height:1.5; margin:0 0 4px 12px;'>"
                         f"{house_interp}</p>"
@@ -1427,8 +1452,7 @@ class ChartView(QWidget):
             f"<p style='color:#7070a0; margin:0 0 4px 0; font-size:13px;'>{degree_line}</p>"
             f"{retrograde_tag}{category_tag}"
             f"<p style='color:#a0a0c0; margin:0 0 12px 0; font-size:14px; line-height:1.6;'>{description}</p>"
-            f"{self._section_header('placement', 'Placement')}"
-            f"{placement_content}"
+            f"{''.join([self._section_header('placement', 'Placement'), placement_content]) if not is_angle else ''}"
             f"{self._section_header('natal_aspects', f'Natal Aspects ({len(my_aspects)})')}"
             f"{aspects_content}"
         )
