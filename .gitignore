@@ -11,6 +11,9 @@ __pycache__/
 # Skyfield ephemeris files
 data/
 
+# Logs
+*.log
+
 # Build
 dist/
 build/
