@@ -160,6 +160,7 @@ class _ZodiacWheel(QWidget):
         self._hovered_sign:    str = ""
         self._hovered_house:   int = 0
         self._house_cusps: list[float] | None = None
+        self._scale: float = 1.0  # updated each paint; used by hit testing
         self.setMinimumSize(420, 420)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setMouseTracking(True)
@@ -229,31 +230,32 @@ class _ZodiacWheel(QWidget):
 
     def mouseMoveEvent(self, event):
         mx, my = event.position().x(), event.position().y()
+        s = self._scale
 
         hit_planet = ""
         for name, (px, py) in self._planet_positions.items():
-            if math.sqrt((mx - px) ** 2 + (my - py) ** 2) < GLYPH_PX / 2 + 4:
+            if math.sqrt((mx - px) ** 2 + (my - py) ** 2) < (GLYPH_PX / 2 + 4) * s:
                 hit_planet = name
                 break
 
         hit_transit = ""
         if not hit_planet:
             for name, (px, py) in self._transit_positions.items():
-                if math.sqrt((mx - px) ** 2 + (my - py) ** 2) < TRANSIT_GLYPH_PX / 2 + 4:
+                if math.sqrt((mx - px) ** 2 + (my - py) ** 2) < (TRANSIT_GLYPH_PX / 2 + 4) * s:
                     hit_transit = name
                     break
 
         hit_sign = ""
         if not hit_planet and not hit_transit:
             for name, (sx, sy) in self._sign_positions.items():
-                if math.sqrt((mx - sx) ** 2 + (my - sy) ** 2) < SIGN_GLYPH_PX / 2:
+                if math.sqrt((mx - sx) ** 2 + (my - sy) ** 2) < (SIGN_GLYPH_PX / 2) * s:
                     hit_sign = name
                     break
 
         hit_house = 0
         if not hit_planet and not hit_transit and not hit_sign:
             for hnum, (hx, hy) in self._house_positions.items():
-                if math.sqrt((mx - hx) ** 2 + (my - hy) ** 2) < 22:
+                if math.sqrt((mx - hx) ** 2 + (my - hy) ** 2) < 22 * s:
                     hit_house = hnum
                     break
 
@@ -313,6 +315,10 @@ class _ZodiacWheel(QWidget):
 
         w, h = self.width(), self.height()
         size = min(w, h) - 24
+        # Reference size (typical fullscreen) — at this size, scale = 1.0.
+        # Below, text/glyphs shrink proportionally; above, they stay at current size.
+        scale = max(0.4, min(1.0, size / 900.0))
+        self._scale = scale
         cx, cy = w / 2, h / 2
         radius_house_outer  = size / 2                       # new outermost edge (house band outer)
         radius_cosmos       = radius_house_outer * 0.87     # transit zone outer / house band inner
@@ -356,10 +362,11 @@ class _ZodiacWheel(QWidget):
 
         # ── Sign glyphs ───────────────────────────────────────────
         glyph_font = QFont()
-        glyph_font.setPointSize(SIGN_GLYPH_PT)
+        glyph_font.setPointSize(max(8, round(SIGN_GLYPH_PT * scale)))
         painter.setFont(glyph_font)
         label_r = (radius_zodiac_outer + radius_zodiac_inner) / 2
-        half_sign = SIGN_GLYPH_PX / 2
+        sign_px = SIGN_GLYPH_PX * scale
+        half_sign = sign_px / 2
         self._sign_positions.clear()
         for i, glyph in enumerate(SIGN_GLYPHS):
             name = SIGN_NAMES[i]
@@ -369,9 +376,9 @@ class _ZodiacWheel(QWidget):
             if name == self._hovered_sign:
                 painter.setPen(Qt.PenStyle.NoPen)
                 painter.setBrush(QBrush(QColor(255, 255, 255, 30)))
-                painter.drawEllipse(QPointF(x, y), half_sign + 4, half_sign + 4)
+                painter.drawEllipse(QPointF(x, y), half_sign + 4 * scale, half_sign + 4 * scale)
             painter.setPen(QPen(QColor("#c8c8ff") if name == self._hovered_sign else QColor("#9090cc")))
-            painter.drawText(QRectF(x - half_sign, y - half_sign, SIGN_GLYPH_PX, SIGN_GLYPH_PX),
+            painter.drawText(QRectF(x - half_sign, y - half_sign, sign_px, sign_px),
                              Qt.AlignmentFlag.AlignCenter, glyph)
 
         # ── Inner circle — covers centre of wedges ────────────────
@@ -435,9 +442,11 @@ class _ZodiacWheel(QWidget):
 
             # House numerals centred in each sector
             num_font = QFont()
-            num_font.setPointSize(24)
+            num_font.setPointSize(max(8, round(24 * scale)))
             painter.setFont(num_font)
             label_r_band = (radius_cosmos + radius_house_outer) / 2
+            house_w, house_h = 60 * scale, 48 * scale
+            house_halo = 22 * scale
             self._house_positions.clear()
             for i, cusp_lon in enumerate(cusps):
                 next_cusp   = cusps[(i + 1) % 12]
@@ -449,12 +458,12 @@ class _ZodiacWheel(QWidget):
                 if is_house_hov:
                     painter.setPen(Qt.PenStyle.NoPen)
                     painter.setBrush(QBrush(QColor(255, 255, 255, 30)))
-                    painter.drawEllipse(QPointF(lx, ly), 22, 22)
+                    painter.drawEllipse(QPointF(lx, ly), house_halo, house_halo)
                 num_color = QColor("#7070a0")
                 if is_house_hov:
                     num_color = num_color.lighter(160)
                 painter.setPen(QPen(num_color))
-                painter.drawText(QRectF(lx - 30, ly - 24, 60, 48),
+                painter.drawText(QRectF(lx - house_w / 2, ly - house_h / 2, house_w, house_h),
                                  Qt.AlignmentFlag.AlignCenter, HOUSE_NUMERALS[i])
 
             # Outer ring border
@@ -466,8 +475,9 @@ class _ZodiacWheel(QWidget):
         axis_end      = radius_house_outer if houses_on else radius_zodiac_outer
         angle_label_r = (radius_cosmos + radius_house_outer) / 2 if houses_on else radius_zodiac_inner * 0.945
         lbl_font = QFont()
-        lbl_font.setPointSize(16)
+        lbl_font.setPointSize(max(8, round(16 * scale)))
         lbl_font.setBold(True)
+        angle_w, angle_h = 48 * scale, 24 * scale
         angles_on = self._cb_angles.isChecked()
         for angle_name in ("ASC", "DSC", "MC", "IC"):
             if not angles_on:
@@ -494,7 +504,7 @@ class _ZodiacWheel(QWidget):
             if is_hov:
                 lbl_color = lbl_color.lighter(130)
             painter.setPen(QPen(lbl_color))
-            painter.drawText(QRectF(lx - 24, ly - 12, 48, 24),
+            painter.drawText(QRectF(lx - angle_w / 2, ly - angle_h / 2, angle_w, angle_h),
                              Qt.AlignmentFlag.AlignCenter, angle_name)
 
         # ── Aspect lines ──────────────────────────────────────────
@@ -584,9 +594,10 @@ class _ZodiacWheel(QWidget):
                 stack_step=natal_zone * STACK_STEP_FRACTION,
             )
             planet_font = QFont()
-            planet_font.setPointSize(GLYPH_PT)
+            planet_font.setPointSize(max(8, round(GLYPH_PT * scale)))
             painter.setFont(planet_font)
-            half = GLYPH_PX / 2
+            glyph_px = GLYPH_PX * scale
+            half = glyph_px / 2
 
             # Tick lines — full natal zone width (planets only)
             for name, pos in planet_positions_only.items():
@@ -616,10 +627,10 @@ class _ZodiacWheel(QWidget):
                 is_spotlit = spotlight_active and name in spotlit_natals
                 is_dimmed  = spotlight_active and not is_spotlit
 
-                pt = GLYPH_PT_OVERRIDE.get(name, GLYPH_PT)
-                if pt != GLYPH_PT:
+                pt_base = GLYPH_PT_OVERRIDE.get(name, GLYPH_PT)
+                if pt_base != GLYPH_PT:
                     f = QFont()
-                    f.setPointSize(pt)
+                    f.setPointSize(max(7, round(pt_base * scale)))
                     painter.setFont(f)
                 else:
                     painter.setFont(planet_font)
@@ -627,12 +638,12 @@ class _ZodiacWheel(QWidget):
                 if is_hovered:
                     painter.setPen(Qt.PenStyle.NoPen)
                     painter.setBrush(QBrush(QColor(255, 255, 255, 30)))
-                    painter.drawEllipse(QPointF(gx, gy), half + 4, half + 4)
+                    painter.drawEllipse(QPointF(gx, gy), half + 4 * scale, half + 4 * scale)
 
                 if is_dimmed:
                     color.setAlpha(70)
                 painter.setPen(QPen(QColor("#ffffff") if (is_hovered or is_spotlit) else color))
-                painter.drawText(QRectF(gx - half, gy - half, GLYPH_PX, GLYPH_PX),
+                painter.drawText(QRectF(gx - half, gy - half, glyph_px, glyph_px),
                                  Qt.AlignmentFlag.AlignCenter, glyph)
 
         # ── Transit planet glyphs ─────────────────────────────────
@@ -647,9 +658,10 @@ class _ZodiacWheel(QWidget):
                 cluster_threshold=5.0,
             )
             transit_font = QFont()
-            transit_font.setPointSize(TRANSIT_GLYPH_PT)
+            transit_font.setPointSize(max(8, round(TRANSIT_GLYPH_PT * scale)))
             painter.setFont(transit_font)
-            half_t = TRANSIT_GLYPH_PX / 2
+            transit_px = TRANSIT_GLYPH_PX * scale
+            half_t = transit_px / 2
 
             # Tick lines across transit zone
             for name, pos in self._transits.positions.items():
@@ -681,35 +693,36 @@ class _ZodiacWheel(QWidget):
                 is_spotlit = spotlight_active and name in spotlit_transits
                 is_dimmed  = spotlight_active and not is_spotlit
 
-                pt = round(GLYPH_PT_OVERRIDE[name] * TRANSIT_GLYPH_PT / GLYPH_PT) if name in GLYPH_PT_OVERRIDE else TRANSIT_GLYPH_PT
+                pt_base = (GLYPH_PT_OVERRIDE[name] * TRANSIT_GLYPH_PT / GLYPH_PT) if name in GLYPH_PT_OVERRIDE else TRANSIT_GLYPH_PT
                 f = QFont()
-                f.setPointSize(pt)
+                f.setPointSize(max(7, round(pt_base * scale)))
                 painter.setFont(f)
 
                 if is_hovered:
                     painter.setPen(Qt.PenStyle.NoPen)
                     painter.setBrush(QBrush(QColor(255, 255, 255, 30)))
-                    painter.drawEllipse(QPointF(gx, gy), half_t + 4, half_t + 4)
+                    painter.drawEllipse(QPointF(gx, gy), half_t + 4 * scale, half_t + 4 * scale)
 
                 # Base layer — normal planet color
                 color.setAlpha(60 if is_dimmed else 185)
                 painter.setPen(QPen(QColor("#ffffff") if (is_hovered or is_spotlit) else color))
-                painter.drawText(QRectF(gx - half_t, gy - half_t, TRANSIT_GLYPH_PX, TRANSIT_GLYPH_PX),
+                painter.drawText(QRectF(gx - half_t, gy - half_t, transit_px, transit_px),
                                  Qt.AlignmentFlag.AlignCenter, glyph)
 
                 # Ghost layer — blue on top
                 ghost_alpha = 40 if is_dimmed else 128
                 painter.setPen(QPen(QColor(120, 150, 255, ghost_alpha)))
-                painter.drawText(QRectF(gx - half_t, gy - half_t, TRANSIT_GLYPH_PX, TRANSIT_GLYPH_PX),
+                painter.drawText(QRectF(gx - half_t, gy - half_t, transit_px, transit_px),
                                  Qt.AlignmentFlag.AlignCenter, glyph)
 
                 # Retrograde indicator
                 if pos.retrograde and name not in ("North Node", "South Node"):
                     rx_font = QFont()
-                    rx_font.setPointSize(9)
+                    rx_font.setPointSize(max(7, round(9 * scale)))
                     painter.setFont(rx_font)
                     painter.setPen(QPen(QColor(220, 50, 50, 230)))
-                    painter.drawText(QRectF(gx + half_t - 6, gy - half_t - 2, 16, 14),
+                    painter.drawText(QRectF(gx + half_t - 6 * scale, gy - half_t - 2 * scale,
+                                            16 * scale, 14 * scale),
                                      Qt.AlignmentFlag.AlignLeft, "℞")
 
         # ── Hub ───────────────────────────────────────────────────
@@ -720,13 +733,14 @@ class _ZodiacWheel(QWidget):
         # ── Circle labels (drawn last — on top of everything) ─────
         if show_labels:
             label_font = QFont()
-            label_font.setPointSize(9)
+            label_font.setPointSize(max(7, round(9 * scale)))
             painter.setFont(label_font)
             label_angle = 265
             radius_aspects     = (radius_hub + radius_inner) / 2
             radius_transit_mid = (radius_zodiac_outer + radius_cosmos) / 2
             radius_zodiac_mid  = (radius_zodiac_inner + radius_zodiac_outer) / 2
             radius_house_mid   = (radius_cosmos + radius_house_outer) / 2
+            label_w, label_h = 88 * scale, 20 * scale
             for radius, text, offset in [
                 (radius_hub,          "Earth",           20),
                 (radius_aspects,      "Aspects",          8),
@@ -736,7 +750,7 @@ class _ZodiacWheel(QWidget):
                 (radius_house_mid,    "Houses",           0),
             ]:
                 lx, ly = _angle_to_xy(cx, cy, radius + offset, label_angle, rot)
-                rect = QRectF(lx - 44, ly - 10, 88, 20)
+                rect = QRectF(lx - label_w / 2, ly - label_h / 2, label_w, label_h)
                 painter.setPen(QPen(QColor(0, 0, 0, 200)))
                 for dx, dy in ((1, 1), (-1, 1), (1, -1), (-1, -1)):
                     painter.drawText(rect.translated(dx, dy), Qt.AlignmentFlag.AlignCenter, text)
