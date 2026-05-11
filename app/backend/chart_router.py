@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
 from app.common.database import get_db, UserData, UserSettings, NatalChart
-from app.astrology.chart import compute_natal_chart, compute_transits, compute_planet_positions
+from app.astrology.chart import compute_natal_chart, compute_transits, compute_planet_positions, compute_sky_aspects
 
 chart_router = APIRouter()
 
@@ -93,6 +93,33 @@ async def calculate_transits(
         "zodiac_system": settings.zodiac_system,
         "date": (dt or datetime.now(timezone.utc)).isoformat(),
         "transits": transits,
+    }
+
+
+@chart_router.get("/sky_aspects/{user_id}")
+async def get_sky_aspects(
+    user_id: str,
+    date: str | None = Query(None, description="ISO datetime, e.g. 2026-05-11T12:00:00. Defaults to now."),
+    db: Session = Depends(get_db),
+):
+    settings = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
+    if not settings:
+        raise HTTPException(status_code=404, detail="User not found")
+    dt = None
+    if date:
+        try:
+            dt = datetime.fromisoformat(date).replace(tzinfo=timezone.utc)
+        except ValueError:
+            raise HTTPException(status_code=422, detail=f"Invalid date format: {date!r}. Use ISO format e.g. 2026-05-11T12:00:00")
+    dt = dt or datetime.now(timezone.utc)
+    try:
+        aspects = compute_sky_aspects(settings.zodiac_system, dt)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return {
+        "user_id": user_id,
+        "date": dt.isoformat(),
+        "aspects": aspects,
     }
 
 

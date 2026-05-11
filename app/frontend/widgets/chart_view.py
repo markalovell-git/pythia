@@ -160,6 +160,7 @@ class _ZodiacWheel(QWidget):
         self._hovered_sign:    str = ""
         self._hovered_house:   int = 0
         self._house_cusps: list[float] | None = None
+        self._sky_aspects: list[chart_model.SkyAspect] = []
         self._scale: float = 1.0  # updated each paint; used by hit testing
         self.setMinimumSize(420, 420)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -181,7 +182,8 @@ class _ZodiacWheel(QWidget):
         self._cb_natal           = QCheckBox("Natal Planets")
         self._cb_natal_aspects   = QCheckBox("Natal Aspects")
         self._cb_transits        = QCheckBox("Transit Planets")
-        self._cb_transit_aspects = QCheckBox("Transit Aspects")
+        self._cb_transit_aspects = QCheckBox("Transit-Natal")
+        self._cb_sky_aspects     = QCheckBox("Transit-Transit")
         self._cb_labels          = QCheckBox("Circle Labels")
         self._cb_houses          = QCheckBox("Houses")
         self._cb_angles          = QCheckBox("Angles")
@@ -189,6 +191,7 @@ class _ZodiacWheel(QWidget):
         self._cb_natal_aspects.setChecked(True)
         self._cb_transits.setChecked(True)
         self._cb_transit_aspects.setChecked(False)
+        self._cb_sky_aspects.setChecked(False)
         self._cb_labels.setChecked(True)
         self._cb_houses.setChecked(True)
         self._cb_angles.setChecked(True)
@@ -199,10 +202,12 @@ class _ZodiacWheel(QWidget):
         fb_layout.addWidget(self._cb_houses)
         fb_layout.addWidget(self._cb_labels)
         fb_layout.addWidget(self._cb_transit_aspects)
+        fb_layout.addWidget(self._cb_sky_aspects)
         self._cb_natal.toggled.connect(self.update)
         self._cb_natal_aspects.toggled.connect(self.update)
         self._cb_transits.toggled.connect(self.update)
         self._cb_transit_aspects.toggled.connect(self.update)
+        self._cb_sky_aspects.toggled.connect(self.update)
         self._cb_labels.toggled.connect(self.update)
         self._cb_houses.toggled.connect(self.update)
         self._cb_angles.toggled.connect(self.update)
@@ -222,6 +227,10 @@ class _ZodiacWheel(QWidget):
 
     def set_transit_aspects(self, data: chart_model.TransitData | None):
         self._transit_aspects = data
+        self.update()
+
+    def set_sky_aspects(self, aspects: list[chart_model.SkyAspect]):
+        self._sky_aspects = aspects
         self.update()
 
     def mouseMoveEvent(self, event):
@@ -511,6 +520,8 @@ class _ZodiacWheel(QWidget):
                 lon1 = self._chart.positions[asp.planet1].longitude
                 lon2 = self._chart.positions[asp.planet2].longitude
                 color = QColor(ASPECT_COLORS.get(asp.aspect, "#888"))
+                if not angles_on and (asp.planet1 in ANGLE_NAMES or asp.planet2 in ANGLE_NAMES):
+                    continue
                 related = bool(self._hovered) and self._hovered in (asp.planet1, asp.planet2)
                 if hov_active:
                     color.setAlpha(220 if related else 80)
@@ -540,9 +551,9 @@ class _ZodiacWheel(QWidget):
 
         # ── Transit-to-natal aspect lines ────────────────────────
         show_transits_on = self._cb_transits.isChecked()
-        show_all_t_asp   = show_transits_on and self._cb_transit_aspects.isChecked()
-        show_hover_t_asp = show_transits_on and bool(self._hovered_transit)
-        show_angle_t_asp = show_transits_on and self._hovered in ANGLE_NAMES
+        show_all_t_asp   = show_transits_on and show_natal and self._cb_transit_aspects.isChecked()
+        show_hover_t_asp = show_transits_on and show_natal and bool(self._hovered_transit)
+        show_angle_t_asp = show_transits_on and show_natal and self._hovered in ANGLE_NAMES
         if (show_all_t_asp or show_hover_t_asp or show_angle_t_asp) and self._transit_aspects and self._chart:
             dash_pen = QPen()
             dash_pen.setWidth(1)
@@ -556,6 +567,8 @@ class _ZodiacWheel(QWidget):
                     else:
                         continue
                 if t.natal_planet not in self._chart.positions:
+                    continue
+                if not angles_on and t.natal_planet in ANGLE_NAMES:
                     continue
                 if not self._transits or t.transit_planet not in self._transits.positions:
                     continue
@@ -576,6 +589,29 @@ class _ZodiacWheel(QWidget):
                 n_r    = radius_cosmos if t.natal_planet in ANGLE_NAMES else radius_inner
                 nx, ny = _angle_to_xy(cx, cy, n_r, n_lon, rot)
                 painter.drawLine(QPointF(tx, ty), QPointF(nx, ny))
+
+        # ── Transit-to-transit aspect lines (dotted, on hover or when filter on) ───
+        show_all_sky = show_transits_on and self._cb_sky_aspects.isChecked()
+        show_hover_sky = show_transits_on and bool(self._hovered_transit)
+        if (show_all_sky or show_hover_sky) and self._sky_aspects and self._transits:
+            dot_pen = QPen()
+            dot_pen.setWidth(1)
+            dot_pen.setStyle(Qt.PenStyle.DotLine)
+            for asp in self._sky_aspects:
+                if not show_all_sky and asp.planet1 != self._hovered_transit and asp.planet2 != self._hovered_transit:
+                    continue
+                if asp.planet1 not in self._transits.positions or asp.planet2 not in self._transits.positions:
+                    continue
+                color = QColor(ASPECT_COLORS.get(asp.aspect, "#888"))
+                related = not self._hovered_transit or asp.planet1 == self._hovered_transit or asp.planet2 == self._hovered_transit
+                color.setAlpha(200 if related else 55)
+                dot_pen.setColor(color)
+                painter.setPen(dot_pen)
+                lon1 = self._transits.positions[asp.planet1].longitude
+                lon2 = self._transits.positions[asp.planet2].longitude
+                x1, y1 = _angle_to_xy(cx, cy, radius_zodiac_outer, lon1, rot)
+                x2, y2 = _angle_to_xy(cx, cy, radius_zodiac_outer, lon2, rot)
+                painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
         # ── Planet glyphs ─────────────────────────────────────────
         if show_natal and self._chart:
@@ -784,6 +820,7 @@ class ChartView(QWidget):
         self._chart: chart_model.ChartData | None = None
         self._aspects: list[chart_model.NatalAspect] = []
         self._transit_aspects: chart_model.TransitData | None = None
+        self._sky_aspects: list[chart_model.SkyAspect] = []
         self._planet_names: list[str] = []
         self._table_mode: str = "natal"   # "natal" or "transit"
         self._build_ui()
@@ -907,12 +944,21 @@ class ChartView(QWidget):
         self._transit_aspect_worker.error.connect(lambda _: None)
         self._transit_aspect_worker.start()
 
+        self._sky_aspect_worker = ApiWorker(chart_model.load_sky_aspects, self._user_id)
+        self._sky_aspect_worker.result.connect(self._on_sky_aspects)
+        self._sky_aspect_worker.error.connect(lambda _: None)
+        self._sky_aspect_worker.start()
+
     def _on_transits(self, transits: chart_model.ChartData | None):
         self.wheel.set_transits(transits)
 
     def _on_transit_aspects(self, data: chart_model.TransitData | None):
         self._transit_aspects = data
         self.wheel.set_transit_aspects(data)
+
+    def _on_sky_aspects(self, aspects: list):
+        self._sky_aspects = aspects
+        self.wheel.set_sky_aspects(aspects)
 
     def _on_chart(self, chart: chart_model.ChartData | None):
         if not chart:
@@ -1083,6 +1129,21 @@ class ChartView(QWidget):
                     f'<span style="color:#555">(orb {t.orb:.1f}°)</span><br>'
                 )
 
+        sky_lines = ""
+        for asp in self._sky_aspects:
+            if asp.planet1 == name:
+                other = asp.planet2
+            elif asp.planet2 == name:
+                other = asp.planet1
+            else:
+                continue
+            asp_color = ASPECT_COLORS.get(asp.aspect, "#888")
+            sky_lines += (
+                f'<span style="color:{asp_color}">·</span> '
+                f'{asp.aspect.title()} transit {other} '
+                f'<span style="color:#555">(orb {asp.orb:.1f}°)</span><br>'
+            )
+
         html = f"""
         <p style="font-size:24px; color:{color}; margin:0 0 4px 0;">{glyph} <b>{name}</b></p>
         <p style="color:#7070a0; margin:0 0 4px 0; font-size:13px;">{pos.sign} {pos.degree:.2f}°{f" &nbsp;·&nbsp; House {HOUSE_NUMERALS[chart_model.get_house_number(pos.longitude, self._chart.house_cusps) - 1]}" if self._chart and self._chart.house_cusps else ""}</p>
@@ -1093,6 +1154,8 @@ class ChartView(QWidget):
         </p>
         {"<p style='color:#666; font-size:13px; margin:0 0 6px 0;'>Active transits:</p>" if aspect_lines else ""}
         <p style="font-size:13px; line-height:2.0; margin:0;">{aspect_lines}</p>
+        {"<p style='color:#666; font-size:13px; margin:8px 0 6px 0;'>Sky aspects:</p>" if sky_lines else ""}
+        <p style="font-size:13px; line-height:2.0; margin:0;">{sky_lines}</p>
         """
         self.info_panel.setHtml(html)
 

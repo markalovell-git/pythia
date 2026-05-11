@@ -22,6 +22,7 @@ class TransitView(QWidget):
         super().__init__(parent)
         self._user_id: str | None = None
         self._worker: ApiWorker | None = None
+        self._sky_worker: ApiWorker | None = None
         self._build_ui()
 
     def _build_ui(self):
@@ -48,6 +49,10 @@ class TransitView(QWidget):
         controls.addStretch()
         layout.addLayout(controls)
 
+        transit_label = QLabel("Transit → Natal")
+        transit_label.setStyleSheet("font-weight: bold; margin-top: 6px;")
+        layout.addWidget(transit_label)
+
         self.table = QTableWidget(0, 5)
         self.table.setHorizontalHeaderLabels([
             "Transit Planet", "Aspect", "Natal Planet", "Orb", "Transit Position",
@@ -60,6 +65,22 @@ class TransitView(QWidget):
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.status_label)
 
+        sky_label = QLabel("Current Sky Aspects (Transit → Transit)")
+        sky_label.setStyleSheet("font-weight: bold; margin-top: 10px;")
+        layout.addWidget(sky_label)
+
+        self.sky_table = QTableWidget(0, 4)
+        self.sky_table.setHorizontalHeaderLabels([
+            "Planet 1", "Aspect", "Planet 2", "Orb",
+        ])
+        self.sky_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.sky_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        layout.addWidget(self.sky_table)
+
+        self.sky_status_label = QLabel("")
+        self.sky_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.sky_status_label)
+
     def load(self, user_id: str):
         self._user_id = user_id
         self._on_calculate()
@@ -70,12 +91,19 @@ class TransitView(QWidget):
     def _on_calculate(self):
         if not self._user_id:
             return
-        self.status_label.setText("Calculating…")
         date_str = self.dt_edit.dateTime().toString("yyyy-MM-ddTHH:mm:ss")
+
+        self.status_label.setText("Calculating…")
         self._worker = ApiWorker(chart_model.load_transits, self._user_id, date_str)
         self._worker.result.connect(self._on_result)
         self._worker.error.connect(self._on_error)
         self._worker.start()
+
+        self.sky_status_label.setText("Calculating…")
+        self._sky_worker = ApiWorker(chart_model.load_sky_aspects, self._user_id, date_str)
+        self._sky_worker.result.connect(self._on_sky_result)
+        self._sky_worker.error.connect(self._on_sky_error)
+        self._sky_worker.start()
 
     def _on_result(self, data: chart_model.TransitData):
         self.status_label.setText(f"{len(data.transits)} active aspect(s) — {data.date[:16]}")
@@ -97,3 +125,23 @@ class TransitView(QWidget):
 
     def _on_error(self, msg: str):
         self.status_label.setText(f"Error: {msg}")
+
+    def _on_sky_result(self, aspects: list):
+        self.sky_status_label.setText(f"{len(aspects)} sky aspect(s)")
+        self.sky_table.setRowCount(len(aspects))
+        for row, a in enumerate(aspects):
+            clr = ASPECT_COLORS.get(a.aspect)
+
+            def _cell(text, color=None):
+                item = QTableWidgetItem(text)
+                if color:
+                    item.setForeground(QColor(color))
+                return item
+
+            self.sky_table.setItem(row, 0, _cell(a.planet1))
+            self.sky_table.setItem(row, 1, _cell(a.aspect.title(), clr))
+            self.sky_table.setItem(row, 2, _cell(a.planet2))
+            self.sky_table.setItem(row, 3, _cell(f"{a.orb:.2f}°"))
+
+    def _on_sky_error(self, msg: str):
+        self.sky_status_label.setText(f"Error: {msg}")

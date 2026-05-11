@@ -305,6 +305,30 @@ def compute_natal_chart(
     return positions, cusps
 
 
+def compute_sky_aspects(zodiac_system: str, dt: datetime | None = None) -> list:
+    """Return aspects between transit planets among themselves (transit-to-transit)."""
+    current_positions = compute_planet_positions(dt or datetime.now(timezone.utc), zodiac_system)
+    planets = list(current_positions.items())
+    aspects = []
+    for i, (name1, data1) in enumerate(planets):
+        for name2, data2 in planets[i + 1:]:
+            if {name1, name2} == {"North Node", "South Node"}:
+                continue
+            diff = _angular_difference(data1["longitude"], data2["longitude"])
+            for aspect_name, angle, orb in ASPECTS:
+                if abs(diff - angle) <= orb:
+                    aspects.append({
+                        "planet1": name1,
+                        "planet2": name2,
+                        "aspect": aspect_name,
+                        "orb": round(abs(diff - angle), 2),
+                        "position1": data1,
+                        "position2": data2,
+                    })
+                    break
+    return sorted(aspects, key=lambda x: x["orb"])
+
+
 def compute_transits(natal_positions: dict, zodiac_system: str, dt: datetime | None = None) -> list:
     """Compare sky positions at dt (defaults to now) against natal positions and return active aspects."""
     current_positions = compute_planet_positions(dt or datetime.now(timezone.utc), zodiac_system)

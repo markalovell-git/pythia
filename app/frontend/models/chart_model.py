@@ -41,6 +41,14 @@ class Transit:
 
 
 @dataclass
+class SkyAspect:
+    planet1: str
+    planet2: str
+    aspect: str
+    orb: float
+
+
+@dataclass
 class NatalAspect:
     planet1: str
     planet2: str
@@ -82,6 +90,17 @@ def load_transits(user_id: str, date: str | None = None) -> TransitData:
     ]
     transits.sort(key=lambda t: t.orb)
     return TransitData(date=raw["date"], transits=transits)
+
+
+def load_sky_aspects(user_id: str, date: str | None = None) -> list[SkyAspect]:
+    raw = api_client.get_sky_aspects(user_id, date=date)
+    if not raw:
+        return []
+    return sorted(
+        [SkyAspect(planet1=a["planet1"], planet2=a["planet2"], aspect=a["aspect"], orb=a["orb"])
+         for a in raw["aspects"]],
+        key=lambda a: a.orb,
+    )
 
 
 def load_transit_positions(user_id: str) -> ChartData | None:
