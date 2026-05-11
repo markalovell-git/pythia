@@ -9,7 +9,10 @@ from PyQt6.QtWidgets import (
 
 from app.frontend.models import chart_model
 from app.frontend.workers.api_worker import ApiWorker
-from app.frontend.data.interpretations import natal_aspect_text, planet_in_sign_text, planet_in_house_text
+from app.frontend.data.interpretations import (
+    natal_aspect_text, planet_in_sign_text, planet_in_house_text,
+    transit_in_sign_text, sky_aspect_text, transit_to_natal_text,
+)
 
 PLANET_GLYPHS = {
     "Sun":        "☉︎", "Moon":      "☽︎", "Mercury":    "☿︎",
@@ -1486,18 +1489,50 @@ class ChartView(QWidget):
         color = PLANET_COLORS.get(name, "#ffffff")
         _, description = PLANET_INFO.get(name, ("", ""))
 
-        aspect_lines = ""
+        house_str = ""
+        h = None
+        if self._chart and self._chart.house_cusps:
+            h = chart_model.get_house_number(pos.longitude, self._chart.house_cusps)
+            if h:
+                house_str = f" &nbsp;·&nbsp; House {HOUSE_NUMERALS[h - 1]}"
+
+        placement_content = ""
+        sign_blurb = transit_in_sign_text(name, pos.sign)
+        placement_content += (
+            f"<p style='font-size:12px; margin:2px 0 2px 12px;'>"
+            f"<i>in {pos.sign}:</i></p>"
+        )
+        if sign_blurb:
+            placement_content += (
+                f"<p style='color:#5a5a7a; font-size:12px; line-height:1.5; margin:0 0 6px 12px;'>"
+                f"{sign_blurb}</p>"
+            )
+        if h:
+            placement_content += (
+                f"<p style='font-size:12px; margin:2px 0 8px 12px;'>"
+                f"<i>in House {HOUSE_NUMERALS[h - 1]}:</i></p>"
+            )
+
+        transit_items = []
         if self._transit_aspects:
-            my_transits = [t for t in self._transit_aspects.transits if t.transit_planet == name]
-            for t in my_transits:
+            for t in self._transit_aspects.transits:
+                if t.transit_planet != name:
+                    continue
                 asp_color = ASPECT_COLORS.get(t.aspect, "#888")
-                aspect_lines += (
+                interp = transit_to_natal_text(name, t.natal_planet, t.aspect)
+                interp_html = (
+                    f"<p style='color:#5a5a7a; font-size:12px; line-height:1.5; margin:0 0 6px 16px;'>"
+                    f"{interp}</p>"
+                ) if interp else ""
+                transit_items.append(
+                    f"<p style='font-size:13px; line-height:1.8; margin:0;'>"
                     f'<span style="color:{asp_color}">■</span> '
                     f'{t.aspect.title()} natal {t.natal_planet} '
-                    f'<span style="color:#555">(orb {t.orb:.1f}°)</span><br>'
+                    f'<span style="color:#555">(orb {t.orb:.1f}°)</span></p>'
+                    + interp_html
                 )
 
-        sky_lines = ""
+        sky_items = []
         for asp in self.wheel.sky_aspects:
             if asp.planet1 == name:
                 other = asp.planet2
@@ -1506,31 +1541,51 @@ class ChartView(QWidget):
             else:
                 continue
             asp_color = ASPECT_COLORS.get(asp.aspect, "#888")
-            sky_lines += (
+            interp = sky_aspect_text(name, other, asp.aspect)
+            interp_html = (
+                f"<p style='color:#5a5a7a; font-size:12px; line-height:1.5; margin:0 0 6px 16px;'>"
+                f"{interp}</p>"
+            ) if interp else ""
+            sky_items.append(
+                f"<p style='font-size:13px; line-height:1.8; margin:0;'>"
                 f'<span style="color:{asp_color}">·</span> '
                 f'{asp.aspect.title()} transit {other} '
-                f'<span style="color:#555">(orb {asp.orb:.1f}°)</span><br>'
+                f'<span style="color:#555">(orb {asp.orb:.1f}°)</span></p>'
+                + interp_html
             )
 
-        house_str = ""
-        if self._chart and self._chart.house_cusps:
-            h = chart_model.get_house_number(pos.longitude, self._chart.house_cusps)
-            if h:
-                house_str = f" &nbsp;·&nbsp; House {HOUSE_NUMERALS[h - 1]}"
+        lock_badge = (
+            f"<p style='color:{COLOR_LOCK}; font-size:11px; margin:0 0 8px 0;'>🔒 Locked · click to unlock</p>"
+            if name == self._locked_transit else ""
+        )
 
-        html = f"""
-        <p style="font-size:24px; color:{color}; margin:0 0 4px 0;">{glyph} <b>{name}</b></p>
-        <p style="color:#7070a0; margin:0 0 4px 0; font-size:13px;">{pos.sign} {pos.degree:.2f}°{house_str}</p>
-        {"<p style='color:#cc3333; margin:0 0 4px 0; font-size:11px; letter-spacing:1px;'>℞ RETROGRADE</p>" if pos.retrograde and name not in ("North Node", "South Node") else ""}
-        <p style="color:#4466aa; margin:0 0 10px 0; font-size:11px; letter-spacing:1px;">TRANSIT PLANET</p>
-        <p style="color:#a0a0c0; margin:0 0 14px 0; font-size:14px; line-height:1.6;">
-            {description}
-        </p>
-        {"<p style='color:#666; font-size:13px; margin:0 0 6px 0;'>Active transits:</p>" if aspect_lines else ""}
-        <p style="font-size:13px; line-height:2.0; margin:0;">{aspect_lines}</p>
-        {"<p style='color:#666; font-size:13px; margin:8px 0 6px 0;'>Sky aspects:</p>" if sky_lines else ""}
-        <p style="font-size:13px; line-height:2.0; margin:0;">{sky_lines}</p>
-        """
+        placement_section = self._section_header("placement", "Placement")
+        if "placement" in self._panel_expanded:
+            placement_section += placement_content
+
+        transit_section = ""
+        if transit_items:
+            transit_section = self._section_header("active_transits", f"Active Transits ({len(transit_items)})")
+            if "active_transits" in self._panel_expanded:
+                transit_section += "".join(transit_items)
+
+        sky_section = ""
+        if sky_items:
+            sky_section = self._section_header("sky_aspects", f"Sky Aspects ({len(sky_items)})")
+            if "sky_aspects" in self._panel_expanded:
+                sky_section += "".join(sky_items)
+
+        html = (
+            f"{lock_badge}"
+            f"<p style='font-size:24px; color:{color}; margin:0 0 4px 0;'>{glyph} <b>{name}</b></p>"
+            f"<p style='color:#7070a0; margin:0 0 4px 0; font-size:13px;'>{pos.sign} {pos.degree:.2f}°{house_str}</p>"
+            + (f"<p style='color:#cc3333; margin:0 0 4px 0; font-size:11px; letter-spacing:1px;'>℞ RETROGRADE</p>" if pos.retrograde and name not in ("North Node", "South Node") else "")
+            + f"<p style='color:#4466aa; margin:0 0 10px 0; font-size:11px; letter-spacing:1px;'>TRANSIT PLANET</p>"
+            f"<p style='color:#a0a0c0; margin:0 0 8px 0; font-size:14px; line-height:1.6;'>{description}</p>"
+            f"{placement_section}"
+            f"{transit_section}"
+            f"{sky_section}"
+        )
         self.info_panel.setHtml(html)
 
     def _on_sign_hover(self, name: str):

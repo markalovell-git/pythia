@@ -1019,6 +1019,1349 @@ NATAL_ASPECT: dict[tuple[str, str, str], str] = {
 }
 
 
+# ── Transit planet in sign ────────────────────────────────────────────────────
+# keyed (planet, sign) — "right now" language for the current sky position
+
+TRANSIT_IN_SIGN: dict[tuple[str, str], str] = {
+
+    # Sun
+    ("Sun", "Aries"):       "Right now, the Sun is moving through Aries, charging the collective mood with initiative, drive, and the impulse to begin. Energy runs high and the spirit of going first is in the air.",
+    ("Sun", "Taurus"):      "Right now, the Sun is in Taurus, slowing the collective pulse toward patience, pleasure, and what is worth sustaining. It is a time of beauty, deliberate progress, and genuine comfort.",
+    ("Sun", "Gemini"):      "Right now, the Sun is moving through Gemini, quickening collective curiosity and the joy of exchanging ideas. Versatility, communication, and mental connection are lit up.",
+    ("Sun", "Cancer"):      "Right now, the Sun is in Cancer, turning the collective mood inward toward feeling, home, and what nourishes the soul. Sensitivity is heightened and the inner life quietly calls for attention.",
+    ("Sun", "Leo"):         "Right now, the Sun is in Leo, amplifying the collective need for creative expression and the warmth of being genuinely seen. Generosity and the desire to shine are alive in the air.",
+    ("Sun", "Virgo"):       "Right now, the Sun is moving through Virgo, turning collective attention toward craft, improvement, and useful work. Practicality and discernment are the qualities of the moment.",
+    ("Sun", "Libra"):       "Right now, the Sun is in Libra, orienting collective energy toward balance, partnership, and the search for fairness. The impulse to relate, harmonize, and consider others is heightened.",
+    ("Sun", "Scorpio"):     "Right now, the Sun is in Scorpio, deepening the collective atmosphere into intensity and transformation. The stakes of honesty feel higher and what has been hidden tends to surface.",
+    ("Sun", "Sagittarius"): "Right now, the Sun is moving through Sagittarius, energizing the collective appetite for meaning, freedom, and big-picture vision. Optimism and the pull toward the horizon are strong.",
+    ("Sun", "Capricorn"):   "Right now, the Sun is in Capricorn, focusing collective energy on ambition, discipline, and the building of lasting things. Seriousness of purpose and long-term thinking are in the air.",
+    ("Sun", "Aquarius"):    "Right now, the Sun is in Aquarius, orienting collective energy toward innovation, community, and the wider pattern. The impulse to think differently and serve something larger than oneself is heightened.",
+    ("Sun", "Pisces"):      "Right now, the Sun is moving through Pisces, softening the collective atmosphere with sensitivity, imagination, and spiritual longing. The boundary between self and other grows more permeable.",
+
+    # Moon
+    ("Moon", "Aries"):       "Right now, the Moon is in Aries, sending a wave of emotional urgency and the impulse to act on feeling without delay. The mood runs hot, impatient, and direct for the next day or so.",
+    ("Moon", "Taurus"):      "Right now, the Moon is in Taurus, grounding the collective mood in comfort, the senses, and the pleasure of simple things. There is a pull toward slowing down and savoring what is good.",
+    ("Moon", "Gemini"):      "Right now, the Moon is in Gemini, quickening emotional responses and the need to talk, connect, and process feelings through words. The mood is curious, light, and changeable.",
+    ("Moon", "Cancer"):      "Right now, the Moon is in Cancer, its home sign, amplifying sensitivity, intuition, and the pull toward home and those we love. Feelings run close to the surface.",
+    ("Moon", "Leo"):         "Right now, the Moon is in Leo, lifting the emotional atmosphere with warmth, drama, and the desire to feel special. There is a collective impulse toward joy, generosity, and creative expression.",
+    ("Moon", "Virgo"):       "Right now, the Moon is in Virgo, turning the collective mood toward precision, helpfulness, and the satisfaction of things done right. The urge to improve and attend to details is emotionally alive.",
+    ("Moon", "Libra"):       "Right now, the Moon is in Libra, smoothing the collective emotional field toward harmony, consideration, and the beauty of mutual care. The mood is diplomatic and socially attuned.",
+    ("Moon", "Scorpio"):     "Right now, the Moon is in Scorpio, deepening the collective emotional atmosphere into intensity, intuition, and hidden currents. Feelings run deep and the need for truth — or privacy — is heightened.",
+    ("Moon", "Sagittarius"): "Right now, the Moon is in Sagittarius, lifting the collective mood with optimism and the longing for freedom. The emotional landscape favors expansion and the feeling that something good is just ahead.",
+    ("Moon", "Capricorn"):   "Right now, the Moon is in Capricorn, sobering the collective mood with a sense of duty, restraint, and measured purpose. Practicality and the satisfaction of real accomplishment ground the feelings of the day.",
+    ("Moon", "Aquarius"):    "Right now, the Moon is in Aquarius, cooling the collective emotional field and turning the mood toward ideas, community, and the feeling of belonging to something larger. The personal gives way to the collective.",
+    ("Moon", "Pisces"):      "Right now, the Moon is in Pisces, softening the collective emotional field into empathy, imagination, and the dissolution of ordinary boundaries. The veil is thin and feelings move easily between people.",
+
+    # Mercury
+    ("Mercury", "Aries"):       "Right now, Mercury is in Aries, sharpening the collective mind for quick decisions and blunt speech. Thinking is fast and words are pointed — patience for long explanations is short.",
+    ("Mercury", "Taurus"):      "Right now, Mercury is in Taurus, slowing collective thought into careful, deliberate processing. The mind is thorough, stubborn, and drawn to ideas with real, practical application.",
+    ("Mercury", "Gemini"):      "Right now, Mercury is in Gemini, its home sign, quickening the collective mind into restless curiosity and fluid communication. Ideas multiply, connections spark, and conversations fly.",
+    ("Mercury", "Cancer"):      "Right now, Mercury is moving through Cancer, coloring collective thought with feeling, memory, and intuition. Communication tends to be warm and indirect, trusting the heart over the argument.",
+    ("Mercury", "Leo"):         "Right now, Mercury is in Leo, infusing collective communication with confidence and creative flair. People speak to be heard and ideas come packaged in stories and performance.",
+    ("Mercury", "Virgo"):       "Right now, Mercury is in Virgo, its home sign, sharpening the collective mind to an analytical edge. Precision, critique, and careful observation are the order of the day.",
+    ("Mercury", "Libra"):       "Right now, Mercury is in Libra, orienting collective thought toward fairness and the weighing of every perspective. Conversation tends toward the considered and diplomacy is valued over bluntness.",
+    ("Mercury", "Scorpio"):     "Right now, Mercury is in Scorpio, turning the collective mind toward investigation and what lies beneath the surface. Thinking is probing and penetrating — not easily satisfied with the obvious.",
+    ("Mercury", "Sagittarius"): "Right now, Mercury is in Sagittarius, broadening collective thinking toward the philosophical and globally minded. People speak in principles and the big picture captures more attention than the detail.",
+    ("Mercury", "Capricorn"):   "Right now, Mercury is in Capricorn, focusing collective communication on what is useful, concrete, and strategically sound. Words carry more weight when they come with a plan.",
+    ("Mercury", "Aquarius"):    "Right now, Mercury is in Aquarius, electrifying the collective mind with originality and the excitement of unconventional thinking. The most interesting ideas are the ones nobody has thought of before.",
+    ("Mercury", "Pisces"):      "Right now, Mercury is moving through Pisces, dissolving sharp distinctions in collective thought. Intuition and metaphor are speaking more truly than logic alone.",
+
+    # Venus
+    ("Venus", "Aries"):       "Right now, Venus is in Aries, charging attraction and desire with urgency and the thrill of pursuit. Love is impulsive, beauty is bold, and the need for excitement in connection runs high.",
+    ("Venus", "Taurus"):      "Right now, Venus is in Taurus, its home sign, deepening the collective experience of pleasure and love into something slow, sensual, and genuinely satisfying. Comfort and quality matter more than novelty.",
+    ("Venus", "Gemini"):      "Right now, Venus is in Gemini, lightening the atmosphere of love and connection with wit and curiosity. Mental chemistry is as attractive as physical chemistry and variety is appealing.",
+    ("Venus", "Cancer"):      "Right now, Venus is in Cancer, turning collective desire toward tenderness, familiarity, and the sweetness of being truly cared for. Love expresses itself through nurturing and the small acts of daily devotion.",
+    ("Venus", "Leo"):         "Right now, Venus is in Leo, amplifying love and attraction with warmth, romance, and the desire to feel adored. Grand gestures and the feeling of being genuinely special are in the air.",
+    ("Venus", "Virgo"):       "Right now, Venus is moving through Virgo, expressing love through attentiveness and the quiet satisfaction of helping well. Devotion shows in the details and care is woven into practical life.",
+    ("Venus", "Libra"):       "Right now, Venus is in Libra, its home sign, at its most refined. The impulse toward beauty, fairness in relationship, and genuine aesthetic pleasure is at its height.",
+    ("Venus", "Scorpio"):     "Right now, Venus is in Scorpio, intensifying desire and love into something magnetic and all-or-nothing. Attraction runs deep and the need for real intimacy — not just surface warmth — is palpable.",
+    ("Venus", "Sagittarius"): "Right now, Venus is in Sagittarius, lightening love with optimism and the joy of freedom. Adventure in relationship and the fun of not knowing what comes next are appealing.",
+    ("Venus", "Capricorn"):   "Right now, Venus is in Capricorn, sobering desire into something measured, loyal, and built for longevity. Commitment and reliability are more attractive than excitement.",
+    ("Venus", "Aquarius"):    "Right now, Venus is in Aquarius, coloring love with friendship and the pleasure of genuine intellectual connection. The most attractive quality in another person might be their originality.",
+    ("Venus", "Pisces"):      "Right now, Venus is moving through Pisces, dissolving the boundaries of love into something boundless and romantically tinged. Compassion is beautiful and the longing for transcendent connection is in the air.",
+
+    # Mars
+    ("Mars", "Aries"):       "Right now, Mars is in Aries, its home sign, and collective drive is at maximum directness. The impulse to act, compete, and assert is at full strength — patience is thin and initiative is everywhere.",
+    ("Mars", "Taurus"):      "Right now, Mars is in Taurus, slowing collective will into a force that is stubborn and impossible to redirect once set. Energy is applied steadily and the drive toward security and tangible results is strong.",
+    ("Mars", "Gemini"):      "Right now, Mars is in Gemini, scattering collective energy across many fronts at once. The drive expresses itself through words, debate, and the restless pursuit of mental stimulation.",
+    ("Mars", "Cancer"):      "Right now, Mars is in Cancer, turning collective willpower inward and emotionally. Energy fluctuates with mood and the protective instinct is easily activated.",
+    ("Mars", "Leo"):         "Right now, Mars is in Leo, channeling collective drive into creative expression and the desire to be recognized. Passion runs high and the impulse to lead and shine is energized.",
+    ("Mars", "Virgo"):       "Right now, Mars is moving through Virgo, directing collective energy toward practical improvement and the satisfaction of doing things precisely right. Work and efficiency are where drive most naturally flows.",
+    ("Mars", "Libra"):       "Right now, Mars is in Libra, tempering collective action with diplomacy and the need to weigh consequences. The most effective drive is strategic rather than blunt — cooperation beats going it alone.",
+    ("Mars", "Scorpio"):     "Right now, Mars is in Scorpio, its traditional home sign, and collective drive runs deep, focused, and with an edge. Nothing is casual — intensity and strategic power are in the air.",
+    ("Mars", "Sagittarius"): "Right now, Mars is in Sagittarius, expanding collective energy into enthusiasm and the pursuit of freedom. Drive is toward the horizon — philosophical, restless, and optimistic.",
+    ("Mars", "Capricorn"):   "Right now, Mars is in Capricorn, exalted, channeling collective drive into disciplined, long-term effort. Ambition is serious, patience is possible, and energy applied to real goals yields real results.",
+    ("Mars", "Aquarius"):    "Right now, Mars is in Aquarius, directing collective energy toward innovation and group action. The most effective force is one that serves a larger cause.",
+    ("Mars", "Pisces"):      "Right now, Mars is moving through Pisces, diffusing collective drive into something fluid and compassionate. The best action flows from intuition and the willingness to surrender control.",
+
+    # Jupiter
+    ("Jupiter", "Aries"):       "Right now, Jupiter is in Aries, expanding the collective through courage and the willingness to leap before looking. Optimism favors the bold and starting things tends to go well.",
+    ("Jupiter", "Taurus"):      "Right now, Jupiter is in Taurus, expanding through material abundance and the pleasure of what endures. Conditions favor building wealth steadily and enjoying genuine comfort.",
+    ("Jupiter", "Gemini"):      "Right now, Jupiter is in Gemini, expanding through knowledge, connection, and the restless pursuit of ideas. Learning, networking, and the diversity of experience are the paths to growth.",
+    ("Jupiter", "Cancer"):      "Right now, Jupiter is in Cancer, exalted, expanding through emotional depth and the nourishment of real belonging. Conditions are unusually favorable for inner growth and genuine healing.",
+    ("Jupiter", "Leo"):         "Right now, Jupiter is in Leo, expanding through creative expression and the joy of being fully alive. The collective is in an expansive, celebratory mood — play, love, and generosity all benefit.",
+    ("Jupiter", "Virgo"):       "Right now, Jupiter is moving through Virgo, expanding through careful improvement and the mastery of practical life. Attention to detail and the willingness to serve yield genuine and lasting growth.",
+    ("Jupiter", "Libra"):       "Right now, Jupiter is in Libra, expanding through partnership and the wisdom of considering another's perspective seriously. Collaboration and fairness open the most doors.",
+    ("Jupiter", "Scorpio"):     "Right now, Jupiter is in Scorpio, expanding through depth and the willingness to go where others won't. What has been hidden tends to become a source of power and growth.",
+    ("Jupiter", "Sagittarius"): "Right now, Jupiter is in Sagittarius, its home sign, and the expansive pull toward wisdom, adventure, and the big picture is at its strongest. Optimism is genuine and the world feels full of possibility.",
+    ("Jupiter", "Capricorn"):   "Right now, Jupiter is in Capricorn, expanding through discipline and the patient building of real things. Growth is earned rather than given — and what is built now is built to last.",
+    ("Jupiter", "Aquarius"):    "Right now, Jupiter is in Aquarius, expanding through collective vision and the sense of belonging to a larger human story. Progress feels possible and the impulse toward positive change is alive.",
+    ("Jupiter", "Pisces"):      "Right now, Jupiter is in Pisces, its traditional home sign, expanding through compassion and spiritual grace. The capacity for forgiveness and faith is unusually heightened.",
+
+    # Saturn
+    ("Saturn", "Aries"):       "Right now, Saturn is in Aries, bringing the discipline of patience and consequence to the realm of impulsive action. The collective is learning that real courage requires structure, not just fire.",
+    ("Saturn", "Taurus"):      "Right now, Saturn is in Taurus, testing the foundations of material security and collective value. Conditions call for building carefully — excess is corrected and shortcuts don't hold.",
+    ("Saturn", "Gemini"):      "Right now, Saturn is moving through Gemini, bringing rigor to the way information is gathered and communicated. Idle talk is less satisfying and the collective is being asked to think before speaking.",
+    ("Saturn", "Cancer"):      "Right now, Saturn is in Cancer, bringing restriction and maturation to the realm of emotion, home, and family. The collective is developing emotional self-sufficiency — learning to provide for itself what it once expected from others.",
+    ("Saturn", "Leo"):         "Right now, Saturn is in Leo, bringing structure and challenge to the realm of creative expression and recognition. Lasting respect is earned through consistent effort, not performance.",
+    ("Saturn", "Virgo"):       "Right now, Saturn is moving through Virgo, deepening the collective commitment to craft and the disciplined improvement of daily life. The bar for quality is raised and sloppy work meets its consequences.",
+    ("Saturn", "Libra"):       "Right now, Saturn is in Libra, exalted, bringing maturity and responsibility to the realm of relationship and justice. The collective is learning what fair partnership really requires — real commitment, not just goodwill.",
+    ("Saturn", "Scorpio"):     "Right now, Saturn is in Scorpio, bringing discipline and consequence to the realm of power and shared resources. Hidden things are restructured, debts come due, and depth is non-negotiable.",
+    ("Saturn", "Sagittarius"): "Right now, Saturn is moving through Sagittarius, testing the realm of belief and the search for meaning. The collective is being asked to back its convictions with real understanding.",
+    ("Saturn", "Capricorn"):   "Right now, Saturn is in Capricorn, its home sign, fully expressed and uncompromising. The collective standard for responsibility and accountability is at its highest — and the consequences of cutting corners are real.",
+    ("Saturn", "Aquarius"):    "Right now, Saturn is in Aquarius, its traditional home sign, bringing sober realism to collective visions and social ideals. Building a better world requires discipline, not just enthusiasm.",
+    ("Saturn", "Pisces"):      "Right now, Saturn is moving through Pisces, bringing structure to the realm of spirituality and the dissolution of boundaries. The collective is being asked to navigate uncertainty with clarity rather than escapism.",
+
+    # Uranus (stays ~7 years per sign — use era language)
+    ("Uranus", "Aries"):       "Uranus is currently in Aries — for years now, sudden, radical change has been unleashing through individual will, identity, and the pioneer impulse. This is an era of unexpected breakthroughs in how people assert and define themselves.",
+    ("Uranus", "Taurus"):      "Uranus is currently in Taurus, and the foundations of material life — economy, land, the body, and collective values — have been disrupted for years. What seemed most stable proves most subject to change.",
+    ("Uranus", "Gemini"):      "Uranus is currently in Gemini, revolutionizing communication and the way ideas travel across society. The very structure of how information is shared and minds are changed is being reinvented.",
+    ("Uranus", "Cancer"):      "Uranus is currently in Cancer, disrupting the structures of home, family, and what it means to belong. What it means to be nurtured and to feel safe is being fundamentally reimagined.",
+    ("Uranus", "Leo"):         "Uranus is currently in Leo, electrifying the realm of creative expression and the desire for recognition. This is an era of surprising breakthroughs in art, self-expression, and what it means to be a unique individual.",
+    ("Uranus", "Virgo"):       "Uranus is currently in Virgo, revolutionizing work, health, and the systems of daily life. Sudden innovations in medicine, technology, and the way labor is organized are reshaping ordinary life.",
+    ("Uranus", "Libra"):       "Uranus is currently in Libra, disrupting the structures of relationship, law, and social harmony. The rules of partnership and the meaning of justice are being rewritten across this era.",
+    ("Uranus", "Scorpio"):     "Uranus is currently in Scorpio, unleashing radical change in the realms of power, sexuality, and what has been kept hidden. This era strips away taboo and forces collective confrontation with the deepest currents of life.",
+    ("Uranus", "Sagittarius"): "Uranus is currently in Sagittarius, revolutionizing belief, religion, and the global vision of what is possible. Sudden expansions of worldview and unexpected challenges to established truth define this era.",
+    ("Uranus", "Capricorn"):   "Uranus is currently in Capricorn, disrupting established structures of government and authority. Institutions that seemed permanent are revealed as subject to sudden, radical change.",
+    ("Uranus", "Aquarius"):    "Uranus is currently in Aquarius, its home sign, maximally expressed. This era is defined by technological and social revolutions that restructure how communities form and what the future looks like.",
+    ("Uranus", "Pisces"):      "Uranus is currently in Pisces, disrupting the realm of spirituality and the collective unconscious. Sudden, surprising shifts in spiritual life and the dissolution of old illusions define this period.",
+
+    # Neptune (stays ~14 years per sign — use era language)
+    ("Neptune", "Aries"):       "Neptune is currently in Aries, dissolving and spiritualizing the realm of individual will. The collective dream of this era centers on the visionary hero and the belief that pure intention can change the world.",
+    ("Neptune", "Taurus"):      "Neptune is currently in Taurus, dissolving the material world into spiritual longing. The collective imagination is drawn to the natural world and the transcendence available in beauty and physical life.",
+    ("Neptune", "Gemini"):      "Neptune is currently in Gemini, dissolving the boundaries of thought and communication. Information blurs and the poetic feels as true as the factual during this era.",
+    ("Neptune", "Cancer"):      "Neptune is currently in Cancer, dissolving and idealizing home, family, and emotional belonging. The collective dream centers on sanctuary, innocence, and a perfect place of safety and love.",
+    ("Neptune", "Leo"):         "Neptune is currently in Leo, dissolving and romanticizing creative expression and the hunger for glory. The collective imagination is drawn to glamour, myth, and the dream of the extraordinary.",
+    ("Neptune", "Virgo"):       "Neptune is currently in Virgo, dissolving rigid distinctions in the realm of work and health. The collective dream is of perfect service and healing — and the gap between that ideal and reality is real.",
+    ("Neptune", "Libra"):       "Neptune is currently in Libra, dissolving and idealizing love, justice, and partnership. The collective imagination dreams of perfect harmony, and is tested by the complexity of real relationship.",
+    ("Neptune", "Scorpio"):     "Neptune is currently in Scorpio, dissolving the boundaries of what is hidden — power, sexuality, and the deep unconscious become soaked with spiritual longing. The taboo becomes mysteriously appealing.",
+    ("Neptune", "Sagittarius"): "Neptune is currently in Sagittarius, dissolving and idealizing the realms of religion and global meaning. Spiritual seeking is widespread during this era, though sometimes ungrounded.",
+    ("Neptune", "Capricorn"):   "Neptune is currently in Capricorn, dissolving the structures of authority and material achievement. The collective is both disillusioned with and strangely idealistic about power and institutions.",
+    ("Neptune", "Aquarius"):    "Neptune is currently in Aquarius, dissolving the boundaries between individuals into the dream of a better world. The collective imagination centers on utopia and the vision of universal human connection.",
+    ("Neptune", "Pisces"):      "Neptune is currently in Pisces, its home sign, at the height of its dissolving power. The veil between the visible and invisible is at its thinnest — compassion and spiritual seeking pervade the collective atmosphere.",
+
+    # Pluto (stays 12–30 years per sign — use era language)
+    ("Pluto", "Aries"):       "Pluto is currently in Aries, transforming the collective through the destruction and rebirth of individual power and identity. The force of personal assertion is reshaping what it means to be a pioneer in this era.",
+    ("Pluto", "Taurus"):      "Pluto is currently in Taurus, dismantling and rebuilding the foundations of material life — land, economics, the body, and the deepest structures of collective value are all being transformed.",
+    ("Pluto", "Gemini"):      "Pluto is currently in Gemini, transforming communication and thought at the deepest level. The very media through which minds are shaped is undergoing death and rebirth.",
+    ("Pluto", "Cancer"):      "Pluto is currently in Cancer, transforming home, family, and emotional security at the deepest level. The structures of domestic life and nationhood are being dismantled and rebuilt.",
+    ("Pluto", "Leo"):         "Pluto is currently in Leo, transforming the realm of individual will and the hunger for recognition. The very idea of what an individual is — their rights and creative potential — is being profoundly remade.",
+    ("Pluto", "Virgo"):       "Pluto is currently in Virgo, transforming work, health, craft, and the systems of daily life. Old approaches to medicine, labor, and the environment are being dismantled and rebuilt from the ground up.",
+    ("Pluto", "Libra"):       "Pluto is currently in Libra, transforming the realm of relationship and the social contract. The deepest assumptions about partnership, equality, and fairness are being broken down and rebuilt.",
+    ("Pluto", "Scorpio"):     "Pluto is currently in Scorpio, its home sign — transformation at its most intense. The collective is forced into direct confrontation with power, sexuality, death, and what has been most deeply suppressed.",
+    ("Pluto", "Sagittarius"): "Pluto is currently in Sagittarius, dismantling the collective's relationship to belief, religion, and the search for ultimate meaning. Old certainties dissolve and new worldviews emerge from the wreckage.",
+    ("Pluto", "Capricorn"):   "Pluto is currently in Capricorn, transforming structures of power, government, and institutional authority at the deepest level. The systems that organize collective life are being fundamentally remade.",
+    ("Pluto", "Aquarius"):    "Pluto is currently in Aquarius, dismantling and transforming collective life — community, technology, and the vision of the future itself are all being radically remade. Power is shifting from institutions to networks.",
+    ("Pluto", "Pisces"):      "Pluto is currently in Pisces, transforming the collective relationship to spirituality and the invisible foundations of existence. The deepest confrontation with what lies beyond the material world is underway.",
+}
+
+
+# ── Sky aspects (transit–transit) ────────────────────────────────────────────
+# keyed (*sorted([p1, p2]), aspect) — "world weather" language
+
+SKY_ASPECT: dict[tuple[str, str, str], str] = {
+
+    # Sun–Moon
+    ("Moon", "Sun", "conjunction"): "It's a New Moon — the Sun and Moon are united in the sky, and the collective is in a moment of reset and fresh beginning. This is a potent shared window for setting intentions as the cycle begins again.",
+    ("Moon", "Sun", "sextile"):     "The Sun and Moon are in a cooperative angle in the sky, creating a brief collective harmony between drive and emotional mood. Action and feeling support each other — a good shared window for what requires both clarity and intuition.",
+    ("Moon", "Sun", "square"):      "The Sun and Moon are in tension — a quarter Moon moment when the collective will and emotional needs pull against each other. This shared restlessness tends to prompt action through friction.",
+    ("Moon", "Sun", "trine"):       "The Sun and Moon are in a flowing relationship in the sky, creating a smooth collective harmony between drive and the emotional atmosphere. Things tend to flow more easily than usual under this sky.",
+    ("Moon", "Sun", "opposition"):  "It's a Full Moon — the Sun and Moon face each other across the sky, and the collective is in a moment of peak illumination and emotional intensity. What has been building reaches its height and the pull between opposing needs is strongest.",
+
+    # Sun–Mercury
+    ("Mercury", "Sun", "conjunction"): "The Sun and Mercury are conjunct in the sky, amplifying the collective focus on communication, decisions, and the expression of ideas. Conversations and announcements carry unusual weight right now for everyone.",
+    ("Mercury", "Sun", "sextile"):     "The Sun and Mercury are cooperating in the sky — the collective will and the mode of thought are aligned. Ideas flow into action with relative ease for people across the board.",
+    ("Mercury", "Sun", "square"):      "The Sun and Mercury are in tension in the sky, creating a shared friction between intention and expression. What is meant and what is said may not match — everyone benefits from extra care in communication right now.",
+    ("Mercury", "Sun", "trine"):       "The Sun and Mercury are in a harmonious angle in the sky, making collective communication more fluid and purposeful than usual. Ideas are clearly expressed and intentions align with the way things are said.",
+    ("Mercury", "Sun", "opposition"):  "The Sun and Mercury are in opposition across the sky, creating a collective tension between the drive forward and the tendency to second-guess or over-communicate. This is a shared moment that favors perspective over output.",
+
+    # Sun–Venus
+    ("Sun", "Venus", "conjunction"): "The Sun and Venus are conjunct in the sky, heightening the collective appreciation for beauty, pleasure, and connection. There is a warmer, more generous quality to the shared atmosphere right now.",
+    ("Sun", "Venus", "sextile"):     "The Sun and Venus are cooperating in the sky — the collective will and the desire for harmony support each other. Social interactions benefit and creative endeavors tend to go well across the board.",
+    ("Sun", "Venus", "square"):      "The Sun and Venus are in tension in the sky, creating a shared friction between drive and desire. The collective impulse to enjoy and the need to accomplish may not agree — balance is called for.",
+    ("Sun", "Venus", "trine"):       "The Sun and Venus are in a harmonious relationship in the sky, lifting the collective atmosphere with ease, beauty, and the satisfaction of things working out. A genuinely pleasant quality is in the shared air.",
+    ("Sun", "Venus", "opposition"):  "The Sun and Venus are opposed in the sky, creating a collective tension between assertion and accommodation. Relationships may need more active negotiation than usual as drive and desire pull in different directions.",
+
+    # Sun–Mars
+    ("Mars", "Sun", "conjunction"): "The Sun and Mars are conjunct in the sky, amplifying the collective drive, initiative, and desire for action. Energy runs high right now for everyone and the shared impulse to begin and compete is strong.",
+    ("Mars", "Sun", "sextile"):     "The Sun and Mars are in a cooperative angle — collective will and the engine of action are aligned. Purposeful shared effort tends to go well right now and the direction is clear.",
+    ("Mars", "Sun", "square"):      "The Sun and Mars are in tension in the sky, and the collective atmosphere carries a charge of frustration, competition, or impatience. Energy is high but not easily directed — conflict is more likely across the board.",
+    ("Mars", "Sun", "trine"):       "The Sun and Mars are in harmony in the sky, making collective initiative and action flow with unusual ease. The shared drive is strong, the direction is clear, and effort tends to yield results.",
+    ("Mars", "Sun", "opposition"):  "The Sun and Mars are opposed in the sky, and the collective energy is charged with a dynamic tension between intention and force. This can mean productive tension or outright conflict — the difference is in how the shared energy is channeled.",
+
+    # Sun–Jupiter
+    ("Jupiter", "Sun", "conjunction"): "The Sun and Jupiter are conjunct in the sky, expanding the collective sense of possibility and optimism. This is one of the more buoyant shared sky moments of the year — confidence runs high and generosity is in the air.",
+    ("Jupiter", "Sun", "sextile"):     "The Sun and Jupiter are cooperating in the sky, supporting a collective mood of measured optimism and opportunity. Doors tend to open more easily right now and the shared sense that things will work out is reasonable.",
+    ("Jupiter", "Sun", "square"):      "The Sun and Jupiter are in tension in the sky, creating a collective tendency toward overreach, overconfidence, or excess. Right now, the gap between shared ambition and reality deserves attention.",
+    ("Jupiter", "Sun", "trine"):       "The Sun and Jupiter are in harmony in the sky — one of the more genuinely positive shared sky moments available. Optimism, luck, and the sense of forward movement are in the collective air.",
+    ("Jupiter", "Sun", "opposition"):  "The Sun and Jupiter are opposed in the sky, creating a collective tension between modest effort and grand expectation. Enthusiasm and overconfidence may need to be checked against practical reality right now.",
+
+    # Sun–Saturn
+    ("Saturn", "Sun", "conjunction"): "The Sun and Saturn are conjunct in the sky, sobering the collective mood with a sense of responsibility and the weight of what needs to be done. The shared atmosphere carries a quality of seriousness and the call to work.",
+    ("Saturn", "Sun", "sextile"):     "The Sun and Saturn are cooperating in the sky, supporting collective discipline and patient effort. Structure helps right now — careful, methodical work tends to yield lasting results across the board.",
+    ("Saturn", "Sun", "square"):      "The Sun and Saturn are in tension in the sky, creating a collective atmosphere of friction, delay, and the sense that things require more effort than expected. Shared patience and persistence are the appropriate response.",
+    ("Saturn", "Sun", "trine"):       "The Sun and Saturn are in harmony in the sky, supporting collective discipline, clarity, and the satisfaction of doing things properly. Effort applied now tends to build lasting results for everyone.",
+    ("Saturn", "Sun", "opposition"):  "The Sun and Saturn are opposed in the sky, and the collective is navigating a tension between creative drive and the limits of reality. Shared ambitions are being tested against what is actually achievable.",
+
+    # Sun–Uranus
+    ("Sun", "Uranus", "conjunction"): "The Sun and Uranus are conjunct in the sky, sending a sudden electric charge through the collective. The unexpected is more likely than usual for everyone — breakthroughs, disruptions, and the shock of the new are in the shared air.",
+    ("Sun", "Uranus", "sextile"):     "The Sun and Uranus are cooperating in the sky, supporting the collective with a current of creative originality. The unusual approach tends to work better than the conventional one right now across the board.",
+    ("Sun", "Uranus", "square"):      "The Sun and Uranus are in tension in the sky, creating a collective atmosphere of disruption and restlessness. The unexpected is more likely for everyone and flexibility is essential.",
+    ("Sun", "Uranus", "trine"):       "The Sun and Uranus are in harmony in the sky, bringing a refreshing collective current of originality and willingness to change. The new and unconventional are welcomed and things can shift in surprisingly positive directions.",
+    ("Sun", "Uranus", "opposition"):  "The Sun and Uranus are opposed in the sky, and the collective is navigating a tension between the established order and the force of disruption. What is comfortable is being challenged by what is new — for everyone.",
+
+    # Sun–Neptune
+    ("Neptune", "Sun", "conjunction"): "The Sun and Neptune are conjunct in the sky, dissolving the boundaries of the collective will into something more spiritual, idealistic, or confused. Clarity may be harder to find right now but inspiration runs high for everyone.",
+    ("Neptune", "Sun", "sextile"):     "The Sun and Neptune are cooperating in the sky, lending collective action a gentle idealism and spiritual sensitivity. Imagination and intuition support practical effort rather than undermining it.",
+    ("Neptune", "Sun", "square"):      "The Sun and Neptune are in tension in the sky, creating a collective atmosphere of confusion and the difficulty of distinguishing what is real from what is desired. Clarity of shared intention benefits from extra effort right now.",
+    ("Neptune", "Sun", "trine"):       "The Sun and Neptune are in harmony in the sky, bringing a collective quality of inspiration, compassion, and the ability to see beyond the ordinary. Imagination and reality cooperate in an unusual and productive shared way.",
+    ("Neptune", "Sun", "opposition"):  "The Sun and Neptune are opposed in the sky, and the collective is navigating a tension between clear intention and the dissolving force of illusion. What is real and what is wished-for may be difficult to tell apart right now.",
+
+    # Sun–Pluto
+    ("Pluto", "Sun", "conjunction"): "The Sun and Pluto are conjunct in the sky, intensifying the collective atmosphere with power, depth, and the force of transformation. What is hidden tends to surface right now and the shared desire for fundamental change is strong.",
+    ("Pluto", "Sun", "sextile"):     "The Sun and Pluto are cooperating in the sky, supporting collective depth and the productive application of transformative power. Going deeper tends to be more rewarding than staying on the surface right now.",
+    ("Pluto", "Sun", "square"):      "The Sun and Pluto are in tension in the sky, creating a collective atmosphere of intensity and power. What is hidden tends to force its way to the surface in disruptive ways — for everyone.",
+    ("Pluto", "Sun", "trine"):       "The Sun and Pluto are in harmony in the sky, supporting collective depth, renewal, and the productive force of genuine change. The power to transform is available and tends to be used constructively.",
+    ("Pluto", "Sun", "opposition"):  "The Sun and Pluto are opposed in the sky, and the collective is navigating a sharp tension between individual will and the force of power and transformation. What is deeply hidden tends to confront what is openly expressed.",
+
+    # Moon–Mercury
+    ("Mercury", "Moon", "conjunction"): "The Moon and Mercury are conjunct in the sky, aligning the collective emotional mood with the impulse to communicate and think. Feelings want to be named right now and conversations tend to get personal.",
+    ("Mercury", "Moon", "sextile"):     "The Moon and Mercury are cooperating in the sky, supporting a collective ease between feeling and expression. Emotional intelligence and clear thinking reinforce each other right now.",
+    ("Mercury", "Moon", "square"):      "The Moon and Mercury are in tension in the sky, creating a collective friction between how things feel and how they are being communicated. Misunderstandings are more likely — feelings and logic may not agree.",
+    ("Mercury", "Moon", "trine"):       "The Moon and Mercury are in harmony in the sky, making collective communication warmer, more empathic, and emotionally intelligent than usual. It is easier to say what you mean and mean what you say.",
+    ("Mercury", "Moon", "opposition"):  "The Moon and Mercury are opposed in the sky, and the collective is navigating a tension between emotional reaction and rational thought. The head and the heart may be telling different stories right now.",
+
+    # Moon–Venus
+    ("Moon", "Venus", "conjunction"): "The Moon and Venus are conjunct in the sky, heightening the collective mood with warmth, beauty, and the pleasure of connection. The shared emotional atmosphere is particularly receptive to kindness and aesthetic delight.",
+    ("Moon", "Venus", "sextile"):     "The Moon and Venus are cooperating in the sky, creating a pleasant collective harmony between feeling and the desire for beauty and love. Social interactions tend to be warmer and more satisfying than usual.",
+    ("Moon", "Venus", "square"):      "The Moon and Venus are in tension in the sky, creating a collective friction between emotional needs and the desire for harmony. What feels good and what is emotionally necessary may not agree right now.",
+    ("Moon", "Venus", "trine"):       "The Moon and Venus are in harmony in the sky, lifting the collective emotional atmosphere with beauty, affection, and the quiet pleasure of things going well. A genuinely pleasant quality is in the shared air.",
+    ("Moon", "Venus", "opposition"):  "The Moon and Venus are opposed in the sky, and the collective is navigating a tension between emotional needs and the desire for pleasure or relational harmony. Getting what you want may require acknowledging what you actually feel.",
+
+    # Moon–Mars
+    ("Mars", "Moon", "conjunction"): "The Moon and Mars are conjunct in the sky, charging the collective emotional field with urgency and the impulse to act on feeling immediately. Emotional reactions are faster and sharper than usual across the board.",
+    ("Mars", "Moon", "sextile"):     "The Moon and Mars are cooperating in the sky, lending the collective emotional field a productive current of assertive energy. Action motivated by feeling tends to go in the right direction right now.",
+    ("Mars", "Moon", "square"):      "The Moon and Mars are in tension in the sky, and the collective emotional atmosphere is charged with impatience or the urge to react before reflecting. Pausing before acting on strong feelings is wise for everyone right now.",
+    ("Mars", "Moon", "trine"):       "The Moon and Mars are in harmony in the sky, supporting collective emotional assertiveness and the courage to act on feeling. The emotional drive and the will to act are more aligned than usual.",
+    ("Mars", "Moon", "opposition"):  "The Moon and Mars are opposed in the sky, and the collective is navigating a tension between emotional sensitivity and reactive force. The impulse to strike out emotionally may need to be met with conscious choice.",
+
+    # Moon–Jupiter
+    ("Jupiter", "Moon", "conjunction"): "The Moon and Jupiter are conjunct in the sky, expanding the collective emotional field with optimism, generosity, and a buoyant quality. Feelings run large right now and the shared mood tends toward warmth and abundance.",
+    ("Jupiter", "Moon", "sextile"):     "The Moon and Jupiter are cooperating in the sky, supporting a collective mood of emotional ease and measured good fortune. The emotional landscape feels a little more spacious than usual for everyone.",
+    ("Jupiter", "Moon", "square"):      "The Moon and Jupiter are in tension in the sky, and the collective emotional field may be running a little large — mood swings toward excess or overdoing it. Emotional moderation benefits from attention right now.",
+    ("Jupiter", "Moon", "trine"):       "The Moon and Jupiter are in harmony in the sky, and the collective emotional mood is genuinely warm, generous, and expansive. The good feelings tend to spread and the sense of possibility runs high.",
+    ("Jupiter", "Moon", "opposition"):  "The Moon and Jupiter are opposed in the sky, and the collective is navigating a tension between emotional needs and the expansive pull of something larger. Feelings may run bigger than circumstances actually call for.",
+
+    # Moon–Saturn
+    ("Moon", "Saturn", "conjunction"): "The Moon and Saturn are conjunct in the sky, and the collective emotional field carries a weight of responsibility, restraint, or loneliness. Feelings are more sober and the shared inner landscape is more serious than usual.",
+    ("Moon", "Saturn", "sextile"):     "The Moon and Saturn are cooperating in the sky, supporting a collective mood of emotional maturity and realistic assessment. Feelings are grounded rather than runaway and practical care is easier than usual.",
+    ("Moon", "Saturn", "square"):      "The Moon and Saturn are in tension in the sky, and the collective emotional atmosphere is weighted with frustration or the sense that what is felt cannot be easily expressed. Emotional patience is tested for everyone right now.",
+    ("Moon", "Saturn", "trine"):       "The Moon and Saturn are in harmony in the sky, supporting collective emotional groundedness and the quiet satisfaction of emotional maturity. Feelings are useful guides rather than unruly passengers.",
+    ("Moon", "Saturn", "opposition"):  "The Moon and Saturn are opposed in the sky, and the collective is navigating a tension between emotional warmth and the cold clarity of limitation. What is felt and what is possible may not line up easily right now.",
+
+    # Moon–Uranus
+    ("Moon", "Uranus", "conjunction"): "The Moon and Uranus are conjunct in the sky, sending an electrical charge through the collective emotional field. Feelings shift without warning, the unexpected is more likely, and the shared mood can change in an instant.",
+    ("Moon", "Uranus", "sextile"):     "The Moon and Uranus are cooperating in the sky, lending the collective emotional field a refreshing current of openness. The unexpected tends to be welcome rather than disruptive right now.",
+    ("Moon", "Uranus", "square"):      "The Moon and Uranus are in tension in the sky, and the collective emotional atmosphere is restless and prone to sudden shifts. What feels stable may not be — flexibility is the best shared protection right now.",
+    ("Moon", "Uranus", "trine"):       "The Moon and Uranus are in harmony in the sky, bringing a collective emotional lightness and openness to change. Novelty and the unexpected are emotionally welcome rather than threatening.",
+    ("Moon", "Uranus", "opposition"):  "The Moon and Uranus are opposed in the sky, and the collective is navigating a tension between the need for emotional security and the force of disruption. What is most familiar may suddenly feel less reliable.",
+
+    # Moon–Neptune
+    ("Moon", "Neptune", "conjunction"): "The Moon and Neptune are conjunct in the sky, dissolving the boundaries of the collective emotional field into something dreamy and porous. Feelings are amplified and the line between one person's emotions and another's is thin.",
+    ("Moon", "Neptune", "sextile"):     "The Moon and Neptune are cooperating in the sky, lending the collective emotional field a gentle spirituality and imaginative depth. Compassion flows easily and the inner life is more richly available than usual.",
+    ("Moon", "Neptune", "square"):      "The Moon and Neptune are in tension in the sky, and the collective emotional atmosphere is blurred by confusion or idealism. Emotional clarity may take extra effort right now — more is being felt than is actually there.",
+    ("Moon", "Neptune", "trine"):       "The Moon and Neptune are in harmony in the sky, deepening the collective emotional atmosphere with empathy, intuition, and a soft spiritual sensitivity. The emotional world and the invisible world feel unusually close.",
+    ("Moon", "Neptune", "opposition"):  "The Moon and Neptune are opposed in the sky, and the collective is navigating a tension between what is emotionally real and what is dreamed or imagined. The line between feeling and fantasy may need watching.",
+
+    # Moon–Pluto
+    ("Moon", "Pluto", "conjunction"): "The Moon and Pluto are conjunct in the sky, intensifying the collective emotional field into something deep and powerful. Feelings run to the bottom right now and what is usually kept below the surface tends to rise.",
+    ("Moon", "Pluto", "sextile"):     "The Moon and Pluto are cooperating in the sky, supporting a collective emotional depth and the productive processing of difficult material. The capacity to feel through something rather than around it is available right now.",
+    ("Moon", "Pluto", "square"):      "The Moon and Pluto are in tension in the sky, and the collective emotional atmosphere carries a charge of intensity or buried feeling surfacing. Emotional reactions can run deeper and more compulsive than expected.",
+    ("Moon", "Pluto", "trine"):       "The Moon and Pluto are in harmony in the sky, deepening the collective emotional life in a productive way. The capacity for emotional honesty and genuine transformation is available and can be trusted.",
+    ("Moon", "Pluto", "opposition"):  "The Moon and Pluto are opposed in the sky, and the collective is navigating a tension between everyday feeling and the force of deep, transformative emotional content. What has been buried is pressing to the surface.",
+
+    # Mercury–Venus
+    ("Mercury", "Venus", "conjunction"): "Mercury and Venus are conjunct in the sky, aligning the collective mind with the desire for beauty, harmony, and relational ease. Communication is more gracious and socially intelligent than usual right now.",
+    ("Mercury", "Venus", "sextile"):     "Mercury and Venus are cooperating in the sky, lending collective communication a quality of warmth and aesthetic sensitivity. Words tend to come out more pleasantly and relationships benefit.",
+    ("Mercury", "Venus", "square"):      "Mercury and Venus are in tension in the sky, creating a collective friction between what is thought and what is desired. Honest communication and the impulse to keep things pleasant may not agree right now.",
+    ("Mercury", "Venus", "trine"):       "Mercury and Venus are in harmony in the sky, making collective communication particularly warm and graceful. The social and intellectual qualities of conversation reinforce each other right now.",
+    ("Mercury", "Venus", "opposition"):  "Mercury and Venus are opposed in the sky, and the collective is navigating a tension between honest communication and the desire to maintain harmony. Saying what is true and keeping things pleasant may require deliberate balance.",
+
+    # Mercury–Mars
+    ("Mars", "Mercury", "conjunction"): "Mercury and Mars are conjunct in the sky, charging the collective mind with assertiveness and speed. Conversations are faster and sharper right now — the tongue can cut and debates run hot.",
+    ("Mars", "Mercury", "sextile"):     "Mercury and Mars are cooperating in the sky, lending collective communication a productive directness and mental energy. The drive to communicate and the content of what is communicated are well aligned.",
+    ("Mars", "Mercury", "square"):      "Mercury and Mars are in tension in the sky, and the collective atmosphere carries a charge of debate or communication that moves faster than wisdom. Thinking before speaking is especially valuable for everyone right now.",
+    ("Mars", "Mercury", "trine"):       "Mercury and Mars are in harmony in the sky, making collective communication both direct and effective. The mind is sharp, words come quickly, and the drive behind communication serves a real purpose.",
+    ("Mars", "Mercury", "opposition"):  "Mercury and Mars are opposed in the sky, and the collective is navigating a tension between careful thought and the force of assertion. The impulse to argue or defend may be louder than the impulse to understand.",
+
+    # Mercury–Jupiter
+    ("Jupiter", "Mercury", "conjunction"): "Mercury and Jupiter are conjunct in the sky, expanding the collective mind toward the philosophical and visionary. Thinking is big right now and the shared impulse to communicate ideas widely is strong.",
+    ("Jupiter", "Mercury", "sextile"):     "Mercury and Jupiter are cooperating in the sky, supporting a collective mood of curious optimism and the joy of learning. The mind reaches naturally toward the broad and meaningful.",
+    ("Jupiter", "Mercury", "square"):      "Mercury and Jupiter are in tension in the sky, and the collective mind may be tending toward overconfidence or jumping to conclusions. Checking the details before announcing the vision is wise right now.",
+    ("Jupiter", "Mercury", "trine"):       "Mercury and Jupiter are in harmony in the sky, and the collective mind is in a state of generous, broad-ranging intelligence. Ideas expand naturally and communication is both fluent and meaningful.",
+    ("Jupiter", "Mercury", "opposition"):  "Mercury and Jupiter are opposed in the sky, and the collective is navigating a tension between careful analysis and the pull toward grand conclusions. Enthusiasm for the big picture may outrun the evidence.",
+
+    # Mercury–Saturn
+    ("Mercury", "Saturn", "conjunction"): "Mercury and Saturn are conjunct in the sky, bringing a sobering quality to the collective mind. Thought is careful and serious right now — more preoccupied with what could go wrong than with what might go right.",
+    ("Mercury", "Saturn", "sextile"):     "Mercury and Saturn are cooperating in the sky, supporting a collective discipline of mind and the patient application of thought to real problems. Careful analysis and measured communication tend to yield results.",
+    ("Mercury", "Saturn", "square"):      "Mercury and Saturn are in tension in the sky, and the collective mind is working against a headwind of doubt or restriction. Communication benefits from patience and precision right now.",
+    ("Mercury", "Saturn", "trine"):       "Mercury and Saturn are in harmony in the sky, lending collective thinking a quality of discipline and precision. The mind is a reliable tool and communication is clear and well-structured right now.",
+    ("Mercury", "Saturn", "opposition"):  "Mercury and Saturn are opposed in the sky, and the collective is navigating a tension between the flow of ideas and the weight of limitation. Thought may be slowed by doubt or the feeling that nothing is good enough.",
+
+    # Mercury–Uranus
+    ("Mercury", "Uranus", "conjunction"): "Mercury and Uranus are conjunct in the sky, electrifying the collective mind with originality and sudden insight. Ideas arrive fast, from unexpected directions, and may be genuinely brilliant right now.",
+    ("Mercury", "Uranus", "sextile"):     "Mercury and Uranus are cooperating in the sky, supporting a collective mood of intellectual openness and creative originality. The unusual approach tends to work and new ideas find a receptive audience.",
+    ("Mercury", "Uranus", "square"):      "Mercury and Uranus are in tension in the sky, and the collective mind is restless and prone to sudden reversals. Ideas may arrive faster than they can be properly evaluated right now.",
+    ("Mercury", "Uranus", "trine"):       "Mercury and Uranus are in harmony in the sky, making the collective mind unusually sharp, original, and open to what has not been thought before. The breakthrough idea is more available than usual.",
+    ("Mercury", "Uranus", "opposition"):  "Mercury and Uranus are opposed in the sky, and the collective is navigating a tension between conventional thought and the force of radical new ideas. Established wisdom is being challenged from an unexpected angle.",
+
+    # Mercury–Neptune
+    ("Mercury", "Neptune", "conjunction"): "Mercury and Neptune are conjunct in the sky, dissolving the boundaries of the collective mind into something imaginative and sometimes hard to pin down. Inspiration is high but clarity may be elusive for everyone right now.",
+    ("Mercury", "Neptune", "sextile"):     "Mercury and Neptune are cooperating in the sky, lending collective thought a gentle imaginative depth. Intuition and logical thought support rather than undermine each other right now.",
+    ("Mercury", "Neptune", "square"):      "Mercury and Neptune are in tension in the sky, and the collective mind is susceptible to confusion or the blurring of fact and fantasy. Extra care with what can actually be verified is wise right now.",
+    ("Mercury", "Neptune", "trine"):       "Mercury and Neptune are in harmony in the sky, and the collective mind has access to a beautiful blend of imagination and intuition. The poetic and the precise can coexist and inspire each other.",
+    ("Mercury", "Neptune", "opposition"):  "Mercury and Neptune are opposed in the sky, and the collective is navigating a tension between clear thought and the dissolving force of imagination. What is real and what is hoped-for may be genuinely hard to tell apart.",
+
+    # Mercury–Pluto
+    ("Mercury", "Pluto", "conjunction"): "Mercury and Pluto are conjunct in the sky, turning the collective mind toward intensity and the desire to get to the bottom of things. Thought is penetrating and conversations tend to go deep right now.",
+    ("Mercury", "Pluto", "sextile"):     "Mercury and Pluto are cooperating in the sky, supporting a collective capacity for deep thought and the productive exploration of difficult material. The mind is a useful tool for transformation right now.",
+    ("Mercury", "Pluto", "square"):      "Mercury and Pluto are in tension in the sky, and the collective mind is pressing against something powerful and resistant. Communication may carry an edge of compulsion — what is said has more weight than usual.",
+    ("Mercury", "Pluto", "trine"):       "Mercury and Pluto are in harmony in the sky, giving the collective mind access to depth and penetrating analysis. Profound shared insight is available right now.",
+    ("Mercury", "Pluto", "opposition"):  "Mercury and Pluto are opposed in the sky, and the collective is navigating a tension between what is spoken and the deep, often unspoken power dynamics that shape it. The truth beneath the surface is pressing hard.",
+
+    # Venus–Mars
+    ("Mars", "Venus", "conjunction"): "Venus and Mars are conjunct in the sky, and the collective atmosphere hums with desire, attraction, and the creative tension between beauty and drive. Love and action, pleasure and initiative are unusually unified right now.",
+    ("Mars", "Venus", "sextile"):     "Venus and Mars are cooperating in the sky, creating a collective harmony between desire and action. Attraction and initiative reinforce each other right now — what is wanted and the energy to pursue it are aligned.",
+    ("Mars", "Venus", "square"):      "Venus and Mars are in tension in the sky, and the collective atmosphere carries a charge of desire frustrated by urgency, or beauty challenged by force. What is wanted and how it is pursued may not agree.",
+    ("Mars", "Venus", "trine"):       "Venus and Mars are in harmony in the sky, and the collective atmosphere is charged with a productive, creative energy between attraction and action. Desire and the drive to pursue it are in an unusually satisfying relationship.",
+    ("Mars", "Venus", "opposition"):  "Venus and Mars are opposed in the sky, and the collective is navigating the classic tension between attraction and assertion. This sky weather tends to be charged with desire and the complexity of wanting.",
+
+    # Venus–Jupiter
+    ("Jupiter", "Venus", "conjunction"): "Venus and Jupiter are conjunct in the sky — one of the more genuinely pleasurable shared moments available. The collective atmosphere is warm, generous, and open to beauty, abundance, and the goodness of being alive.",
+    ("Jupiter", "Venus", "sextile"):     "Venus and Jupiter are cooperating in the sky, supporting a collective mood of easy pleasure and measured good fortune. Social life, creative endeavors, and the simple enjoyment of things tend to go well.",
+    ("Jupiter", "Venus", "square"):      "Venus and Jupiter are in tension in the sky, and the collective tendency toward excess or overindulgence is heightened. The desire for pleasure is at risk of outrunning good judgment for everyone right now.",
+    ("Jupiter", "Venus", "trine"):       "Venus and Jupiter are in harmony in the sky, and the collective atmosphere is unusually warm, abundant, and open to beauty and good fortune. This is one of the more genuinely pleasant shared sky moments available.",
+    ("Jupiter", "Venus", "opposition"):  "Venus and Jupiter are opposed in the sky, and the collective is navigating a tension between the desire for pleasure and the pull toward something larger. Moderation and generosity may need to be consciously balanced.",
+
+    # Venus–Saturn
+    ("Saturn", "Venus", "conjunction"): "Venus and Saturn are conjunct in the sky, sobering the collective atmosphere around love and pleasure. The shared air carries a quality of measured commitment, emotional restraint, or the weight of relational responsibility.",
+    ("Saturn", "Venus", "sextile"):     "Venus and Saturn are cooperating in the sky, supporting a collective mood of emotional maturity and the quiet satisfaction of love expressed through loyalty. Commitment serves relationships better than grand gestures right now.",
+    ("Saturn", "Venus", "square"):      "Venus and Saturn are in tension in the sky, and the collective is navigating a friction between the desire for warmth and beauty and the reality of limitation. Love may feel harder to access right now.",
+    ("Saturn", "Venus", "trine"):       "Venus and Saturn are in harmony in the sky, supporting collective love and beauty with a grounding quality of endurance. What is beautiful tends also to be lasting right now.",
+    ("Saturn", "Venus", "opposition"):  "Venus and Saturn are opposed in the sky, and the collective is navigating a tension between the longing for love and the weight of obligation. The desire for warmth is being tested against what is actually sustainable.",
+
+    # Venus–Uranus
+    ("Uranus", "Venus", "conjunction"): "Venus and Uranus are conjunct in the sky, sending an electrical charge through the collective experience of love and attraction. The unexpected is welcome in relationships and the unusual is appealing right now.",
+    ("Uranus", "Venus", "sextile"):     "Venus and Uranus are cooperating in the sky, supporting a collective openness to unexpected beauty and unconventional love. Originality in relationships and aesthetics is rewarded right now.",
+    ("Uranus", "Venus", "square"):      "Venus and Uranus are in tension in the sky, and the collective experience of love and attraction is disrupted by the unexpected. Relationships may feel unstable or in need of more freedom than usual.",
+    ("Uranus", "Venus", "trine"):       "Venus and Uranus are in harmony in the sky, bringing a collective openness to surprising beauty and unconventional attraction. Love and originality cooperate rather than conflict right now.",
+    ("Uranus", "Venus", "opposition"):  "Venus and Uranus are opposed in the sky, and the collective is navigating a tension between the desire for stable love and the force of sudden change. Relationships may need more room to breathe right now.",
+
+    # Venus–Neptune
+    ("Neptune", "Venus", "conjunction"): "Venus and Neptune are conjunct in the sky, dissolving the collective experience of love into something idealized, transcendent, and beautifully blurred. The romantic, the spiritual, and the aesthetic are unusually accessible right now.",
+    ("Neptune", "Venus", "sextile"):     "Venus and Neptune are cooperating in the sky, lending the collective experience of love a gentle spiritual depth. Compassion and creativity enrich relationships rather than confusing them right now.",
+    ("Neptune", "Venus", "square"):      "Venus and Neptune are in tension in the sky, and the collective experience of love is clouded by idealization. Romantic clarity benefits from extra care — the gap between who someone is and who we wish they were is wide right now.",
+    ("Neptune", "Venus", "trine"):       "Venus and Neptune are in harmony in the sky, and the collective experience of love and connection is infused with a gentle spiritual grace. Compassion, imagination, and aesthetic sensitivity flow together.",
+    ("Neptune", "Venus", "opposition"):  "Venus and Neptune are opposed in the sky, and the collective is navigating a tension between the desire for real love and the pull of idealization. The gap between feeling and fantasy deserves attention right now.",
+
+    # Venus–Pluto
+    ("Pluto", "Venus", "conjunction"): "Venus and Pluto are conjunct in the sky, intensifying the collective experience of love and desire into something powerful and transformative. Attraction runs deep and what is wanted can become an obsession right now.",
+    ("Pluto", "Venus", "sextile"):     "Venus and Pluto are cooperating in the sky, supporting a collective depth in love and a productive encounter with the more transformative dimensions of desire. Going deeper in relationships tends to reward right now.",
+    ("Pluto", "Venus", "square"):      "Venus and Pluto are in tension in the sky, and the collective experience of love and desire is charged with intensity and the difficulty of control. What is wanted may be pursued with more force than is healthy.",
+    ("Pluto", "Venus", "trine"):       "Venus and Pluto are in harmony in the sky, deepening the collective experience of love into something genuinely transformative. Desire and depth cooperate and the most meaningful connections are available.",
+    ("Pluto", "Venus", "opposition"):  "Venus and Pluto are opposed in the sky, and the collective is navigating a tension between the desire for love and the force of compulsion or the need to control what is most desired.",
+
+    # Mars–Jupiter
+    ("Jupiter", "Mars", "conjunction"): "Mars and Jupiter are conjunct in the sky, amplifying the collective with a surge of energy, ambition, and the appetite for bold action. The shared drive is large and optimism fuels it — a good collective moment for brave initiatives.",
+    ("Jupiter", "Mars", "sextile"):     "Mars and Jupiter are cooperating in the sky, aligning collective drive with the expansive pull of opportunity. Action taken with confidence tends to open rather than close doors right now.",
+    ("Jupiter", "Mars", "square"):      "Mars and Jupiter are in tension in the sky, and the collective appetite for action may be overreaching. The impulse to act big outpaces the wisdom to act carefully — ambition benefits from shared restraint right now.",
+    ("Jupiter", "Mars", "trine"):       "Mars and Jupiter are in harmony in the sky, and the collective is moving through a genuinely expansive moment of directed energy. Bold moves tend to work out and momentum builds naturally.",
+    ("Jupiter", "Mars", "opposition"):  "Mars and Jupiter are opposed in the sky, and the collective is navigating a tension between the drive to act and the pull of grand expectation. Energy is high but the risk of shared overextension is real.",
+
+    # Mars–Saturn
+    ("Mars", "Saturn", "conjunction"): "Mars and Saturn are conjunct in the sky, creating a collective sense of energy meeting resistance. The drive to act is slowed by structure right now — but what is built through this friction tends to be solid.",
+    ("Mars", "Saturn", "sextile"):     "Mars and Saturn are cooperating in the sky, supporting a collective ability to apply sustained, disciplined effort. Willpower and structure work together and patient action yields reliable results.",
+    ("Mars", "Saturn", "square"):      "Mars and Saturn are in tension in the sky, and the collective atmosphere carries a charge of frustration or blocked energy. The shared impulse to act collides with limit right now.",
+    ("Mars", "Saturn", "trine"):       "Mars and Saturn are in harmony in the sky, and the collective is in a moment of disciplined, effective action. Effort is sustained, direction is clear, and the drive to accomplish meets a structure that supports it.",
+    ("Mars", "Saturn", "opposition"):  "Mars and Saturn are opposed in the sky, and the collective is navigating a sharp tension between the desire to move forward and the weight of resistance. Force meets limit right now.",
+
+    # Mars–Uranus
+    ("Mars", "Uranus", "conjunction"): "Mars and Uranus are conjunct in the sky, and the collective atmosphere is electrically charged with sudden action and the impulse to break from what is established. The unexpected is more likely — and it arrives fast.",
+    ("Mars", "Uranus", "sextile"):     "Mars and Uranus are cooperating in the sky, supporting a collective energy of innovative action. The unconventional approach works right now and the drive to do something new is well supported.",
+    ("Mars", "Uranus", "square"):      "Mars and Uranus are in tension in the sky, and the collective atmosphere carries a charge of impulsive action and sudden disruption. The unexpected tends to arrive with force right now.",
+    ("Mars", "Uranus", "trine"):       "Mars and Uranus are in harmony in the sky, and the collective is in a moment of inspired, original action. The drive to do something genuinely new is well supported and breakthroughs are available to those who move.",
+    ("Mars", "Uranus", "opposition"):  "Mars and Uranus are opposed in the sky, and the collective is navigating a high-voltage tension between action and disruption. The force of the unexpected collides with the desire to move forward — flexibility is essential.",
+
+    # Mars–Neptune
+    ("Mars", "Neptune", "conjunction"): "Mars and Neptune are conjunct in the sky, dissolving the collective drive into something inspired, confused, or spiritually motivated. Action is infused with idealism but the direction may be harder than usual to pin down.",
+    ("Mars", "Neptune", "sextile"):     "Mars and Neptune are cooperating in the sky, supporting a collective capacity to act from intuition and to pursue ideals without being paralyzed by them. The drive and the dream support each other right now.",
+    ("Mars", "Neptune", "square"):      "Mars and Neptune are in tension in the sky, and the collective drive is clouded by confusion or misdirection. Action motivated by illusion tends to go sideways right now.",
+    ("Mars", "Neptune", "trine"):       "Mars and Neptune are in harmony in the sky, and the collective is in a moment of inspired, compassionate action. The drive is infused with spiritual sensitivity and idealistic action finds its most productive expression.",
+    ("Mars", "Neptune", "opposition"):  "Mars and Neptune are opposed in the sky, and the collective is navigating a tension between the will to act and the dissolving force of illusion. Misdirected effort is a real shared risk right now.",
+
+    # Mars–Pluto
+    ("Mars", "Pluto", "conjunction"): "Mars and Pluto are conjunct in the sky, and the collective atmosphere is charged with a deep, intense, and sometimes explosive force. The desire for power and transformation is at its most concentrated and the potential for both breakthrough and conflict is high.",
+    ("Mars", "Pluto", "sextile"):     "Mars and Pluto are cooperating in the sky, supporting a collective depth of drive and the productive application of transformative power. Effort that cuts to the root tends to be unusually effective right now.",
+    ("Mars", "Pluto", "square"):      "Mars and Pluto are in tension in the sky, and the collective atmosphere carries a charge of power struggle and the clash of wills at depth. Force meets deep resistance and conflict can run to extremes right now.",
+    ("Mars", "Pluto", "trine"):       "Mars and Pluto are in harmony in the sky, and the collective is in a moment of deep, focused, transformative action. The drive that comes from the root is most available and most effective.",
+    ("Mars", "Pluto", "opposition"):  "Mars and Pluto are opposed in the sky, and the collective is navigating an intense tension between assertion and the deeper forces of power. Will collides with what lies beneath — and the result is rarely subtle.",
+
+    # Jupiter–Saturn
+    ("Jupiter", "Saturn", "conjunction"): "Jupiter and Saturn are conjunct in the sky — a rare Great Conjunction. The collective is at a threshold between expansion and consolidation, and the structures of a new era are being set. The tension between growth and limits is shaping the world.",
+    ("Jupiter", "Saturn", "sextile"):     "Jupiter and Saturn are cooperating in the sky, supporting a collective ability to balance expansion with structure. Growth is possible without overreach and discipline without stagnation — a shared moment of productive balance.",
+    ("Jupiter", "Saturn", "square"):      "Jupiter and Saturn are in tension in the sky, and the collective is navigating a friction between the desire to grow and the reality of what limits that growth. The gap between shared ambition and practicality is a social challenge right now.",
+    ("Jupiter", "Saturn", "trine"):       "Jupiter and Saturn are in harmony in the sky, and the collective is in a period of sustainable growth — expansion backed by structure, ambition grounded in reality. Long-term projects benefit from the shared conditions.",
+    ("Jupiter", "Saturn", "opposition"):  "Jupiter and Saturn are opposed in the sky, and the collective is navigating a major tension between growth and consolidation. The competing demands of expansion and discipline are shaping public life in significant ways.",
+
+    # Jupiter–Uranus
+    ("Jupiter", "Uranus", "conjunction"): "Jupiter and Uranus are conjunct in the sky — a significant moment of collective breakthrough and sudden expansion. Unexpected developments are reshaping what is possible, and the sense of sudden liberation is in the shared air.",
+    ("Jupiter", "Uranus", "sextile"):     "Jupiter and Uranus are cooperating in the sky, supporting a collective mood of productive innovation. The new idea and the open door tend to arrive together right now.",
+    ("Jupiter", "Uranus", "square"):      "Jupiter and Uranus are in tension in the sky, and the collective is navigating a friction between the pull toward freedom and disruption and the demands of what is established. The energy for change outpaces the structures that contain it.",
+    ("Jupiter", "Uranus", "trine"):       "Jupiter and Uranus are in harmony in the sky, and the collective is in a moment of expansive, liberating change. Breakthroughs are available and the new tends to be welcomed rather than resisted.",
+    ("Jupiter", "Uranus", "opposition"):  "Jupiter and Uranus are opposed in the sky, and the collective is navigating a significant tension between growth and disruption. This sky weather tends to bring sudden, large-scale changes.",
+
+    # Jupiter–Neptune
+    ("Jupiter", "Neptune", "conjunction"): "Jupiter and Neptune are conjunct in the sky, dissolving the collective into a rare wave of spiritual expansion and idealism. Imagination and faith are at a collective high — and so is the risk of mass illusion.",
+    ("Jupiter", "Neptune", "sextile"):     "Jupiter and Neptune are cooperating in the sky, supporting a collective mood of generous idealism and the gentle expansion of spiritual life. Compassion and vision support each other in productive ways right now.",
+    ("Jupiter", "Neptune", "square"):      "Jupiter and Neptune are in tension in the sky, and the collective is susceptible to inflation of ideals or mass confusion. The gap between the shared dream and the reality is becoming undeniable right now.",
+    ("Jupiter", "Neptune", "trine"):       "Jupiter and Neptune are in harmony in the sky, and the collective is in a period of heightened spiritual sensitivity and compassionate expansion. The dream and the possible feel unusually close right now.",
+    ("Jupiter", "Neptune", "opposition"):  "Jupiter and Neptune are opposed in the sky, and the collective is navigating a significant tension between confident expansion and the dissolving force of illusion. What is inflated eventually meets the truth.",
+
+    # Jupiter–Pluto
+    ("Jupiter", "Pluto", "conjunction"): "Jupiter and Pluto are conjunct in the sky — a significant meeting of expansion and deep transformation. The forces of power, growth, and radical change are amplified collectively and what emerges can reshape the landscape for years.",
+    ("Jupiter", "Pluto", "sextile"):     "Jupiter and Pluto are cooperating in the sky, supporting a collective capacity to use depth and power productively. The willingness to go deep pays off and transformation can be leveraged for genuine growth.",
+    ("Jupiter", "Pluto", "square"):      "Jupiter and Pluto are in tension in the sky, and the collective is navigating a clash between expansion and the forces of power or control. Growth is meeting significant resistance from entrenched power right now.",
+    ("Jupiter", "Pluto", "trine"):       "Jupiter and Pluto are in harmony in the sky, and the collective is in a period of unusually powerful, productive transformation. The depth of change and the breadth of growth are aligned — significant shifts tend to work in the long run.",
+    ("Jupiter", "Pluto", "opposition"):  "Jupiter and Pluto are opposed in the sky, and the collective is navigating a significant tension between the impulse to expand and the force of power or radical change. This sky weather tends to bring major collective upheavals.",
+
+    # Saturn–Uranus
+    ("Saturn", "Uranus", "conjunction"): "Saturn and Uranus are conjunct in the sky — a significant generational moment when the old order and the force of revolution meet. The collective is at a threshold where the established and the radically new must either integrate or collide.",
+    ("Saturn", "Uranus", "sextile"):     "Saturn and Uranus are cooperating in the sky, supporting a collective ability to make productive changes within existing structures. Reform is possible without destruction and innovation has a structure to grow within.",
+    ("Saturn", "Uranus", "square"):      "Saturn and Uranus are in tension in the sky — a significant and often turbulent sky weather. The collective is navigating a clash between the established order and the force of disruption, and the social friction tends to be palpable.",
+    ("Saturn", "Uranus", "trine"):       "Saturn and Uranus are in harmony in the sky, and the collective is in a period where necessary change can happen within existing structures. Reform is achievable and innovation finds practical application.",
+    ("Saturn", "Uranus", "opposition"):  "Saturn and Uranus are opposed in the sky — a recurring tension in collective history when the established order faces the most intense pressure for revolutionary change. This sky weather tends to define its era.",
+
+    # Saturn–Neptune
+    ("Neptune", "Saturn", "conjunction"): "Saturn and Neptune are conjunct in the sky — a rare meeting of structure and dissolution. The boundary between the real and the imagined is blurred at a societal level as the existing order meets the forces that seek to dissolve or transcend it.",
+    ("Neptune", "Saturn", "sextile"):     "Saturn and Neptune are cooperating in the sky, supporting a collective capacity to give form to ideals and bring spiritual vision into practical reality. Dreams can be built and structures can be made more compassionate right now.",
+    ("Neptune", "Saturn", "square"):      "Saturn and Neptune are in tension in the sky, and the collective is navigating a significant friction between reality and illusion. Idealistic structures are tested by harsh facts and facts dissolve in the fog of ideology right now.",
+    ("Neptune", "Saturn", "trine"):       "Saturn and Neptune are in harmony in the sky, and the collective is in a period where ideals can be given structure and practical life can be infused with genuine spiritual meaning. The dream can be made real.",
+    ("Neptune", "Saturn", "opposition"):  "Saturn and Neptune are opposed in the sky — a significant sky moment when the hard edge of reality and the dissolving force of collective illusion confront each other directly. Society tends to be divided between those who want clarity and those who want transcendence.",
+
+    # Saturn–Pluto
+    ("Pluto", "Saturn", "conjunction"): "Saturn and Pluto are conjunct in the sky — a rare, heavy, and historically significant moment. The collective is navigating a period of intense restructuring where the existing order is broken down and rebuilt from the foundation. This sky weather is associated with major historical turning points.",
+    ("Pluto", "Saturn", "sextile"):     "Saturn and Pluto are cooperating in the sky, supporting a collective ability to use the forces of deep transformation constructively. The work of genuine, lasting change is supported right now.",
+    ("Pluto", "Saturn", "square"):      "Saturn and Pluto are in tension in the sky — a significant and often difficult sky weather. The collective is navigating a clash between the existing order and the force of deep, unavoidable transformation. The pressure can be felt across institutions and collective life.",
+    ("Pluto", "Saturn", "trine"):       "Saturn and Pluto are in harmony in the sky, and the collective is in a period where deep change and structural stability are aligned. The most difficult transformations tend to yield lasting, if hard-won, results.",
+    ("Pluto", "Saturn", "opposition"):  "Saturn and Pluto are opposed in the sky — a historically significant sky moment when the structures of the existing order face direct confrontation with the forces of transformation and upheaval. This tends to be a defining moment in collective history.",
+
+    # Uranus–Neptune
+    ("Neptune", "Uranus", "conjunction"): "Uranus and Neptune are conjunct in the sky — an extraordinarily rare generational meeting of revolution and dissolution. The collective is at a point of massive cultural shift where old worldviews dissolve and new ones emerge from the collision of awakening and illusion.",
+    ("Neptune", "Uranus", "sextile"):     "Uranus and Neptune are in a long-term cooperative relationship in the sky, supporting collective progress through the gradual integration of spiritual vision and technological innovation. This slow background harmony defines an era of imaginative possibility.",
+    ("Neptune", "Uranus", "square"):      "Uranus and Neptune are in a long-term tension in the sky, and the collective is navigating a generational friction between the force of disruption and the dissolving of old ideals. This sky weather defines an era of cultural turbulence.",
+    ("Neptune", "Uranus", "trine"):       "Uranus and Neptune are in a long-term harmony in the sky, and the collective is in a period where the force of awakening and the depth of spiritual imagination support each other. This sky weather defines an era of creative and spiritual possibility.",
+    ("Neptune", "Uranus", "opposition"):  "Uranus and Neptune are in a long-term opposition in the sky — a rare, generational moment when the force of revolution and the dissolving force of illusion face each other directly. The collective is in an era defined by the tension between awakening and dream.",
+
+    # Uranus–Pluto
+    ("Pluto", "Uranus", "conjunction"): "Uranus and Pluto are conjunct in the sky — one of the rarest and most explosive generational moments. The collective is in an era of revolutionary transformation — awakening and the deepest forces of change are aligned and the world is being remade from the ground up.",
+    ("Pluto", "Uranus", "sextile"):     "Uranus and Pluto are in a long-term cooperative relationship in the sky, supporting collective innovation and the productive application of transformative power. This era carries the potential for meaningful social progress.",
+    ("Pluto", "Uranus", "square"):      "Uranus and Pluto are in a long-term tension in the sky — a defining sky moment for an entire generation. The collective is navigating a clash between the force of revolution and the power of entrenched systems, and the friction between them shapes the era.",
+    ("Pluto", "Uranus", "trine"):       "Uranus and Pluto are in a long-term harmony in the sky, and the collective is in a period where the forces of innovation and deep transformation work together productively. This era is defined by meaningful, if gradual, change.",
+    ("Pluto", "Uranus", "opposition"):  "Uranus and Pluto are in a long-term opposition in the sky — a rare generational moment when the force of awakening and the force of power confront each other at maximum intensity. This era tends to be defined by its upheavals.",
+
+    # Neptune–Pluto
+    ("Neptune", "Pluto", "conjunction"): "Neptune and Pluto are conjunct in the sky — the rarest of all sky moments, occurring only once every ~492 years. The collective is at a threshold of civilizational transformation where the spiritual and the deepest forces of change are unified.",
+    ("Neptune", "Pluto", "sextile"):     "Neptune and Pluto are in a long-term cooperative relationship in the sky — a slow background harmony that defines an era of spiritual and transformative potential. The invisible forces that shape civilization are working in the same direction.",
+    ("Neptune", "Pluto", "square"):      "Neptune and Pluto are in a long-term tension in the sky, and the collective is navigating a civilizational friction between the forces of spiritual dissolution and deep transformation. This defines an era of profound and sometimes painful cultural upheaval.",
+    ("Neptune", "Pluto", "trine"):       "Neptune and Pluto are in a long-term harmony in the sky, and the collective is in a period where the deepest spiritual and transformative forces of civilization are working together. This defines an era of profound, if often invisible, positive change.",
+    ("Neptune", "Pluto", "opposition"):  "Neptune and Pluto are in opposition in the sky — an extremely rare and generationally defining moment. The collective is navigating a civilizational tension between the forces of idealism and the forces of power, an era when what is dreamed and what is feared are both at their most intense.",
+}
+
+
+# ── Transit-to-natal aspect interpretations ───────────────────────────────────
+# Keyed (transit_planet, natal_planet, aspect) — NOT sorted; direction matters.
+# Language: "right now, transiting X is [aspect]ing your natal Y..."
+# Fast planets (Sun/Moon/Mercury/Venus/Mars): brief window, immediate feel.
+# Slow planets (Jupiter/Saturn/Uranus/Neptune/Pluto): longer arc, structural shift.
+
+TRANSIT_TO_NATAL: dict[tuple[str, str, str], str] = {
+
+    # ── Transiting Sun ────────────────────────────────────────────────────────
+    ("Sun", "Sun", "conjunction"):   "Your solar return moment — the Sun is back where it was when you were born. This day carries a potent charge of renewal; intentions set now tend to stick for the year ahead.",
+    ("Sun", "Sun", "sextile"):       "The Sun is gently supporting your core identity right now, making it easier to express who you are with clarity and confidence. Small actions that align with your purpose get a quiet boost.",
+    ("Sun", "Sun", "square"):        "The transiting Sun is at odds with your natal Sun today, stirring restlessness or mild friction around self-expression. Notice where you feel out of step with your usual rhythm — that tension is information.",
+    ("Sun", "Sun", "trine"):         "A natural flow between the current sky and your birth energy makes this one of those days where being yourself feels almost effortless. Good timing for any endeavor that asks you to step forward and shine.",
+    ("Sun", "Sun", "opposition"):    "The Sun opposite your natal Sun marks the halfway point of your solar year. Others may mirror something back to you now — relationships highlight where your identity is evolving.",
+
+    ("Sun", "Moon", "conjunction"):  "The Sun is illuminating your natal Moon today, bringing feelings and needs into sharp focus. Emotional patterns you usually run on autopilot become more visible and easier to understand.",
+    ("Sun", "Moon", "sextile"):      "Right now the Sun is gently connecting your conscious will with your emotional instincts, making it a good moment for honest self-care and tending to what you genuinely need.",
+    ("Sun", "Moon", "square"):       "Today's Sun is pressing on your natal Moon, bringing a subtle tension between what you want to do and what you feel you need. Small frustrations with home or inner comfort are common.",
+    ("Sun", "Moon", "trine"):        "The Sun is flowing harmoniously with your natal Moon today, easing the gap between heart and mind. This is a warm, receptive energy — good for nurturing yourself or someone close to you.",
+    ("Sun", "Moon", "opposition"):   "The Sun is shining directly across from your natal Moon, creating a full-moon-like pull between public life and private feeling. Something emotional may come to light or reach a natural peak.",
+
+    ("Sun", "Mercury", "conjunction"): "The Sun is fusing with your natal Mercury today, energizing your thinking and communication. A good day to write, present, or have an important conversation — your words carry more vitality than usual.",
+    ("Sun", "Mercury", "sextile"):   "Your mind gets a gentle solar charge right now, making it easier to connect ideas and express them clearly. Brief conversations or quick decisions tend to go well under this influence.",
+    ("Sun", "Mercury", "square"):    "The Sun is prodding your natal Mercury, which can produce lively but scattered thinking. Watch for communication mix-ups or the urge to talk before fully processing what you mean.",
+    ("Sun", "Mercury", "trine"):     "A smooth solar connection to your natal Mercury makes this an excellent window for writing, learning, or any task that needs mental sharpness. Ideas flow and words come easily.",
+    ("Sun", "Mercury", "opposition"): "The Sun is highlighting your natal Mercury from the opposite sign, which can sharpen your perspective through contrast. Someone else's viewpoint may challenge — and ultimately refine — your thinking.",
+
+    ("Sun", "Venus", "conjunction"): "The Sun is touching your natal Venus today, brightening your social and aesthetic sensibilities. Pleasure, connection, and beauty feel more accessible — enjoy it without guilt.",
+    ("Sun", "Venus", "sextile"):     "A light solar beam on your natal Venus makes today pleasant for socializing, creative work, or simply appreciating what you have. Small gestures of kindness or affection land especially well.",
+    ("Sun", "Venus", "square"):      "Today's Sun is nudging your natal Venus, which can stir mild dissatisfaction in relationships or finances. Notice if you are comparing what you have against an ideal rather than seeing it clearly.",
+    ("Sun", "Venus", "trine"):       "The Sun is flowing easily through your natal Venus right now, lending a warm, attractive quality to your interactions. Creative projects benefit, and social connections come naturally.",
+    ("Sun", "Venus", "opposition"):  "The Sun is illuminating your natal Venus from across the zodiac, putting relationships and values in high relief. What — or who — matters most to you may come into clearer view today.",
+
+    ("Sun", "Mars", "conjunction"):  "The Sun is supercharging your natal Mars today, amplifying drive, confidence, and physical vitality. Channel this surge into purposeful action rather than impulsive reaction.",
+    ("Sun", "Mars", "sextile"):      "Right now the Sun is lending easy energy to your natal Mars, making it a good day to start something, tackle a task, or simply move your body with intention.",
+    ("Sun", "Mars", "square"):       "The Sun is squaring your natal Mars, which can feel like pressure building in the engine. Frustration or competitive friction may surface — use the tension to fuel focused effort rather than argument.",
+    ("Sun", "Mars", "trine"):        "Solar energy is flowing smoothly into your natal Mars today, supporting confident, effective action. You can push toward goals without forcing it — momentum builds on its own.",
+    ("Sun", "Mars", "opposition"):   "The Sun is opposing your natal Mars, lighting a tug-of-war between assertion and cooperation. Others may seem to challenge your will; see the friction as a mirror for your own unmet drives.",
+
+    ("Sun", "Jupiter", "conjunction"): "The Sun is meeting your natal Jupiter today, expanding optimism and opening doors. This brief window is excellent for anything that requires faith, vision, or putting yourself forward.",
+    ("Sun", "Jupiter", "sextile"):   "A gentle solar connection to your natal Jupiter lifts the mood and encourages a bigger-picture view. Reach a little further than usual today — opportunities respond to initiative.",
+    ("Sun", "Jupiter", "square"):    "The Sun is pressing on your natal Jupiter, which can amplify confidence into overconfidence. Watch for promising more than you can deliver or skipping important details in the rush to expand.",
+    ("Sun", "Jupiter", "trine"):     "The Sun is flowing through your natal Jupiter, bringing a buoyant, lucky-feeling quality to the day. Generosity, optimism, and forward momentum come naturally — a good time to take a calculated leap.",
+    ("Sun", "Jupiter", "opposition"): "The Sun is opposing your natal Jupiter, highlighting the space between ambition and reality. Someone or something external may reflect back where your enthusiasm has outpaced your foundations.",
+
+    ("Sun", "Saturn", "conjunction"): "The Sun is meeting your natal Saturn, which calls you toward seriousness and responsibility today. This isn't a day for shortcuts — it rewards focused effort, structure, and integrity.",
+    ("Sun", "Saturn", "sextile"):    "A practical solar connection to your natal Saturn supports disciplined work right now. What you build today has staying power — make use of this steady, no-nonsense energy.",
+    ("Sun", "Saturn", "square"):     "The Sun is squaring your natal Saturn, creating pressure around responsibility, authority, or limitation. Obstacles feel heavier today — but they are pointing at something that genuinely needs attention.",
+    ("Sun", "Saturn", "trine"):      "The Sun is flowing harmoniously with your natal Saturn, lending a calm, organized quality to the day. Structure feels supportive rather than restrictive, and patient effort yields tangible results.",
+    ("Sun", "Saturn", "opposition"): "The Sun is opposing your natal Saturn, putting a spotlight on accountability and long-term obligations. External demands or authority figures may test your resolve — this is a checkpoint, not a punishment.",
+
+    ("Sun", "Uranus", "conjunction"): "The Sun is conjunct your natal Uranus today, sparking sudden insights and a hunger for freedom. Expect the unexpected and stay flexible — this energy rewards authenticity over routine.",
+    ("Sun", "Uranus", "sextile"):    "Today brings a mild electric charge from the Sun to your natal Uranus, encouraging creative experimentation and a fresh angle on familiar problems.",
+    ("Sun", "Uranus", "square"):     "The Sun is squaring your natal Uranus, which can produce restlessness, disruption, or the sudden urge to break from constraint. Channel the urge to rebel toward genuine innovation rather than just chaos.",
+    ("Sun", "Uranus", "trine"):      "An easy solar connection to your natal Uranus makes today friendly to improvisation and originality. Departing from the usual script often leads somewhere surprisingly good right now.",
+    ("Sun", "Uranus", "opposition"): "The Sun is opposing your natal Uranus, which can bring abrupt surprises or encounters with people who challenge your worldview. The disruption often carries a liberating message if you stay open.",
+
+    ("Sun", "Neptune", "conjunction"): "The Sun is blending with your natal Neptune today, heightening sensitivity and imagination. Boundaries between self and other feel thinner — creative and spiritual work thrives; guard against escapism.",
+    ("Sun", "Neptune", "sextile"):   "A soft solar connection to your natal Neptune gently opens intuition and empathy right now. Pay attention to impressions and dreams; they carry useful information today.",
+    ("Sun", "Neptune", "square"):    "The Sun is squaring your natal Neptune, which can blur clarity and invite confusion or self-doubt. Double-check important facts and be cautious about decisions made on wishful thinking.",
+    ("Sun", "Neptune", "trine"):     "The Sun is flowing into your natal Neptune, lending a dreamy, inspired quality to the day. Creative, healing, or spiritual work feels especially meaningful and productive.",
+    ("Sun", "Neptune", "opposition"): "The Sun is opposing your natal Neptune, which can make it hard to see yourself or a situation clearly. Projection and idealization are hazards — try to ground impressions in observable facts.",
+
+    ("Sun", "Pluto", "conjunction"): "The Sun is fusing with your natal Pluto today, intensifying everything it touches. This is a day for deep work, honest reckoning, or the kind of commitment that permanently changes your direction.",
+    ("Sun", "Pluto", "sextile"):     "A subtle solar connection to your natal Pluto adds depth and magnetic quality to your presence today. You can move quietly but effectively toward meaningful transformation.",
+    ("Sun", "Pluto", "square"):      "The Sun is squaring your natal Pluto, which amplifies power dynamics, intensity, and the urge to control or transform something. Let go of what you cannot change; focus where your power genuinely operates.",
+    ("Sun", "Pluto", "trine"):       "The Sun is flowing through your natal Pluto, supporting deep, purposeful action. You can access reserves of strength and focus that allow for significant progress on what truly matters.",
+    ("Sun", "Pluto", "opposition"):  "The Sun is opposing your natal Pluto, putting transformative pressure at the edges of your life. Power struggles or confrontations with what cannot continue as-is may surface — this is evolution in progress.",
+
+    # ── Transiting Moon ───────────────────────────────────────────────────────
+    ("Moon", "Sun", "conjunction"):  "The Moon is passing over your natal Sun right now, briefly syncing your feeling nature with your core identity. Moods are especially telling today — they reveal what the self genuinely needs.",
+    ("Moon", "Sun", "sextile"):      "The Moon is sending a quick, supportive pulse to your natal Sun, making this a subtly uplifting few hours. Emotional and ego needs are more in agreement than usual.",
+    ("Moon", "Moon", "conjunction"): "The Moon has returned to its natal position — your personal monthly lunar return. Emotional attunement is high; this is a good moment to check in with your deeper needs.",
+    ("Moon", "Moon", "sextile"):     "The transiting Moon is in easy alignment with your natal Moon, creating a gentle receptivity and emotional ease right now. Small comforts resonate more deeply.",
+    ("Moon", "Moon", "square"):      "The Moon is squaring your natal Moon, which can bring a brief mood wobble or friction between what you feel and what you think you should feel. Allow the tension without acting on it.",
+    ("Moon", "Moon", "trine"):       "A harmonious lunar return moment — the Moon is in an easy trine to your natal Moon, lending natural emotional flow and a sense of belonging to wherever you are.",
+    ("Moon", "Moon", "opposition"):  "The Moon is opposite your natal Moon, which can feel like an emotional tug-of-war between need and response. Relationships reflect your inner state back to you with unusual clarity.",
+    ("Moon", "Sun", "square"):       "The Moon is pressing against your natal Sun right now, bringing a brief friction between feeling and will. Notice what emotions are telling you about what you truly want.",
+    ("Moon", "Sun", "trine"):        "The Moon is flowing easily with your natal Sun for a few hours, making emotional and conscious intentions work in concert. This is a pleasant, naturally harmonious window.",
+    ("Moon", "Sun", "opposition"):   "The Moon is opposite your natal Sun right now, shining an emotional spotlight on your identity. What you feel versus what you project may surface in a telling way.",
+
+    ("Moon", "Mercury", "conjunction"): "The Moon is crossing your natal Mercury, blending feelings with thought. Intuitive insights and emotionally honest communication come easily in this window.",
+    ("Moon", "Mercury", "sextile"):  "A quick lunar connection to your natal Mercury makes communication feel natural and warm right now. Good for heartfelt conversations or writing that needs both clarity and feeling.",
+    ("Moon", "Mercury", "square"):   "The Moon is squaring your natal Mercury, which can make it hard to separate feelings from facts for a few hours. Wait before sending anything written from a reactive place.",
+    ("Moon", "Mercury", "trine"):    "The Moon is flowing through your natal Mercury, making this a receptive window for ideas that blend logic and intuition seamlessly.",
+    ("Moon", "Mercury", "opposition"): "The Moon is opposing your natal Mercury, highlighting the gap between what you feel and what you say. Someone's words may land emotionally charged right now — take a breath before responding.",
+
+    ("Moon", "Venus", "conjunction"): "The Moon is meeting your natal Venus, amplifying warmth, affection, and a desire for beauty or pleasure. This brief window is lovely for self-care, creative work, or time with people you love.",
+    ("Moon", "Venus", "sextile"):    "A gentle lunar touch on your natal Venus brightens your mood and social ease right now. Small pleasures feel genuinely satisfying.",
+    ("Moon", "Venus", "square"):     "The Moon is squaring your natal Venus, which can stir mild emotional dissatisfaction or sensitivity in relationships. Notice if you are craving connection or reassurance — and ask for it honestly.",
+    ("Moon", "Venus", "trine"):      "The Moon is flowing into your natal Venus, bringing a warm, sociable quality to these few hours. Love, beauty, and simple enjoyment come naturally.",
+    ("Moon", "Venus", "opposition"): "The Moon is opposing your natal Venus, making relationship needs more emotionally charged for a few hours. Desires for closeness may compete with a need for independence.",
+
+    ("Moon", "Mars", "conjunction"): "The Moon is conjunct your natal Mars right now, which can produce a burst of emotional energy, assertiveness, or impatience. Channel it into action rather than reaction.",
+    ("Moon", "Mars", "sextile"):     "A quick lunar charge to your natal Mars gives you a mild boost in drive and confidence for a few hours. Good for getting started on something you've been putting off.",
+    ("Moon", "Mars", "square"):      "The Moon is squaring your natal Mars, which can bring irritability or emotional urgency. Be conscious of where frustration is building — small triggers can feel larger than they are.",
+    ("Moon", "Mars", "trine"):       "The Moon is supporting your natal Mars right now, lending easy courage and physical energy. A good window for assertive action that comes from a clear, non-reactive place.",
+    ("Moon", "Mars", "opposition"):  "The Moon is opposing your natal Mars, which can surface emotional tensions around anger, desire, or conflict. What you're feeling and what you're fighting for may need to be examined together.",
+
+    ("Moon", "Jupiter", "conjunction"): "The Moon is passing over your natal Jupiter, briefly expanding your emotional horizons. Optimism rises, generosity flows, and a sense of possibility opens up for these few hours.",
+    ("Moon", "Jupiter", "sextile"):  "A lunar touch on your natal Jupiter lifts the mood gently, encouraging generosity and a wider perspective. A good few hours for planning something you believe in.",
+    ("Moon", "Jupiter", "square"):   "The Moon is squaring your natal Jupiter, which can make emotions run a bit large or lead to over-promising emotionally. Good feelings are real but may be inflated — enjoy without overcommitting.",
+    ("Moon", "Jupiter", "trine"):    "The Moon is flowing through your natal Jupiter, bringing a buoyant, expansive emotional quality to this window. Faith in yourself and others comes naturally.",
+    ("Moon", "Jupiter", "opposition"): "The Moon is opposing your natal Jupiter, which can bring a brief tension between what you need emotionally and what you've been reaching for externally. Check that your optimism is grounded in genuine feeling.",
+
+    ("Moon", "Saturn", "conjunction"): "The Moon is passing over your natal Saturn, which can bring a temporary emotional heaviness or a pull toward duty over desire. This window asks for patience rather than comfort-seeking.",
+    ("Moon", "Saturn", "sextile"):   "The Moon is connecting gently with your natal Saturn, making this a window where emotional steadiness and practical care come together. Quiet, dependable effort feels satisfying.",
+    ("Moon", "Saturn", "square"):    "The Moon is squaring your natal Saturn, which can produce a passing mood of restraint, loneliness, or self-criticism. Be gentle with yourself; this is a brief transit, not a permanent state.",
+    ("Moon", "Saturn", "trine"):     "The Moon is in easy alignment with your natal Saturn, lending a calm, grounded quality to your emotional state right now. Responsibilities feel manageable rather than burdensome.",
+    ("Moon", "Saturn", "opposition"): "The Moon is opposing your natal Saturn, which can bring feelings of limitation or emotional distance. Old conditioning around worthiness or belonging may surface briefly.",
+
+    ("Moon", "Uranus", "conjunction"): "The Moon is touching your natal Uranus right now, sparking sudden mood shifts, restlessness, or a craving for something different. Expect the unexpected in your emotional world for a few hours.",
+    ("Moon", "Uranus", "sextile"):   "A quick lunar connection to your natal Uranus brings a mild excitement or fresh angle to your feelings right now. Creative and intuitive impulses flash brightly in this window.",
+    ("Moon", "Uranus", "square"):    "The Moon is squaring your natal Uranus, which can produce emotional unpredictability or sudden irritation. If you feel destabilized, give yourself space rather than reacting impulsively.",
+    ("Moon", "Uranus", "trine"):     "The Moon is flowing into your natal Uranus, making this a lively, inventive few hours emotionally. Unusual ideas and spontaneous connection feel genuinely exciting.",
+    ("Moon", "Uranus", "opposition"): "The Moon is opposing your natal Uranus, which can bring abrupt emotional surprises or encounters that shake your usual patterns. Stay adaptable — the disruption usually carries insight.",
+
+    ("Moon", "Neptune", "conjunction"): "The Moon is merging with your natal Neptune right now, heightening sensitivity, empathy, and imagination. Boundaries feel thin — protect your energy while staying open to inspiration.",
+    ("Moon", "Neptune", "sextile"):  "A soft lunar touch on your natal Neptune gently lifts intuition and creative receptivity right now. Pay attention to subtle impressions and feelings that are hard to name.",
+    ("Moon", "Neptune", "square"):   "The Moon is squaring your natal Neptune, which can blur emotional clarity for a few hours. Confusion, hypersensitivity, or wishful feeling are possible — avoid making important decisions in this fog.",
+    ("Moon", "Neptune", "trine"):    "The Moon is flowing into your natal Neptune, lending a dreamy, spiritually open quality to these hours. Creative and healing activities flourish; compassion flows easily.",
+    ("Moon", "Neptune", "opposition"): "The Moon is opposing your natal Neptune, which can make emotional reality feel slippery or hard to pin down. Watch for projection or over-romanticizing — clarity comes with some distance.",
+
+    ("Moon", "Pluto", "conjunction"): "The Moon is crossing your natal Pluto, briefly intensifying emotional experience and bringing what's usually hidden closer to the surface. Powerful feelings may arise — let them move through rather than suppress.",
+    ("Moon", "Pluto", "sextile"):    "A quick lunar connection to your natal Pluto adds emotional depth and subtle magnetism to this window. You can access transformative insight with unusual ease right now.",
+    ("Moon", "Pluto", "square"):     "The Moon is squaring your natal Pluto, which can stir intense, compulsive, or buried emotions for a few hours. Power dynamics in close relationships may feel heightened.",
+    ("Moon", "Pluto", "trine"):      "The Moon is flowing through your natal Pluto, making it easier to process deep feelings and engage in genuinely transformative emotional work right now.",
+    ("Moon", "Pluto", "opposition"): "The Moon is opposing your natal Pluto, surfacing powerful undercurrents in relationships or within yourself. Emotional control struggles are possible — letting go is usually more productive than gripping tighter.",
+
+    # ── Transiting Mercury ────────────────────────────────────────────────────
+    ("Mercury", "Sun", "conjunction"): "Transiting Mercury is meeting your natal Sun right now, sharpening your mental focus and giving your voice extra authority. Ideas you express today tend to carry weight.",
+    ("Mercury", "Sun", "sextile"):   "Mercury is sending a quick intellectual boost toward your natal Sun, making communication feel natural and your ideas feel aligned with your purpose.",
+    ("Mercury", "Sun", "square"):    "Mercury is squaring your natal Sun, which can bring mental restlessness or minor miscommunications. Think before committing — your words may be more scattered than usual.",
+    ("Mercury", "Sun", "trine"):     "Mercury is flowing easily with your natal Sun, lending clarity to thought and confidence to expression. A good window for important conversations, proposals, or presentations.",
+    ("Mercury", "Sun", "opposition"): "Mercury is opposing your natal Sun, making it a time for intellectual sparring or receiving perspectives that challenge your self-narrative. Listen as much as you speak.",
+
+    ("Mercury", "Moon", "conjunction"): "Transiting Mercury is conjunct your natal Moon, bridging thought and feeling. Emotional truths are easier to articulate right now — journaling or heartfelt conversation is well-starred.",
+    ("Mercury", "Moon", "sextile"):  "Mercury is gently supporting your natal Moon, helping you put words to your feelings with more ease than usual. Intuitive messages come through in a form you can actually use.",
+    ("Mercury", "Moon", "square"):   "Mercury is squaring your natal Moon, which can make emotions feel noisier than usual or create friction between what you think and what you feel. Avoid over-analyzing every feeling.",
+    ("Mercury", "Moon", "trine"):    "Mercury is in easy alignment with your natal Moon, letting mind and heart cooperate smoothly. A good moment for emotionally intelligent decision-making.",
+    ("Mercury", "Moon", "opposition"): "Mercury is opposing your natal Moon, making it easier to see your emotional patterns from the outside. Others may verbalize something about you that you recognize as true.",
+
+    ("Mercury", "Mercury", "conjunction"): "Transiting Mercury is back at your natal Mercury — a quick mental reset. Communications tend to feel especially sharp and purposeful during this window.",
+    ("Mercury", "Mercury", "sextile"):  "Mercury is supporting your natal Mercury right now, making it a smooth window for learning, writing, or any task that requires clear, organized thinking.",
+    ("Mercury", "Mercury", "square"):   "Mercury is squaring your natal Mercury, which can bring mental friction or information overload. Slow down, double-check details, and avoid rushing to conclusions.",
+    ("Mercury", "Mercury", "trine"):    "Mercury is trine your natal Mercury, lending excellent mental fluency right now. Complex ideas sort themselves out, and communication flows with precision.",
+    ("Mercury", "Mercury", "opposition"): "Mercury is opposing your natal Mercury, which is a good time to get a second opinion or step outside your own perspective. What you hear from others is unusually informative.",
+
+    ("Mercury", "Venus", "conjunction"): "Transiting Mercury is meeting your natal Venus, making your words especially charming and persuasive right now. Negotiations, creative writing, and romantic communication all benefit.",
+    ("Mercury", "Venus", "sextile"):   "Mercury is connecting gently with your natal Venus, making this a pleasant window for light social exchange, artful communication, or aesthetic decision-making.",
+    ("Mercury", "Venus", "square"):    "Mercury is squaring your natal Venus, which can bring indecision around values or miscommunications in relationships. Take care with financial agreements or romantic words chosen carelessly.",
+    ("Mercury", "Venus", "trine"):     "Mercury is flowing into your natal Venus, making your communication warm, graceful, and appealing right now. Good for creative expression, negotiation, or heartfelt correspondence.",
+    ("Mercury", "Venus", "opposition"): "Mercury is opposing your natal Venus, putting relationship communication in focus. You may need to say something important — or hear something — about what you value or desire.",
+
+    ("Mercury", "Mars", "conjunction"): "Transiting Mercury is conjunct your natal Mars, sharpening your mind and tongue. Mental energy is high and direct — good for debate, decisive action, or assertive writing.",
+    ("Mercury", "Mars", "sextile"):    "Mercury is supporting your natal Mars right now, helping you combine quick thinking with decisive action. Good timing for planning that needs both speed and accuracy.",
+    ("Mercury", "Mars", "square"):     "Mercury is squaring your natal Mars, which can make conversations heated or trigger mental impatience. Think before speaking — the urge to win an argument can produce careless words.",
+    ("Mercury", "Mars", "trine"):      "Mercury is flowing easily with your natal Mars, giving your thinking a direct, confident edge. Planning, strategy, and assertive communication all benefit right now.",
+    ("Mercury", "Mars", "opposition"): "Mercury is opposing your natal Mars, which can bring sharp intellectual friction or debates that reveal real differences. Stay curious rather than combative.",
+
+    ("Mercury", "Jupiter", "conjunction"): "Transiting Mercury is meeting your natal Jupiter, expanding your thinking and making big-picture ideas easier to articulate. Teaching, publishing, or pitching ideas goes especially well.",
+    ("Mercury", "Jupiter", "sextile"):   "Mercury is gently boosting your natal Jupiter, encouraging optimistic thinking and broader perspective. A good window for learning, travel planning, or any work that benefits from vision.",
+    ("Mercury", "Jupiter", "square"):    "Mercury is squaring your natal Jupiter, which can produce overconfidence in ideas or a tendency to promise more than you can deliver in writing or conversation. Think before you commit.",
+    ("Mercury", "Jupiter", "trine"):     "Mercury is flowing into your natal Jupiter right now — an excellent window for learning, communicating complex ideas, and receiving new information that genuinely expands your worldview.",
+    ("Mercury", "Jupiter", "opposition"): "Mercury is opposing your natal Jupiter, highlighting the space between what you say and what you mean at scale. Overstatement or unfulfilled promises in communication are the main hazard.",
+
+    ("Mercury", "Saturn", "conjunction"): "Transiting Mercury is conjunct your natal Saturn, lending seriousness and precision to your thinking. This is a good window for detailed planning, editing, or any work that demands rigor.",
+    ("Mercury", "Saturn", "sextile"):    "Mercury is supporting your natal Saturn right now, making disciplined mental work feel natural. Deadlines, plans, and technical details come together with satisfying order.",
+    ("Mercury", "Saturn", "square"):     "Mercury is squaring your natal Saturn, which can bring mental heaviness, self-censorship, or blocked communication. Be patient with your own thinking; structure helps.",
+    ("Mercury", "Saturn", "trine"):      "Mercury is in easy alignment with your natal Saturn, making this a superb window for organized thinking, careful writing, and disciplined communication. Work produced now is solid.",
+    ("Mercury", "Saturn", "opposition"): "Mercury is opposing your natal Saturn, which may surface self-doubt in communication or encounters with critical, demanding voices. See the feedback as sharpening, not diminishing, you.",
+
+    ("Mercury", "Uranus", "conjunction"): "Transiting Mercury is meeting your natal Uranus — a lightning-bolt transit for the mind. Expect sudden insights, unconventional ideas, or abrupt changes in plans.",
+    ("Mercury", "Uranus", "sextile"):    "Mercury is connecting with your natal Uranus, sparking inventive thinking and a slightly rebellious edge to communication. New and unusual ideas come easily right now.",
+    ("Mercury", "Uranus", "square"):     "Mercury is squaring your natal Uranus, which can bring mental excitement that tips into instability. Avoid impulsive decisions or agreements made in a flash of excitement.",
+    ("Mercury", "Uranus", "trine"):      "Mercury is flowing through your natal Uranus, making this an excellent window for breakthrough thinking and original communication. The unusual idea is often the right one.",
+    ("Mercury", "Uranus", "opposition"): "Mercury is opposing your natal Uranus, which can produce surprising information or a sudden desire to break from conventional thinking. Stay grounded while staying open.",
+
+    ("Mercury", "Neptune", "conjunction"): "Transiting Mercury is meeting your natal Neptune, blending rational thought with imagination and intuition. Creative writing, poetry, and inspired problem-solving flourish — factual precision requires extra care.",
+    ("Mercury", "Neptune", "sextile"):    "Mercury is gently connecting with your natal Neptune, opening your mind to subtle impressions and creative possibilities. Artistic or spiritual communication feels natural.",
+    ("Mercury", "Neptune", "square"):     "Mercury is squaring your natal Neptune, which can blur the line between fact and wishful thinking. Double-check information and be cautious about communications that feel inspired but vague.",
+    ("Mercury", "Neptune", "trine"):      "Mercury is flowing into your natal Neptune, making this a rich window for imaginative thinking, metaphor, and communication that touches something deeper than logic alone.",
+    ("Mercury", "Neptune", "opposition"): "Mercury is opposing your natal Neptune, which can make it hard to communicate clearly or see situations without projection. Seek clarity rather than accepting the first impression.",
+
+    ("Mercury", "Pluto", "conjunction"): "Transiting Mercury is meeting your natal Pluto — this is when words become surgical. Research, investigation, deep conversation, and persuasive writing are all intensified.",
+    ("Mercury", "Pluto", "sextile"):     "Mercury is connecting with your natal Pluto, giving your thinking and communication a penetrating quality right now. You can get to the root of a problem with unusual ease.",
+    ("Mercury", "Pluto", "square"):      "Mercury is squaring your natal Pluto, which can intensify thought or bring obsessive mental loops. Conversations may feel more loaded than expected — be mindful of power dynamics in dialogue.",
+    ("Mercury", "Pluto", "trine"):       "Mercury is flowing through your natal Pluto, giving your mind laser-like depth. This is a superb window for research, psychological insight, and transformative communication.",
+    ("Mercury", "Pluto", "opposition"):  "Mercury is opposing your natal Pluto, which can bring compulsive thinking or encounters with information that demands a serious reckoning. Truth-telling — even uncomfortable truth — is a theme.",
+
+    # ── Transiting Venus ──────────────────────────────────────────────────────
+    ("Venus", "Sun", "conjunction"):  "Transiting Venus is touching your natal Sun, lending warmth, charm, and social magnetism to your presence. This is a pleasant window for pleasure, connection, and anything aesthetic.",
+    ("Venus", "Sun", "sextile"):      "Venus is gently supporting your natal Sun right now, making your interactions feel easy and your creative impulses feel welcome. Enjoy the lighter mood.",
+    ("Venus", "Sun", "square"):       "Venus is squaring your natal Sun, which can bring a mild tension between desire and self-expression. Financial or relational choices need a second look rather than an impulsive answer.",
+    ("Venus", "Sun", "trine"):        "Venus is flowing easily with your natal Sun, one of the nicest transits for social life and creative expression. Beauty, harmony, and connection come naturally right now.",
+    ("Venus", "Sun", "opposition"):   "Venus is opposing your natal Sun, heightening the importance of relationships and mirroring back what you most value. What others reflect about you is worth listening to.",
+
+    ("Venus", "Moon", "conjunction"): "Transiting Venus is meeting your natal Moon, amplifying nurturing instincts and a desire for comfort and belonging. This is a genuinely lovely window for self-care and tender connection.",
+    ("Venus", "Moon", "sextile"):     "Venus is supporting your natal Moon, making emotional life feel a little softer and more pleasant than usual. Good for sharing affection or simply enjoying a quiet, beautiful moment.",
+    ("Venus", "Moon", "square"):      "Venus is squaring your natal Moon, which can stir emotional longing or dissatisfaction in relationships. Notice what you crave and whether it's really what you need.",
+    ("Venus", "Moon", "trine"):       "Venus is flowing through your natal Moon, bringing a warm, nurturing quality to your emotional world. This is a naturally happy, contented window.",
+    ("Venus", "Moon", "opposition"):  "Venus is opposing your natal Moon, which can bring a pull between personal desire and what relationships ask of you. Feelings about love or home come into sharper relief.",
+
+    ("Venus", "Mercury", "conjunction"): "Transiting Venus is touching your natal Mercury, making your words more charming and your thinking more attuned to beauty and harmony. Excellent for writing, negotiation, or diplomatic conversation.",
+    ("Venus", "Mercury", "sextile"):    "Venus is gently connecting with your natal Mercury, lending an easy, pleasant quality to conversation and creative thought. Light social exchanges go smoothly.",
+    ("Venus", "Mercury", "square"):     "Venus is squaring your natal Mercury, which can bring indecision or a reluctance to say what needs to be said. Be honest in communication even when you prefer harmony.",
+    ("Venus", "Mercury", "trine"):      "Venus is flowing into your natal Mercury, making this an excellent window for charming communication, creative writing, and diplomatic problem-solving.",
+    ("Venus", "Mercury", "opposition"): "Venus is opposing your natal Mercury, making it a good time to hear what someone important has to say about beauty, value, or relationship. Listen as generously as you speak.",
+
+    ("Venus", "Venus", "conjunction"): "Transiting Venus is conjunct your natal Venus — a minor but genuinely pleasant personal Venus return. Social grace and aesthetic pleasure are heightened right now.",
+    ("Venus", "Venus", "sextile"):     "Venus is sending easy energy to your natal Venus, making this a naturally harmonious window for relationships, art, and financial matters.",
+    ("Venus", "Venus", "square"):      "Venus is squaring your natal Venus, which can bring mild friction in relationships or a moment of reconsidering what you truly value. It is a checkpoint, not a crisis.",
+    ("Venus", "Venus", "trine"):       "Venus is trine your natal Venus, one of the loveliest minor transits. Enjoy it for what it is — a window of ease, beauty, and warm connection.",
+    ("Venus", "Venus", "opposition"):  "Venus is opposing your natal Venus, putting love and values in the spotlight. Relationships may feel both more intense and more revealing than usual.",
+
+    ("Venus", "Mars", "conjunction"):  "Transiting Venus is meeting your natal Mars, igniting attraction, passion, and creative drive. This is a potent window for romance, artistic creation, or any work that requires both desire and action.",
+    ("Venus", "Mars", "sextile"):      "Venus is gently supporting your natal Mars, making assertive action feel more appealing and socially smooth right now. Good for pursuing what you want with charm.",
+    ("Venus", "Mars", "square"):       "Venus is squaring your natal Mars, which can create tension between desire and restraint — or spark romantic friction. What you want and what's harmonious may need negotiation.",
+    ("Venus", "Mars", "trine"):        "Venus is flowing easily with your natal Mars, making this a vibrant, attractive window. Creative work, romance, and any endeavor fueled by enthusiasm are well-supported.",
+    ("Venus", "Mars", "opposition"):   "Venus is opposing your natal Mars, putting the push and pull between attraction and assertion into high relief. Relationship intensity — positive or challenging — is heightened.",
+
+    ("Venus", "Jupiter", "conjunction"): "Transiting Venus is meeting your natal Jupiter, one of the most pleasant transits in any person's chart. Abundance, enjoyment, and social luck are all amplified right now.",
+    ("Venus", "Jupiter", "sextile"):    "Venus is gently connecting with your natal Jupiter, bringing a light sense of abundance and good fortune to social and financial matters. Small pleasures feel genuinely rich.",
+    ("Venus", "Jupiter", "square"):     "Venus is squaring your natal Jupiter, which can encourage over-indulgence or financial overreach. Good feelings are real — just make sure they match what you can actually sustain.",
+    ("Venus", "Jupiter", "trine"):      "Venus is flowing through your natal Jupiter — a genuinely lucky window for relationships, creative endeavors, and financial opportunity. Reach a little further than usual.",
+    ("Venus", "Jupiter", "opposition"): "Venus is opposing your natal Jupiter, which can bring an excess of pleasant energy that needs grounding. Enjoy but don't overextend in love or spending.",
+
+    ("Venus", "Saturn", "conjunction"): "Transiting Venus is meeting your natal Saturn, which can feel bittersweet — pleasure and duty come together. A relationship may be tested for real depth, or commitment becomes a genuine topic.",
+    ("Venus", "Saturn", "sextile"):     "Venus is supporting your natal Saturn right now, making this a good window for solidifying a relationship, honoring a financial commitment, or finding beauty in discipline.",
+    ("Venus", "Saturn", "square"):      "Venus is squaring your natal Saturn, which can bring emotional restriction, relational duty, or a feeling that love requires more effort than usual. What survives the pressure is real.",
+    ("Venus", "Saturn", "trine"):       "Venus is flowing into your natal Saturn, making lasting commitments feel natural and mutual respect feel beautiful. Serious relationships deepen; practical matters are handled with grace.",
+    ("Venus", "Saturn", "opposition"):  "Venus is opposing your natal Saturn, putting the structure and longevity of relationships in focus. What is real and lasting stands up; what has been maintained through inertia may waver.",
+
+    ("Venus", "Uranus", "conjunction"): "Transiting Venus is meeting your natal Uranus, which can bring unexpected attraction, sudden social opportunities, or a compelling urge to break from relational routine.",
+    ("Venus", "Uranus", "sextile"):     "Venus is gently connecting with your natal Uranus, bringing a pleasantly surprising quality to social interactions. Something out of the ordinary feels appealing and appropriate right now.",
+    ("Venus", "Uranus", "square"):      "Venus is squaring your natal Uranus, which can produce sudden attraction or just as sudden cooling. Don't mistake excitement for depth — give it time before deciding.",
+    ("Venus", "Uranus", "trine"):       "Venus is flowing through your natal Uranus, making this an exciting and inventive window for relationships and creative expression. Something unconventional is exactly the right choice.",
+    ("Venus", "Uranus", "opposition"):  "Venus is opposing your natal Uranus, which can bring unexpected relationship developments or financial surprises. Stay flexible and don't cling to plans that the moment is already revising.",
+
+    ("Venus", "Neptune", "conjunction"): "Transiting Venus is meeting your natal Neptune, heightening romantic idealism and spiritual sensitivity. This window is exquisite for art, prayer, or deep love — and risky for practical decisions requiring clarity.",
+    ("Venus", "Neptune", "sextile"):    "Venus is gently connecting with your natal Neptune, lending a soft, spiritually attuned quality to relationships and creative work. Dreams and beauty feel especially accessible.",
+    ("Venus", "Neptune", "square"):     "Venus is squaring your natal Neptune, which can cloud romantic judgment with idealization. Make sure you're seeing people and situations as they are, not as you wish them to be.",
+    ("Venus", "Neptune", "trine"):      "Venus is flowing through your natal Neptune — a deeply beautiful transit for art, love, and spiritual devotion. Allow yourself to be moved without losing your footing.",
+    ("Venus", "Neptune", "opposition"): "Venus is opposing your natal Neptune, which can blur the line between romantic feeling and illusion. Check your perceptions against reality before making relationship decisions.",
+
+    ("Venus", "Pluto", "conjunction"): "Transiting Venus is meeting your natal Pluto, intensifying love and desire to a degree that can feel transformative or even obsessive. What is touched by this transit leaves a permanent mark.",
+    ("Venus", "Pluto", "sextile"):     "Venus is gently connecting with your natal Pluto, adding emotional depth and magnetic appeal to relationships and creative work. Encounters feel more meaningful than usual.",
+    ("Venus", "Pluto", "square"):      "Venus is squaring your natal Pluto, which can bring power dynamics into relationships or an intense pull toward something — or someone — that feels fated. Trust the depth, not the compulsion.",
+    ("Venus", "Pluto", "trine"):       "Venus is flowing into your natal Pluto, making it possible to experience beauty and love at a genuinely soul-deep level right now. Creative and relational work has lasting impact.",
+    ("Venus", "Pluto", "opposition"):  "Venus is opposing your natal Pluto, which can surface jealousy, obsession, or the transformative ending and beginning of a significant relationship cycle.",
+
+    # ── Transiting Mars ───────────────────────────────────────────────────────
+    ("Mars", "Sun", "conjunction"):   "Transiting Mars is conjunct your natal Sun, turbocharging your drive and physical energy. This is a potent window for bold action — channel it or risk burning yourself out in reactive frustration.",
+    ("Mars", "Sun", "sextile"):       "Mars is supporting your natal Sun right now, giving you a confident, energized edge. Initiative pays off — this is a good window to start something you've been circling.",
+    ("Mars", "Sun", "square"):        "Mars is squaring your natal Sun, which can produce friction, impatience, and heightened ego sensitivity. Physical outlet and deliberate pacing help you use this pressure productively.",
+    ("Mars", "Sun", "trine"):         "Mars is flowing easily into your natal Sun, giving you sustained, productive energy without the edginess of a hard aspect. Excellent for any ambitious project or physical challenge.",
+    ("Mars", "Sun", "opposition"):    "Mars is opposing your natal Sun, which often brings confrontations or competitive dynamics. External friction tends to mirror inner frustration — address both honestly.",
+
+    ("Mars", "Moon", "conjunction"):  "Transiting Mars is meeting your natal Moon, stirring emotional intensity and urgency. Feelings are closer to the surface, and the urge to act on them is strong — take a breath before responding.",
+    ("Mars", "Moon", "sextile"):      "Mars is gently supporting your natal Moon, lending emotional courage and a productive restlessness. Good for asserting emotional needs clearly and calmly.",
+    ("Mars", "Moon", "square"):       "Mars is squaring your natal Moon, which can bring irritability, emotional reactivity, or domestic friction. Identify the underlying need before responding to the surface trigger.",
+    ("Mars", "Moon", "trine"):        "Mars is flowing into your natal Moon, giving emotional life a motivated, purposeful quality. Asserting what you need feels natural and tends to be well-received right now.",
+    ("Mars", "Moon", "opposition"):   "Mars is opposing your natal Moon, which can surface anger or conflict rooted in emotional history. Address the feeling underneath the argument to get to something useful.",
+
+    ("Mars", "Mercury", "conjunction"): "Transiting Mars is conjunct your natal Mercury — your mind is sharp, fast, and potentially combative. Excellent for debate, sales, or decisive writing; watch for words that wound without intending to.",
+    ("Mars", "Mercury", "sextile"):    "Mars is supporting your natal Mercury, sharpening thinking and lending confidence to communication. Good for making decisions quickly and stating your position clearly.",
+    ("Mars", "Mercury", "square"):     "Mars is squaring your natal Mercury, which can bring argumentative energy or mental overload. Slow down in conversation — being right matters less than being understood.",
+    ("Mars", "Mercury", "trine"):      "Mars is flowing through your natal Mercury, giving your thinking a direct, decisive edge. Planning, strategy, and assertive communication all hit their mark right now.",
+    ("Mars", "Mercury", "opposition"): "Mars is opposing your natal Mercury, which can bring heated debates or verbal confrontations. The friction is useful if you stay curious rather than combative.",
+
+    ("Mars", "Venus", "conjunction"):  "Transiting Mars is meeting your natal Venus, igniting desire and creative passion. Romantic energy is high, and the impulse to pursue what you want is strong — act with awareness.",
+    ("Mars", "Venus", "sextile"):      "Mars is gently supporting your natal Venus, making assertive action in love or creative work feel natural and confident. You can pursue what you want without forcing it.",
+    ("Mars", "Venus", "square"):       "Mars is squaring your natal Venus, which can create tension between desire and harmony. Romantic friction or financial impulsiveness are the key hazards right now.",
+    ("Mars", "Venus", "trine"):        "Mars is flowing through your natal Venus, giving you a magnetism and creative confidence that draws others toward you. A strong window for romance, collaboration, and artistic output.",
+    ("Mars", "Venus", "opposition"):   "Mars is opposing your natal Venus, creating a charged push-pull in relationships. Passion is high — and so is the potential for misunderstanding what you or another person actually wants.",
+
+    ("Mars", "Mars", "conjunction"):   "Transiting Mars is back at your natal Mars — your personal Mars return. Drive, ambition, and competitive energy are all at a peak. Begin something you intend to pursue vigorously.",
+    ("Mars", "Mars", "sextile"):       "Mars is supporting your natal Mars right now, giving you an energized, capable quality. Physical endurance and willpower are both slightly elevated.",
+    ("Mars", "Mars", "square"):        "Mars is squaring your natal Mars, which can produce frustration, overexertion, or conflict that feels pointless in retrospect. Choose your battles consciously.",
+    ("Mars", "Mars", "trine"):         "Mars is trine your natal Mars — a clean, productive window where effort translates into results with less friction than usual. Use the momentum.",
+    ("Mars", "Mars", "opposition"):    "Mars is opposing your natal Mars, which tends to surface competition, conflict, or the mirroring of your own aggression in others. Reflect on what you're really fighting for.",
+
+    ("Mars", "Jupiter", "conjunction"): "Transiting Mars is meeting your natal Jupiter, amplifying ambition and expanding your sense of what's possible. Bold moves tend to pay off — avoid arrogant overreach.",
+    ("Mars", "Jupiter", "sextile"):    "Mars is gently boosting your natal Jupiter, making this a good window for forward-moving action and calculated risk-taking. Confidence is well-founded right now.",
+    ("Mars", "Jupiter", "square"):     "Mars is squaring your natal Jupiter, which can produce an excess of ambition or energy that overreaches. The goal is real; the timing and method need more care.",
+    ("Mars", "Jupiter", "trine"):      "Mars is flowing through your natal Jupiter, combining drive with luck in a way that rewards initiative. Big goals feel achievable because you are genuinely energized and prepared.",
+    ("Mars", "Jupiter", "opposition"): "Mars is opposing your natal Jupiter, which can inflate confidence or make conflict seem more important than the larger goal. Keep perspective on what winning actually costs.",
+
+    ("Mars", "Saturn", "conjunction"): "Transiting Mars is meeting your natal Saturn, creating a potent tension between urgency and caution. When this energy is focused, it builds something lasting — when it frustrates, it simmers as resentment.",
+    ("Mars", "Saturn", "sextile"):     "Mars is gently supporting your natal Saturn, making disciplined, energetic work feel satisfying. Progress made now has a quality of real, durable accomplishment.",
+    ("Mars", "Saturn", "square"):      "Mars is squaring your natal Saturn, which is one of the more challenging shorter transits — expect blocked progress, authority friction, or physical frustration. Patience over force.",
+    ("Mars", "Saturn", "trine"):       "Mars is flowing through your natal Saturn, giving you the rare gift of sustained, disciplined energy. This is excellent for difficult long-term projects that require both drive and perseverance.",
+    ("Mars", "Saturn", "opposition"):  "Mars is opposing your natal Saturn, which can surface encounters with authority, delay, or the limits of your own endurance. The challenge is clarifying your sense of purpose, not just pushing harder.",
+
+    ("Mars", "Uranus", "conjunction"): "Transiting Mars is meeting your natal Uranus — a volatile, exciting combination. Sudden breakthroughs and sudden accidents live close together in this window; stay alert and channel energy into innovation.",
+    ("Mars", "Uranus", "sextile"):     "Mars is supporting your natal Uranus right now, making bold, unconventional action feel exciting and productive. A good window for creative risks and breaking from routine.",
+    ("Mars", "Uranus", "square"):      "Mars is squaring your natal Uranus, which can bring sudden anger, accidents, or impulsive breaks. Stay conscious of the urge to blow things up — it often masks a legitimate desire for freedom.",
+    ("Mars", "Uranus", "trine"):       "Mars is flowing into your natal Uranus, giving your initiative a rebellious, inventive quality right now. Doing something differently from how it's always been done produces real results.",
+    ("Mars", "Uranus", "opposition"):  "Mars is opposing your natal Uranus, which can bring sudden confrontation or the unexpected disruption of plans. What you can't control can still teach you something useful.",
+
+    ("Mars", "Neptune", "conjunction"): "Transiting Mars is meeting your natal Neptune, blending action with imagination or confusion. Creative and spiritual work can be extraordinary; practical execution needs extra clarity of intention.",
+    ("Mars", "Neptune", "sextile"):    "Mars is gently supporting your natal Neptune, making it easier to act on intuition or move toward an idealistic goal. Inspired effort is well-directed right now.",
+    ("Mars", "Neptune", "square"):     "Mars is squaring your natal Neptune, which can dissipate energy, blur goals, or make it hard to act decisively. Be clear about your actual objective before committing.",
+    ("Mars", "Neptune", "trine"):      "Mars is flowing through your natal Neptune, lending an almost poetic quality to motivated action. Creative, healing, and spiritually aligned work flourishes under this influence.",
+    ("Mars", "Neptune", "opposition"): "Mars is opposing your natal Neptune, which can make your efforts feel somehow misdirected or invisible. Clarify your aim and check that you are acting from genuine desire rather than illusion.",
+
+    ("Mars", "Pluto", "conjunction"):  "Transiting Mars is meeting your natal Pluto — one of the most intense shorter transits. Power, drive, and the will to transform all intensify simultaneously. Extraordinary accomplishment and extraordinary destruction are equally possible.",
+    ("Mars", "Pluto", "sextile"):      "Mars is gently connecting with your natal Pluto, giving you access to deep reserves of purposeful power right now. You can move an obstacle that has seemed immovable.",
+    ("Mars", "Pluto", "square"):       "Mars is squaring your natal Pluto, which can trigger power struggles, obsessive drives, or the sense that something must give. Don't force outcomes — but don't suppress your genuine will either.",
+    ("Mars", "Pluto", "trine"):        "Mars is flowing through your natal Pluto, giving your efforts a focused, transformative power. What you work toward now can create lasting structural change in your life.",
+    ("Mars", "Pluto", "opposition"):   "Mars is opposing your natal Pluto, which surfaces power dynamics that can no longer be avoided. The clash is usually about something deeper than its apparent subject — look for what needs to change permanently.",
+
+    # ── Transiting Jupiter ────────────────────────────────────────────────────
+    ("Jupiter", "Sun", "conjunction"): "Transiting Jupiter is conjunct your natal Sun, opening a major window of expansion, confidence, and opportunity. This year-long passage often marks a period of genuine growth — seize it with intention.",
+    ("Jupiter", "Sun", "sextile"):     "Jupiter is sending a supportive beam to your natal Sun right now, making this a period where optimism is well-founded and forward-moving effort pays off.",
+    ("Jupiter", "Sun", "square"):      "Jupiter is squaring your natal Sun, which can expand confidence into overconfidence. Opportunities are real but require discernment — don't overextend in ambition, spending, or promises.",
+    ("Jupiter", "Sun", "trine"):       "Jupiter is flowing through your natal Sun in one of the most genuinely fortunate transits available. Your natural confidence and external opportunity are aligned — make your move.",
+    ("Jupiter", "Sun", "opposition"):  "Jupiter is opposing your natal Sun, which often brings external abundance alongside internal excess. What is genuinely yours will expand; what belongs to others will become clearer.",
+
+    ("Jupiter", "Moon", "conjunction"): "Transiting Jupiter is meeting your natal Moon, expanding your emotional world and bringing a sense of abundance to home and family life. Generosity and optimism feel effortless right now.",
+    ("Jupiter", "Moon", "sextile"):    "Jupiter is supporting your natal Moon, gently expanding your emotional capacity and making nurturing feel natural and rewarding. A good period for home life and emotional investment.",
+    ("Jupiter", "Moon", "square"):     "Jupiter is squaring your natal Moon, which can make emotions run large or lead to over-giving. Be generous without losing your own boundaries or center.",
+    ("Jupiter", "Moon", "trine"):      "Jupiter is flowing into your natal Moon, making this a genuinely comfortable and expansive period emotionally. Home life and family tend to flourish; inner contentment is real.",
+    ("Jupiter", "Moon", "opposition"): "Jupiter is opposing your natal Moon, expanding emotional sensitivity and highlighting the relationship between personal needs and what you give to others. Find where you can receive more graciously.",
+
+    ("Jupiter", "Mercury", "conjunction"): "Transiting Jupiter is conjunct your natal Mercury, broadening your thinking and making it a superb period for learning, publishing, teaching, and any form of large-scale communication.",
+    ("Jupiter", "Mercury", "sextile"):    "Jupiter is gently expanding your natal Mercury, making this a good period for study, travel communication, and putting your ideas in front of a wider audience.",
+    ("Jupiter", "Mercury", "square"):     "Jupiter is squaring your natal Mercury, which can produce mental overextension or the tendency to promise more than you deliver in writing or speech. Think in smaller, concrete steps.",
+    ("Jupiter", "Mercury", "trine"):      "Jupiter is flowing through your natal Mercury, making this an excellent period for big ideas that are also well-expressed. Teaching, writing, and learning all benefit from the expansive mental energy.",
+    ("Jupiter", "Mercury", "opposition"): "Jupiter is opposing your natal Mercury, putting the gap between broad vision and practical detail in focus. What you say may be grand; make sure it has a foundation.",
+
+    ("Jupiter", "Venus", "conjunction"): "Transiting Jupiter is meeting your natal Venus — one of the most enjoyable transits available. Relationships, creativity, and financial life all tend to expand and improve during this period.",
+    ("Jupiter", "Venus", "sextile"):    "Jupiter is gently supporting your natal Venus, bringing a pleasant, abundant quality to social and creative life. Small blessings accumulate in ways that feel genuinely good.",
+    ("Jupiter", "Venus", "square"):     "Jupiter is squaring your natal Venus, which can encourage over-indulgence in pleasure or financial excess. Enjoy the abundance without losing sight of what is actually sustainable.",
+    ("Jupiter", "Venus", "trine"):      "Jupiter is flowing through your natal Venus, making this a rich period for love, art, and financial well-being. Reach for more than feels safe — the support is there.",
+    ("Jupiter", "Venus", "opposition"): "Jupiter is opposing your natal Venus, expanding relationship experiences and financial awareness simultaneously. What you truly value may turn out to be larger — or different — than you assumed.",
+
+    ("Jupiter", "Mars", "conjunction"): "Transiting Jupiter is meeting your natal Mars, amplifying drive, ambition, and physical energy. This is a time for bold initiative and expansion — just ensure the plan can hold the scale.",
+    ("Jupiter", "Mars", "sextile"):    "Jupiter is supporting your natal Mars, lending a confident, expansive quality to your efforts right now. Things that require initiative and sustained energy tend to go well.",
+    ("Jupiter", "Mars", "square"):     "Jupiter is squaring your natal Mars, which can produce restless energy or actions that overshoot the mark. Direct the drive toward a clearly defined target.",
+    ("Jupiter", "Mars", "trine"):      "Jupiter is flowing into your natal Mars, combining ambition with luck in a way that makes forward momentum feel both natural and well-timed.",
+    ("Jupiter", "Mars", "opposition"): "Jupiter is opposing your natal Mars, which can amplify competitive energy or make conflict feel consequential. Keep the long-term goal in view rather than winning the immediate skirmish.",
+
+    ("Jupiter", "Jupiter", "conjunction"): "Transiting Jupiter has returned to its natal position — your Jupiter return, arriving roughly every 12 years. This is a major reset in faith, vision, and opportunity that shapes the coming decade.",
+    ("Jupiter", "Jupiter", "sextile"):    "Jupiter is in easy alignment with your natal Jupiter, reinforcing the areas of life where growth naturally wants to happen. A good period for expanding projects already in motion.",
+    ("Jupiter", "Jupiter", "square"):     "Jupiter is squaring its natal position, marking a turning-point year where early Jupiter return themes are tested. What expanded easily now needs more careful tending.",
+    ("Jupiter", "Jupiter", "trine"):      "Jupiter is trine your natal Jupiter, a period of genuine flow in areas of growth and abundance. What you set in motion now has an unusual ease of momentum.",
+    ("Jupiter", "Jupiter", "opposition"): "Jupiter is opposing its natal position, the halfway point of the Jupiter cycle. Where has growth actually taken you? What has expanded needs now to be given meaningful form.",
+
+    ("Jupiter", "Saturn", "conjunction"): "Transiting Jupiter is meeting your natal Saturn, opening up the structures and commitments of your life to growth. Old limitations can become platforms for expansion during this period.",
+    ("Jupiter", "Saturn", "sextile"):    "Jupiter is gently supporting your natal Saturn, making disciplined effort feel rewarded and long-term structures more expansive. Progress is steady and real.",
+    ("Jupiter", "Saturn", "square"):     "Jupiter is squaring your natal Saturn, which creates tension between your desire for growth and the limits that have defined you. The push is worth it — just don't promise more than the structure can hold.",
+    ("Jupiter", "Saturn", "trine"):      "Jupiter is flowing into your natal Saturn, making this a particularly productive period for structured expansion — you can grow steadily into something genuinely larger without losing your foundations.",
+    ("Jupiter", "Saturn", "opposition"): "Jupiter is opposing your natal Saturn, putting the tension between vision and limitation in front of you. What has felt like a ceiling may actually be a challenge to outgrow.",
+
+    ("Jupiter", "Uranus", "conjunction"): "Transiting Jupiter is meeting your natal Uranus, which can bring sudden, exciting breakthroughs or a radical shift in your sense of what is possible. Embrace the unexpected development.",
+    ("Jupiter", "Uranus", "sextile"):    "Jupiter is supporting your natal Uranus, expanding your freedom and making unconventional choices feel not just acceptable but well-timed. Innovation pays off right now.",
+    ("Jupiter", "Uranus", "square"):     "Jupiter is squaring your natal Uranus, amplifying the urge to break free in ways that may overshoot what is actually needed. Revolutionary energy is real — point it thoughtfully.",
+    ("Jupiter", "Uranus", "trine"):      "Jupiter is flowing through your natal Uranus — a spectacular window for breakthroughs, inventions, and liberation from outdated constraints. The unusual path is often the right one.",
+    ("Jupiter", "Uranus", "opposition"): "Jupiter is opposing your natal Uranus, which can bring sudden external opportunities — or disruptions — that force a reevaluation of your values and direction.",
+
+    ("Jupiter", "Neptune", "conjunction"): "Transiting Jupiter is meeting your natal Neptune, expanding spiritual sensitivity and creative imagination. This period can bring peak inspirational experiences — keep one foot in practical reality.",
+    ("Jupiter", "Neptune", "sextile"):    "Jupiter is gently supporting your natal Neptune, opening doors to creative, spiritual, and healing work. Vision is elevated and the effort to pursue it feels meaningful.",
+    ("Jupiter", "Neptune", "square"):     "Jupiter is squaring your natal Neptune, which can inflate idealism or blur the line between genuine opportunity and wishful thinking. Seek concrete grounding for expanded dreams.",
+    ("Jupiter", "Neptune", "trine"):      "Jupiter is flowing through your natal Neptune — a period of heightened inspiration, spiritual expansion, and creative breakthrough. What you imagine now has unusual power to manifest.",
+    ("Jupiter", "Neptune", "opposition"): "Jupiter is opposing your natal Neptune, expanding illusions as readily as ideals. Be honest about what you believe versus what you wish were true in your larger commitments.",
+
+    ("Jupiter", "Pluto", "conjunction"): "Transiting Jupiter is meeting your natal Pluto — a potent expansion of personal power, ambition, and the desire to have meaningful impact. This period can produce major life transformations.",
+    ("Jupiter", "Pluto", "sextile"):    "Jupiter is supporting your natal Pluto, making deep transformation feel not only possible but well-timed. You can reach into reserved power and use it purposefully right now.",
+    ("Jupiter", "Pluto", "square"):     "Jupiter is squaring your natal Pluto, which amplifies power drives and can intensify control dynamics. Transform yourself first before trying to transform the situation.",
+    ("Jupiter", "Pluto", "trine"):      "Jupiter is flowing through your natal Pluto, expanding your capacity for genuine transformation and meaningful impact. What you build now carries unusual depth and lasting consequence.",
+    ("Jupiter", "Pluto", "opposition"): "Jupiter is opposing your natal Pluto, which can surface the tension between personal power and external forces that want to reshape your life. Real growth requires releasing something significant.",
+
+    # ── Transiting Saturn ─────────────────────────────────────────────────────
+    ("Saturn", "Sun", "conjunction"):  "Transiting Saturn is conjunct your natal Sun — the Saturn passage through your solar identity. This multi-year influence asks you to take your sense of self seriously, strip away pretense, and build something real.",
+    ("Saturn", "Sun", "sextile"):      "Saturn is sending a steady, supportive signal to your natal Sun, making this a period where disciplined effort and genuine authenticity are quietly rewarded.",
+    ("Saturn", "Sun", "square"):       "Saturn is squaring your natal Sun, one of the more demanding chapters in the Saturn cycle. External pressure and internal doubt are working in tandem to clarify who you actually are beneath the roles you play.",
+    ("Saturn", "Sun", "trine"):        "Saturn is flowing into your natal Sun, making this a period of calm, productive authority. Responsibilities feel manageable, goals feel reachable, and effort builds on itself with unusual solidity.",
+    ("Saturn", "Sun", "opposition"):   "Saturn is opposing your natal Sun — the halfway point of the Saturn cycle begun at the conjunction. Relationships and external demands are the mirrors now; accountability arrives from outside.",
+
+    ("Saturn", "Moon", "conjunction"): "Transiting Saturn is conjunct your natal Moon, pressing on emotional life with unusual weight. This can feel lonely or heavy, but it also invites a profound maturation of your relationship with need and feeling.",
+    ("Saturn", "Moon", "sextile"):     "Saturn is supporting your natal Moon with steady, grounding energy. Emotional commitments made during this period tend to be durable and genuinely felt.",
+    ("Saturn", "Moon", "square"):      "Saturn is squaring your natal Moon, which can bring emotional restriction, family strain, or a sense of carrying too much alone. The invitation is to clarify what you actually owe — and to whom.",
+    ("Saturn", "Moon", "trine"):       "Saturn is flowing through your natal Moon, lending emotional steadiness and the ability to care for others without losing yourself. A quietly strong period for home and family life.",
+    ("Saturn", "Moon", "opposition"):  "Saturn is opposing your natal Moon, putting the balance between personal need and public duty in uncomfortable relief. What you have been suppressing emotionally asks for honest attention.",
+
+    ("Saturn", "Mercury", "conjunction"): "Transiting Saturn is conjunct your natal Mercury — a serious, focused period for the mind. Depth of thought is rewarded; scattered thinking is pruned. Excellent for writing, research, or any disciplined intellectual project.",
+    ("Saturn", "Mercury", "sextile"):    "Saturn is supporting your natal Mercury, making this a productive window for structured thinking and careful communication. What you commit to in writing now tends to hold.",
+    ("Saturn", "Mercury", "square"):     "Saturn is squaring your natal Mercury, which can produce mental heaviness, self-censorship, or blocked communication. Patience with the slow, careful thought pays off better than forcing output.",
+    ("Saturn", "Mercury", "trine"):      "Saturn is flowing through your natal Mercury, making this an excellent period for serious intellectual work, precise writing, and communication that builds trust through clarity.",
+    ("Saturn", "Mercury", "opposition"): "Saturn is opposing your natal Mercury, surfacing critical feedback or demanding that your ideas prove their worth. The pressure, though uncomfortable, sharpens what matters.",
+
+    ("Saturn", "Venus", "conjunction"): "Transiting Saturn is conjunct your natal Venus, which can bring a sober, sometimes challenging period in relationships and finances. What is real and lasting is being distinguished from what was held by momentum alone.",
+    ("Saturn", "Venus", "sextile"):    "Saturn is gently supporting your natal Venus, making this a period where committed relationships deepen and financial planning pays off. Love that endures is being built right now.",
+    ("Saturn", "Venus", "square"):     "Saturn is squaring your natal Venus, which can create emotional distance, relational duty, or financial strain. What you most need may feel hard to ask for — but honest request is the path.",
+    ("Saturn", "Venus", "trine"):      "Saturn is flowing through your natal Venus, supporting lasting commitments in love and finances. Relationships that have been tested are now rewarded with genuine depth.",
+    ("Saturn", "Venus", "opposition"): "Saturn is opposing your natal Venus, putting the weight of commitment and the question of what you truly value at the center of relationship experience. Accountability in love arrives from outside.",
+
+    ("Saturn", "Mars", "conjunction"): "Transiting Saturn is conjunct your natal Mars — a long, demanding alignment between will and restraint. Energy meets structure: raw drive is being shaped into something that can actually last.",
+    ("Saturn", "Mars", "sextile"):    "Saturn is supporting your natal Mars with focused, disciplined energy. Effort applied in a sustained, structured way produces results that feel genuinely solid.",
+    ("Saturn", "Mars", "square"):     "Saturn is squaring your natal Mars, which can produce blocked energy, authority friction, or frustration with the pace of progress. Patience and targeted effort work better than force.",
+    ("Saturn", "Mars", "trine"):      "Saturn is flowing into your natal Mars — a rare alignment where drive and discipline operate in harmony. Sustained, purposeful effort during this period can reshape the structures of your life.",
+    ("Saturn", "Mars", "opposition"): "Saturn is opposing your natal Mars, which surfaces tension between what you want to do and what external limits or authority will allow. The long view matters more than the immediate win.",
+
+    ("Saturn", "Jupiter", "conjunction"): "Transiting Saturn is meeting your natal Jupiter, tempering optimism with realism. This is a period for sorting genuine opportunity from wishful thinking and building what you believe in on real foundations.",
+    ("Saturn", "Jupiter", "sextile"):    "Saturn is gently supporting your natal Jupiter, making this a period where disciplined pursuit of a meaningful goal moves forward at a slow but steady and real pace.",
+    ("Saturn", "Jupiter", "square"):     "Saturn is squaring your natal Jupiter — where the limits of optimism become visible. Dreams are being tested; what survives the test is worth pursuing with renewed seriousness.",
+    ("Saturn", "Jupiter", "trine"):      "Saturn is flowing through your natal Jupiter in a way that allows for responsible expansion. Growth during this period is real because it is being built on ground that can hold it.",
+    ("Saturn", "Jupiter", "opposition"): "Saturn is opposing your natal Jupiter, putting the tension between what you have aspired toward and what you have actually built in front of you. Honest accounting opens the next chapter.",
+
+    ("Saturn", "Saturn", "conjunction"): "Transiting Saturn has returned to its natal position — your Saturn return, arriving roughly every 29 years. This is one of the most significant transits in adult life, calling for a full accounting of who you are and what you will build next.",
+    ("Saturn", "Saturn", "sextile"):    "Saturn is in easy alignment with your natal Saturn, a quieter but productive period for consolidating structures and taking responsibility seriously. Progress is steady.",
+    ("Saturn", "Saturn", "square"):     "Saturn is squaring its natal position — a turning point in the Saturn cycle. What you built at the last return is being tested. Reinforce what is sound; release what has served its purpose.",
+    ("Saturn", "Saturn", "trine"):      "Saturn is trine its natal position, making this a period where your relationship with responsibility, structure, and long-term commitment flows with unusual ease.",
+    ("Saturn", "Saturn", "opposition"): "Saturn is opposing its natal position — the midpoint of the Saturn cycle. You are accountable to a version of yourself that made promises some years ago. Where do they stand?",
+
+    ("Saturn", "Uranus", "conjunction"): "Transiting Saturn is meeting your natal Uranus, pressing the tension between security and freedom into sharp focus. This multi-year passage requires innovating within real constraints.",
+    ("Saturn", "Uranus", "sextile"):    "Saturn is gently supporting your natal Uranus, making this a period where innovation and structure can actually work together. Unconventional moves made carefully tend to hold.",
+    ("Saturn", "Uranus", "square"):     "Saturn is squaring your natal Uranus, creating tension between the desire for liberation and the weight of existing structure. Change is needed but recklessness is costly — find the disciplined path to freedom.",
+    ("Saturn", "Uranus", "trine"):      "Saturn is flowing into your natal Uranus, making this a period where you can build something genuinely new without dismantling everything first. Creative innovation with lasting foundations is possible.",
+    ("Saturn", "Uranus", "opposition"): "Saturn is opposing your natal Uranus, putting the conflict between your need for freedom and the demands of obligation at the center of this period. Neither can fully win — integration is the work.",
+
+    ("Saturn", "Neptune", "conjunction"): "Transiting Saturn is conjunct your natal Neptune, pressing your ideals against reality in a sustained and sometimes disorienting way. What you believe is being tested; what survives is more than belief.",
+    ("Saturn", "Neptune", "sextile"):    "Saturn is gently grounding your natal Neptune, making it easier to give practical form to your spiritual or creative vision. Dreams are finding their feet.",
+    ("Saturn", "Neptune", "square"):     "Saturn is squaring your natal Neptune, which can dissolve illusions in ways that feel painful but ultimately clarifying. Where are you living in a story that doesn't match the facts?",
+    ("Saturn", "Neptune", "trine"):      "Saturn is flowing through your natal Neptune, allowing creative and spiritual work to become practically meaningful. What you believe can now be expressed in a form that lasts.",
+    ("Saturn", "Neptune", "opposition"): "Saturn is opposing your natal Neptune, calling you to account for where fantasy and reality have been confused. The discomfort of clarity is more useful than the comfort of illusion.",
+
+    ("Saturn", "Pluto", "conjunction"): "Transiting Saturn is conjunct your natal Pluto — a rare, long alignment that brings deep transformation under deliberate pressure. What has been buried is meeting the surface; what needs to die will; what is essential will survive.",
+    ("Saturn", "Pluto", "sextile"):    "Saturn is quietly supporting your natal Pluto, making this a period where deep, sustained work toward genuine transformation can proceed at a manageable pace.",
+    ("Saturn", "Pluto", "square"):     "Saturn is squaring your natal Pluto, surfacing power struggles, compulsive patterns, or the places in your life where control is being exercised beyond its healthy scope. Something needs to fundamentally change.",
+    ("Saturn", "Pluto", "trine"):      "Saturn is flowing through your natal Pluto in a way that allows deep transformation to proceed with unusual steadiness. What you rebuild now will be both powerful and durable.",
+    ("Saturn", "Pluto", "opposition"): "Saturn is opposing your natal Pluto, which can surface encounters with institutional power, collective transformation, or the limits of personal control. The long arc of your life is being reshaped.",
+
+    # ── Transiting Uranus ─────────────────────────────────────────────────────
+    ("Uranus", "Sun", "conjunction"):  "Transiting Uranus is conjunct your natal Sun — a once-in-84-year alignment that often signals a radical reinvention of identity and purpose. What you thought you were is making room for who you actually need to become.",
+    ("Uranus", "Sun", "sextile"):      "Uranus is sending an innovative beam to your natal Sun over a multi-year period, offering sustained opportunities to express yourself in freer, more authentic ways.",
+    ("Uranus", "Sun", "square"):       "Uranus is squaring your natal Sun in a slow transit that brings disruption, restlessness, and the urgent need for authenticity. The life you've been living may no longer feel like your own.",
+    ("Uranus", "Sun", "trine"):        "Uranus is flowing into your natal Sun over a multi-year period, supporting authentic self-expression and gradual liberation from roles that have outgrown you.",
+    ("Uranus", "Sun", "opposition"):   "Uranus is opposing your natal Sun — a period often called the mid-life awakening, arriving in the mid-40s. External disruptions mirror the inner need for radical authenticity.",
+
+    ("Uranus", "Moon", "conjunction"): "Transiting Uranus is conjunct your natal Moon over an extended period, shaking up your emotional foundations and domestic life in ways that demand a new relationship with need, belonging, and feeling.",
+    ("Uranus", "Moon", "sextile"):     "Uranus is gently connecting with your natal Moon over time, opening new emotional possibilities and refreshing your relationship with home and belonging.",
+    ("Uranus", "Moon", "square"):      "Uranus is squaring your natal Moon in a slow transit that can bring sudden emotional upheaval, unexpected changes in home or family life, and a hunger for emotional freedom.",
+    ("Uranus", "Moon", "trine"):       "Uranus is flowing through your natal Moon over an extended period, making emotional innovation feel natural and beneficial. Old patterns of need and response are being refreshed.",
+    ("Uranus", "Moon", "opposition"):  "Uranus is opposing your natal Moon, which can bring abrupt changes in domestic life or emotional experience that feel disorienting but ultimately liberating.",
+
+    ("Uranus", "Mercury", "conjunction"): "Transiting Uranus is conjunct your natal Mercury over a multi-year period — a sustained electric charge to your thinking. Original ideas, sudden insights, and unconventional communication define this chapter.",
+    ("Uranus", "Mercury", "sextile"):    "Uranus is gently supporting your natal Mercury with an innovative charge over time. New ideas and ways of thinking arrive with unusual regularity during this period.",
+    ("Uranus", "Mercury", "square"):     "Uranus is squaring your natal Mercury in an extended passage that can make thinking erratic, communication surprising, or the mind eager to overturn what it previously believed.",
+    ("Uranus", "Mercury", "trine"):      "Uranus is flowing through your natal Mercury over time, making this a period of genuine intellectual breakthrough and original communication. Think further than usual.",
+    ("Uranus", "Mercury", "opposition"): "Uranus is opposing your natal Mercury, bringing new and often disruptive information that challenges how you think. The disruption points toward a needed update in perspective.",
+
+    ("Uranus", "Venus", "conjunction"): "Transiting Uranus is conjunct your natal Venus over a multi-year period, revolutionizing your experience of love and what you value. Relationships that cannot accommodate your growing need for freedom may not survive.",
+    ("Uranus", "Venus", "sextile"):    "Uranus is gently opening your natal Venus to new relational and creative possibilities over time. Unexpected connections and innovative ways of expressing love arise.",
+    ("Uranus", "Venus", "square"):     "Uranus is squaring your natal Venus in a slow transit that can destabilize existing relationships or attract sudden and unconventional new ones. What feels like disruption is clarifying what you truly value.",
+    ("Uranus", "Venus", "trine"):      "Uranus is flowing into your natal Venus, refreshing your relationship with love, creativity, and pleasure over an extended period. Innovation in these areas feels exciting and sustainable.",
+    ("Uranus", "Venus", "opposition"): "Uranus is opposing your natal Venus, which can bring sudden relationship changes or revelations about what you truly want. Freedom and intimacy are working out a new arrangement.",
+
+    ("Uranus", "Mars", "conjunction"): "Transiting Uranus is meeting your natal Mars over a multi-year period, electrifying your drive and making conventional channels feel too small. Bold, innovative action — and its risks — define this chapter.",
+    ("Uranus", "Mars", "sextile"):    "Uranus is gently supporting your natal Mars, making this a period where unconventional effort and creative initiative find real traction.",
+    ("Uranus", "Mars", "square"):     "Uranus is squaring your natal Mars in a slow, potentially disruptive transit. Anger, frustration, or the urge to break free may build suddenly. Direct the energy into deliberate innovation rather than impulsive break.",
+    ("Uranus", "Mars", "trine"):      "Uranus is flowing through your natal Mars over an extended period, giving your drive a brilliantly unconventional quality. Breakthroughs in effort come from doing what has never been done before.",
+    ("Uranus", "Mars", "opposition"): "Uranus is opposing your natal Mars, which can bring sudden confrontation with forces that challenge your will. The lesson is in finding freedom within the friction rather than against it.",
+
+    ("Uranus", "Jupiter", "conjunction"): "Transiting Uranus is meeting your natal Jupiter, which can bring a sudden expansion of opportunity or a radical revision of your sense of what is possible. Think beyond your previous definition of lucky.",
+    ("Uranus", "Jupiter", "sextile"):    "Uranus is gently supporting your natal Jupiter over time, opening inventive and unconventional channels for growth and opportunity. Something unexpected turns out to be the right path.",
+    ("Uranus", "Jupiter", "square"):     "Uranus is squaring your natal Jupiter, amplifying the urge to break from what has limited your expansion. Avoid reckless leaps while pursuing genuine liberation.",
+    ("Uranus", "Jupiter", "trine"):      "Uranus is flowing into your natal Jupiter, making this a genuinely lucky, inventive period for growth. The unexpected route is often the most rewarding one.",
+    ("Uranus", "Jupiter", "opposition"): "Uranus is opposing your natal Jupiter, which can bring sudden opportunity alongside sudden reversals. The gift may arrive disguised as disruption.",
+
+    ("Uranus", "Saturn", "conjunction"): "Transiting Uranus is conjunct your natal Saturn, forcing freedom and structure into direct encounter. This multi-year transit can dismantle outdated systems or make existing ones innovate profoundly.",
+    ("Uranus", "Saturn", "sextile"):    "Uranus is gently loosening your natal Saturn over time, making it possible to reform your structures with creativity rather than just maintain them.",
+    ("Uranus", "Saturn", "square"):     "Uranus is squaring your natal Saturn — a slow, persistent friction between the need for change and the weight of existing structure. Reform rather than revolution tends to yield better results.",
+    ("Uranus", "Saturn", "trine"):      "Uranus is flowing through your natal Saturn, allowing existing structures to be innovated and refreshed rather than simply maintained. What was rigid becomes adaptive.",
+    ("Uranus", "Saturn", "opposition"): "Uranus is opposing your natal Saturn, which can bring sudden encounters with authority or the collapse of structures that were too rigid to bend. What can adapt will survive and grow.",
+
+    ("Uranus", "Uranus", "conjunction"): "Transiting Uranus has returned to its natal position — your Uranus return, arriving around age 84. A life-review of authenticity, freedom, and the choices made in service of genuine self-expression.",
+    ("Uranus", "Uranus", "sextile"):    "Uranus is in easy alignment with your natal Uranus, a period that opens mild but genuine opportunities for innovation, freedom, and authenticity in daily life.",
+    ("Uranus", "Uranus", "square"):     "Uranus is squaring its natal position — a turning point in the 84-year cycle. Authenticity, freedom, and originality are being called to a new level of expression.",
+    ("Uranus", "Uranus", "trine"):      "Uranus is trine your natal Uranus, which makes this a period of natural alignment between the person you are and the freedom you need. Inventive choices tend to succeed.",
+    ("Uranus", "Uranus", "opposition"): "Uranus is opposing its natal position — the mid-life Uranus opposition, arriving around age 42. The most significant Uranian transit of adult life: who are you beyond the roles you've accumulated?",
+
+    ("Uranus", "Neptune", "conjunction"): "Transiting Uranus is meeting your natal Neptune in a generational alignment. Old spiritual or collective ideals may be disrupted; new and more authentic visions emerge from the break.",
+    ("Uranus", "Neptune", "sextile"):    "Uranus is gently opening your natal Neptune over time, inviting creative and spiritual renovation that feels both liberating and inspired.",
+    ("Uranus", "Neptune", "square"):     "Uranus is squaring your natal Neptune in a slow transit that can dissolve long-held spiritual assumptions or creative ideals in ways that are disorienting but ultimately clarifying.",
+    ("Uranus", "Neptune", "trine"):      "Uranus is flowing into your natal Neptune, bringing inspired innovation to your spiritual, creative, or compassionate impulses over an extended period.",
+    ("Uranus", "Neptune", "opposition"): "Uranus is opposing your natal Neptune, bringing external disruption to long-cherished ideals or spiritual frameworks. What is genuinely true will hold; what was illusion will not.",
+
+    ("Uranus", "Pluto", "conjunction"): "Transiting Uranus is meeting your natal Pluto in a generational alignment that can catalyze radical, collective transformation through the most personal dimensions of your life.",
+    ("Uranus", "Pluto", "sextile"):    "Uranus is gently supporting your natal Pluto over time, making deep transformation feel innovative rather than catastrophic. Change happens organically.",
+    ("Uranus", "Pluto", "square"):     "Uranus is squaring your natal Pluto — a slow, intense transit associated with radical collective and personal upheaval. Power structures are being broken open; authenticity demands transformation.",
+    ("Uranus", "Pluto", "trine"):      "Uranus is flowing through your natal Pluto over an extended period, making deep transformation feel evolutionary and inventive rather than violent.",
+    ("Uranus", "Pluto", "opposition"): "Uranus is opposing your natal Pluto, which can surface the tension between freedom and power in significant ways. What must transform is now in direct contact with what would prefer to remain as-is.",
+
+    # ── Transiting Neptune ────────────────────────────────────────────────────
+    ("Neptune", "Sun", "conjunction"):  "Transiting Neptune is conjunct your natal Sun — a multi-year spiritual passage that can dissolve the ego's certainties and open a profound sensitivity to something larger. Identity becomes porous, which is both the gift and the risk.",
+    ("Neptune", "Sun", "sextile"):      "Neptune is sending a gentle spiritual current to your natal Sun over time, softening the ego's edges and inviting a more inspired, compassionate expression of self.",
+    ("Neptune", "Sun", "square"):       "Neptune is squaring your natal Sun in a slow transit that can blur self-definition and invite confusion, self-deception, or a deep spiritual seeking. Be honest about where the fog is your own creation.",
+    ("Neptune", "Sun", "trine"):        "Neptune is flowing into your natal Sun over a multi-year period, lending a transcendent, creative, and spiritually sensitive quality to your identity and self-expression.",
+    ("Neptune", "Sun", "opposition"):   "Neptune is opposing your natal Sun, dissolving the boundary between who you are and who others project onto you. Clarity about identity becomes essential precisely because it is elusive.",
+
+    ("Neptune", "Moon", "conjunction"): "Transiting Neptune is conjunct your natal Moon — a long, deeply sensitive passage. Emotional boundaries thin almost to transparency; compassion and spiritual experience open; confusion and escapism are the shadow side.",
+    ("Neptune", "Moon", "sextile"):     "Neptune is gently supporting your natal Moon over time, opening your emotional life to deeper empathy, spiritual sensitivity, and creative feeling.",
+    ("Neptune", "Moon", "square"):      "Neptune is squaring your natal Moon in a slow transit that can blur emotional boundaries, invite confusion about what you feel, or pull toward escapist comfort. What are you avoiding feeling?",
+    ("Neptune", "Moon", "trine"):       "Neptune is flowing through your natal Moon, making this a period of deep emotional receptivity, creative inspiration, and spiritual sensitivity in the realm of feeling and belonging.",
+    ("Neptune", "Moon", "opposition"):  "Neptune is opposing your natal Moon, which can make emotional reality feel dreamlike or hard to grasp. Projection and idealization in close relationships need compassionate examination.",
+
+    ("Neptune", "Mercury", "conjunction"): "Transiting Neptune is conjunct your natal Mercury — a long, sometimes disorienting transit that softens rational thinking and opens extraordinary creative, intuitive, and spiritual channels.",
+    ("Neptune", "Mercury", "sextile"):    "Neptune is gently supporting your natal Mercury over time, inspiring creative writing, intuitive communication, and a more poetic way of thinking.",
+    ("Neptune", "Mercury", "square"):     "Neptune is squaring your natal Mercury in a slow transit that can blur mental clarity, invite confusion, or make concentration elusive. Creative and spiritual thinking flourish; factual precision needs extra care.",
+    ("Neptune", "Mercury", "trine"):      "Neptune is flowing into your natal Mercury over a multi-year period, making this a time of extraordinary imaginative, poetic, and spiritually attuned communication.",
+    ("Neptune", "Mercury", "opposition"): "Neptune is opposing your natal Mercury, which can make it hard to know what you actually think versus what you've absorbed from the emotional atmosphere around you. Clarity is a discipline.",
+
+    ("Neptune", "Venus", "conjunction"): "Transiting Neptune is conjunct your natal Venus — a long transit that elevates love and creativity to spiritual heights while dissolving practical boundaries. Idealization is the shadow; transcendent connection is the gift.",
+    ("Neptune", "Venus", "sextile"):    "Neptune is gently opening your natal Venus over time to more refined, spiritually attuned love and creative expression.",
+    ("Neptune", "Venus", "square"):     "Neptune is squaring your natal Venus in a slow transit that can cloud romantic judgment with idealization or cause financial decisions to drift from reality. See love and money as they are.",
+    ("Neptune", "Venus", "trine"):      "Neptune is flowing through your natal Venus over a multi-year period, making love, art, and beauty feel genuinely transcendent. The highest expression of compassionate love is possible.",
+    ("Neptune", "Venus", "opposition"): "Neptune is opposing your natal Venus, which can blur the line between genuine love and romantic fantasy. Grounding the heart in honesty protects the relationship.",
+
+    ("Neptune", "Mars", "conjunction"): "Transiting Neptune is conjunct your natal Mars — a long, often confusing transit for will and action. Drive disperses or becomes spiritually redirected; passive acceptance and inspired sacrifice are the extremes.",
+    ("Neptune", "Mars", "sextile"):    "Neptune is gently supporting your natal Mars over time, allowing inspired, idealistic action to be effective. Moving toward something you believe in deeply is well-supported.",
+    ("Neptune", "Mars", "square"):     "Neptune is squaring your natal Mars in a slow transit that can dissipate energy or make goals feel unclear. Acting on genuine conviction rather than wishful impulse is essential.",
+    ("Neptune", "Mars", "trine"):      "Neptune is flowing into your natal Mars, making purposeful action aligned with a larger vision feel natural. Creative and spiritually motivated effort is especially effective.",
+    ("Neptune", "Mars", "opposition"): "Neptune is opposing your natal Mars, which can make it hard to know what you are actually fighting for. Reconnect with genuine conviction before expending energy.",
+
+    ("Neptune", "Jupiter", "conjunction"): "Transiting Neptune is meeting your natal Jupiter — a long transit that can expand spiritual and creative vision to extraordinary proportions. Inspiration is immense; keep one foot in discernible reality.",
+    ("Neptune", "Jupiter", "sextile"):    "Neptune is gently supporting your natal Jupiter over time, expanding spiritual and creative horizons with idealistic but genuine possibility.",
+    ("Neptune", "Jupiter", "square"):     "Neptune is squaring your natal Jupiter, which can expand illusion as readily as vision. Where is your optimism outpacing honest assessment of facts?",
+    ("Neptune", "Jupiter", "trine"):      "Neptune is flowing through your natal Jupiter — a period of expansive spiritual imagination and inspired generosity. What you believe in deeply can grow into something transcendent.",
+    ("Neptune", "Jupiter", "opposition"): "Neptune is opposing your natal Jupiter, inflating idealism beyond what reality can comfortably hold. The wisdom is in knowing which beliefs to keep and which to release.",
+
+    ("Neptune", "Saturn", "conjunction"): "Transiting Neptune is conjunct your natal Saturn, dissolving structures that have provided definition and security. What is genuinely real will hold; what was maintained through habit or fear will soften away.",
+    ("Neptune", "Saturn", "sextile"):    "Neptune is gently connecting with your natal Saturn, helping you give spiritual or creative vision a workable form over time.",
+    ("Neptune", "Saturn", "square"):     "Neptune is squaring your natal Saturn in a slow transit that can dissolve hard-won structures or undermine confidence in what you have built. Which limits are real and which are imagined?",
+    ("Neptune", "Saturn", "trine"):      "Neptune is flowing into your natal Saturn, making this a period where spiritual depth and practical structure can support each other in a genuinely productive way.",
+    ("Neptune", "Saturn", "opposition"): "Neptune is opposing your natal Saturn, putting the tension between material form and spiritual dissolution at the center of an extended chapter. What still has real meaning?",
+
+    ("Neptune", "Uranus", "conjunction"): "Transiting Neptune is meeting your natal Uranus in a generational configuration. Collective dreams and ideals are reshaping the territory of freedom and innovation.",
+    ("Neptune", "Uranus", "sextile"):    "Neptune is gently supporting your natal Uranus over time, opening a channel where intuition and innovation work together rather than in opposition.",
+    ("Neptune", "Uranus", "square"):     "Neptune is squaring your natal Uranus in a slow transit that can blur the line between liberation and escape. Is the freedom you're pursuing real, or is it avoidance in disguise?",
+    ("Neptune", "Uranus", "trine"):      "Neptune is flowing through your natal Uranus, lending an inspired, visionary quality to the Uranian themes of freedom, originality, and change over time.",
+    ("Neptune", "Uranus", "opposition"): "Neptune is opposing your natal Uranus, bringing collective idealism into tension with the need for authentic individual freedom. What does real liberation actually require?",
+
+    ("Neptune", "Neptune", "conjunction"): "Transiting Neptune is conjunct its natal position — your Neptune return, arriving around age 165 and never actually experienced. In practice, Neptune opposing or squaring itself (earlier in life) is the relevant transit.",
+    ("Neptune", "Neptune", "sextile"):    "Neptune is in easy alignment with your natal Neptune, a period of gentle spiritual and creative opening. Imagination and compassion flow with quiet ease.",
+    ("Neptune", "Neptune", "square"):     "Neptune is squaring its natal position — a significant generational transit in midlife that invites a reckoning with illusions, ideals, and the gap between vision and lived reality.",
+    ("Neptune", "Neptune", "trine"):      "Neptune is trine its natal position, making this a period of natural spiritual and creative flow. Long-held dreams may find quiet but meaningful expression.",
+    ("Neptune", "Neptune", "opposition"): "Neptune is opposing its natal position — a generational transit arriving around age 84 that can be a profoundly spiritual or dissolving chapter of late life.",
+
+    ("Neptune", "Pluto", "conjunction"): "Transiting Neptune is meeting your natal Pluto — a generational alignment that occurs very rarely and speaks to collective forces of dissolution and transformation far larger than any individual life.",
+    ("Neptune", "Pluto", "sextile"):    "Neptune is gently supporting your natal Pluto in a generational alignment, opening space for idealistic, deeply felt transformation to unfold slowly and meaningfully.",
+    ("Neptune", "Pluto", "square"):     "Neptune is squaring your natal Pluto in a rare generational transit. Collective dissolution and transformation are pressing on the structures of power and meaning in deep and sustained ways.",
+    ("Neptune", "Pluto", "trine"):      "Neptune is flowing into your natal Pluto in a generational alignment that opens spiritual depth and collective transformation to a period of quiet but profound unfolding.",
+    ("Neptune", "Pluto", "opposition"): "Neptune is opposing your natal Pluto — one of the rarest generational alignments. Forces of dissolution and transformation are in profound tension at the collective level.",
+
+    # ── Transiting Pluto ──────────────────────────────────────────────────────
+    ("Pluto", "Sun", "conjunction"):   "Transiting Pluto is conjunct your natal Sun — one of the most transformative transits possible. Identity is being stripped to its core, rebuilt from what is most essential, most real, most yours. This is not a small chapter.",
+    ("Pluto", "Sun", "sextile"):       "Pluto is sending a quiet but powerful signal to your natal Sun over years, enabling deep, purposeful self-transformation at a pace you can absorb.",
+    ("Pluto", "Sun", "square"):        "Pluto is squaring your natal Sun in a long, intense transit. External forces and internal compulsions are pressing your identity to reveal what it's actually made of. Real power emerges through honest surrender.",
+    ("Pluto", "Sun", "trine"):         "Pluto is flowing into your natal Sun over a multi-year period, supporting deep personal transformation that feels evolutionary rather than violent. You are becoming more of who you were always meant to be.",
+    ("Pluto", "Sun", "opposition"):    "Pluto is opposing your natal Sun — a sustained encounter with transformative power arriving from outside. Relationships and external forces are the catalysts for a profound reckoning with identity.",
+
+    ("Pluto", "Moon", "conjunction"):  "Transiting Pluto is conjunct your natal Moon in a long, emotionally intense transit. Deep unconscious material surfaces; family patterns, grief, and the roots of emotional life are being transformed from the foundation.",
+    ("Pluto", "Moon", "sextile"):      "Pluto is gently supporting your natal Moon over time, enabling deep emotional transformation that proceeds at a sustainable pace. Old patterns of feeling give way to more authentic ones.",
+    ("Pluto", "Moon", "square"):       "Pluto is squaring your natal Moon in a sustained, emotionally demanding transit. Buried feelings, family wounds, and unconscious compulsions are surfacing for honest examination and release.",
+    ("Pluto", "Moon", "trine"):        "Pluto is flowing through your natal Moon, allowing deep emotional renewal to happen gradually and purposefully. What has been carried unconsciously is being acknowledged and transformed.",
+    ("Pluto", "Moon", "opposition"):   "Pluto is opposing your natal Moon in an extended transit that can surface power struggles in intimate relationships or the forced confrontation of deep emotional patterns. What cannot remain hidden is coming to light.",
+
+    ("Pluto", "Mercury", "conjunction"): "Transiting Pluto is conjunct your natal Mercury — a long transit that transforms how you think, what you say, and what you are willing to know. Communication and investigation reach an unusual depth and power.",
+    ("Pluto", "Mercury", "sextile"):    "Pluto is gently deepening your natal Mercury over time, enabling penetrating insight and the willingness to investigate what lies beneath the obvious.",
+    ("Pluto", "Mercury", "square"):     "Pluto is squaring your natal Mercury in an extended transit that can produce obsessive thinking, forced revelation of what was hidden, or the need to completely rebuild your intellectual framework.",
+    ("Pluto", "Mercury", "trine"):      "Pluto is flowing through your natal Mercury over time, making this a period of profound intellectual depth, investigative skill, and transformative communication.",
+    ("Pluto", "Mercury", "opposition"): "Pluto is opposing your natal Mercury, which can bring encounters with information or perspectives that permanently change how you see things. Truth is the only useful response.",
+
+    ("Pluto", "Venus", "conjunction"):  "Transiting Pluto is conjunct your natal Venus — a long, potentially transformative chapter in love and values. What you desire, what you are worth, and what you will accept in relationship are all being remade.",
+    ("Pluto", "Venus", "sextile"):      "Pluto is gently deepening your natal Venus over time, enriching your experience of love and beauty with a layer of transformative meaning.",
+    ("Pluto", "Venus", "square"):       "Pluto is squaring your natal Venus in a sustained transit that can intensify relationship dynamics, surface jealousy or power struggles, or force a reckoning with what you genuinely value.",
+    ("Pluto", "Venus", "trine"):        "Pluto is flowing into your natal Venus over years, enabling love and creative expression to be transformed at a soul level without violence. Depth and beauty are working together.",
+    ("Pluto", "Venus", "opposition"):   "Pluto is opposing your natal Venus in a long, intense transit. Relationship dynamics involving power, desire, and transformation are at the center of an extended and significant chapter.",
+
+    ("Pluto", "Mars", "conjunction"):   "Transiting Pluto is conjunct your natal Mars — a rare, long alignment of will and transformation. Primal power is available; how it is directed determines whether this period produces extraordinary accomplishment or destruction.",
+    ("Pluto", "Mars", "sextile"):       "Pluto is gently supporting your natal Mars over time, providing access to deep, sustained reserves of purposeful power. You can move what seemed immovable.",
+    ("Pluto", "Mars", "square"):        "Pluto is squaring your natal Mars in a slow, intense transit. Power struggles, compulsive drives, and the transformation of how you use your will are central themes. Depth, not force, is what works.",
+    ("Pluto", "Mars", "trine"):         "Pluto is flowing through your natal Mars over an extended period, enabling purposeful, transformative action that leaves lasting structural change in its wake.",
+    ("Pluto", "Mars", "opposition"):    "Pluto is opposing your natal Mars in a long, demanding transit. Power dynamics that have been building must now be honestly confronted. The willingness to transform is the only real power available.",
+
+    ("Pluto", "Jupiter", "conjunction"): "Transiting Pluto is meeting your natal Jupiter — a rare, potent alignment of transformation and expansion. Your sense of what is possible and what you believe are being fundamentally remade.",
+    ("Pluto", "Jupiter", "sextile"):    "Pluto is quietly supporting your natal Jupiter over time, allowing expansion of the kind that is built on something genuinely real and deeply understood.",
+    ("Pluto", "Jupiter", "square"):     "Pluto is squaring your natal Jupiter in a slow, powerful transit. The desire for growth is intense; what you are being asked to transform may be your most fundamental assumptions about meaning and possibility.",
+    ("Pluto", "Jupiter", "trine"):      "Pluto is flowing into your natal Jupiter over time, enabling transformation and growth to work together in a way that is both deep and expansive.",
+    ("Pluto", "Jupiter", "opposition"): "Pluto is opposing your natal Jupiter — a long encounter with the gap between ambitious vision and the power required to truly transform. What must you give up to genuinely grow?",
+
+    ("Pluto", "Saturn", "conjunction"): "Transiting Pluto is conjunct your natal Saturn — a rare, generational-scale transit that dismantles and rebuilds the deepest structures of your life. What has outlasted its purpose is being cleared for what is essential.",
+    ("Pluto", "Saturn", "sextile"):    "Pluto is gently supporting your natal Saturn over time, enabling the gradual transformation of structures and commitments in ways that are durable rather than violent.",
+    ("Pluto", "Saturn", "square"):     "Pluto is squaring your natal Saturn in a slow, demanding transit. Power and structure are in direct conflict; what does not serve its genuine purpose is being dismantled under unusual pressure.",
+    ("Pluto", "Saturn", "trine"):      "Pluto is flowing through your natal Saturn over an extended period, allowing deep transformation of your structures, commitments, and relationship with authority to occur at a sustainable pace.",
+    ("Pluto", "Saturn", "opposition"): "Pluto is opposing your natal Saturn, surfacing an extended encounter with the limits of what you have built and the transformative forces that press against those limits.",
+
+    ("Pluto", "Uranus", "conjunction"): "Transiting Pluto is meeting your natal Uranus — a generational alignment associated with radical collective transformation breaking open the structures of freedom and innovation.",
+    ("Pluto", "Uranus", "sextile"):    "Pluto is gently supporting your natal Uranus over time, enabling deep transformation of the Uranian themes — freedom, originality, and revolution — at a manageable pace.",
+    ("Pluto", "Uranus", "square"):     "Pluto is squaring your natal Uranus in a rare, slow transit. Radical transformation and systemic rupture of freedom-constraining structures are the themes of this long chapter.",
+    ("Pluto", "Uranus", "trine"):      "Pluto is flowing into your natal Uranus in a generational alignment that allows deep transformation of social and personal structures of freedom to proceed organically.",
+    ("Pluto", "Uranus", "opposition"): "Pluto is opposing your natal Uranus — a generational transit that places transformative power in direct tension with the need for radical freedom. Collective and personal structures are under extraordinary pressure.",
+
+    ("Pluto", "Neptune", "conjunction"): "Transiting Pluto is meeting your natal Neptune — one of the rarest and most generational alignments, speaking to the dissolution and transformation of the deepest collective ideals and spiritual frameworks.",
+    ("Pluto", "Neptune", "sextile"):    "Pluto is gently supporting your natal Neptune in a long generational alignment. Collective transformation and spiritual evolution are working together at the largest possible scale.",
+    ("Pluto", "Neptune", "square"):     "Pluto is squaring your natal Neptune — a rare, slow generational transit. Deep spiritual or collective ideals are being broken open and transformed from the core.",
+    ("Pluto", "Neptune", "trine"):      "Pluto is flowing into your natal Neptune in a generational alignment that allows the deepest spiritual and creative visions to be transformed into something enduring.",
+    ("Pluto", "Neptune", "opposition"): "Pluto is opposing your natal Neptune — a rare generational alignment where transformative power and spiritual dissolution are in direct, sustained tension.",
+
+    ("Pluto", "Pluto", "conjunction"):  "Transiting Pluto is conjunct its natal position — your Pluto return, arriving around age 248. No human lives to experience it; nations and civilizations do. For individuals, the relevant Pluto transits are to other natal planets.",
+    ("Pluto", "Pluto", "sextile"):      "Pluto is in easy alignment with its natal position — a generational transit that subtly supports deep, evolutionary transformation at the collective level.",
+    ("Pluto", "Pluto", "square"):       "Pluto is squaring its natal position — a significant generational transit that marks a turning point in collective power structures, arriving for each generation in late adolescence or early adulthood.",
+    ("Pluto", "Pluto", "trine"):        "Pluto is trine its natal position — a generational alignment that allows deep collective transformation to proceed with unusual ease and purposefulness.",
+    ("Pluto", "Pluto", "opposition"):   "Pluto is opposing its natal position — a generational transit associated with radical collective transformation and the confrontation of accumulated power structures.",
+
+    # ── Transit planets to natal Angles ───────────────────────────────────────
+    # ASC: self-presentation, body, how you meet the world
+    # DSC: relationships, partners, one-on-one encounters
+    # MC:  career, public reputation, life direction
+    # IC:  home, roots, private foundation, ancestry
+
+    # Transiting Sun → Angles
+    ("Sun", "ASC", "conjunction"):  "The Sun is crossing your Ascendant, putting you squarely in the spotlight. Your presence feels especially vital and visible right now — make the most of any public-facing moment.",
+    ("Sun", "ASC", "sextile"):      "The Sun is sending supportive energy to your Ascendant, making it easy to project confidence and warmth. Others see you at your natural best in this window.",
+    ("Sun", "ASC", "square"):       "The Sun is squaring your Ascendant, creating mild friction between how you want to show up and what the moment seems to demand. Adjust your style rather than forcing your usual approach.",
+    ("Sun", "ASC", "trine"):        "The Sun is flowing into your Ascendant, lending natural vitality and magnetism to your presence. A good window for introductions, appearances, or any situation where first impressions count.",
+    ("Sun", "ASC", "opposition"):   "The Sun is on your Descendant, shining a light on one-on-one relationships. Significant others — romantic or professional — are especially visible in your life right now.",
+
+    ("Sun", "DSC", "conjunction"):  "The Sun is conjunct your Descendant, illuminating your relationship axis. A key partnership comes into focus — what you need from others and what you offer is unusually clear right now.",
+    ("Sun", "DSC", "sextile"):      "The Sun is gently supporting your Descendant, making collaboration and relational warmth flow easily. Partnerships benefit from this light, open energy.",
+    ("Sun", "DSC", "square"):       "The Sun is squaring your Descendant, which can surface tension in close partnerships or highlight where your needs and a partner's needs are misaligned. Honest negotiation works better than avoidance.",
+    ("Sun", "DSC", "trine"):        "The Sun is flowing toward your Descendant, enriching partnerships with warmth and clarity. A good window for deepening a significant relationship or formalizing a collaboration.",
+    ("Sun", "DSC", "opposition"):   "The Sun is on your Ascendant, turning the focus back onto you — how you present yourself directly affects your key relationships right now.",
+
+    ("Sun", "MC", "conjunction"):   "The Sun is conjunct your Midheaven — one of the most career-activating transits possible. Your reputation, ambitions, and public role are illuminated. Visibility is high; show your best work.",
+    ("Sun", "MC", "sextile"):       "The Sun is supporting your Midheaven right now, making professional effort feel recognized and purposeful. A good window for career conversations or advancing an important goal.",
+    ("Sun", "MC", "square"):        "The Sun is squaring your Midheaven, creating pressure between your public ambitions and personal life. Something is asking you to reconcile what you show the world with what you actually want.",
+    ("Sun", "MC", "trine"):         "The Sun is flowing into your Midheaven, making this an excellent window for professional advancement, public presentation, or any work that benefits from external visibility.",
+    ("Sun", "MC", "opposition"):    "The Sun is opposite your Midheaven — on your IC — turning attention toward home and private life. Career and family may feel in competition; the inner life needs as much sunlight as the outer one.",
+
+    ("Sun", "IC", "conjunction"):   "The Sun is on your IC, illuminating your roots, home, and private foundation. This is a time to tend to what nourishes you privately — family, home, and inner life all come into focus.",
+    ("Sun", "IC", "sextile"):       "The Sun is gently supporting your IC, making home life feel warm and purposeful. A good window for family connection, domestic projects, or reconnecting with your roots.",
+    ("Sun", "IC", "square"):        "The Sun is squaring your IC, which can create friction between career demands and home life, or stir questions about where you truly belong.",
+    ("Sun", "IC", "trine"):         "The Sun is flowing into your IC, lending a nurturing, settled quality to home and family life. What grounds you privately is being quietly nourished.",
+    ("Sun", "IC", "opposition"):    "The Sun is opposite your IC — on your Midheaven — pulling focus outward toward career and public life. Home and private needs may feel temporarily eclipsed.",
+
+    # Transiting Moon → Angles
+    ("Moon", "ASC", "conjunction"): "The Moon is crossing your Ascendant, making you more emotionally visible than usual. Others pick up easily on what you're feeling — authenticity serves you better than a composed front right now.",
+    ("Moon", "ASC", "sextile"):     "The Moon is gently connecting with your Ascendant, lending a warm, approachable quality to your presence for these few hours. Social interactions feel naturally easy.",
+    ("Moon", "ASC", "square"):      "The Moon is squaring your Ascendant, which can create a subtle mismatch between your inner mood and the face you present. Give yourself permission to feel without performing.",
+    ("Moon", "ASC", "trine"):       "The Moon is flowing into your Ascendant right now, making your emotional presence feel safe and inviting to others. Connection comes naturally in this window.",
+    ("Moon", "ASC", "opposition"):  "The Moon is opposite your Ascendant — on your Descendant — bringing emotional attunement to your relationships for a few hours. You feel others' needs keenly and they feel yours.",
+
+    ("Moon", "DSC", "conjunction"): "The Moon is on your Descendant, heightening emotional sensitivity in one-on-one relationships. Feelings about a key partner — or the need for closeness itself — come sharply to the surface.",
+    ("Moon", "DSC", "sextile"):     "The Moon is supporting your Descendant, making relational exchanges feel emotionally fluid and warm for a few hours. A good window for heartfelt conversation with someone important.",
+    ("Moon", "DSC", "square"):      "The Moon is squaring your Descendant, which can stir emotional friction in partnerships or surface unspoken needs. Be honest rather than managing the other person's comfort.",
+    ("Moon", "DSC", "trine"):       "The Moon is flowing into your Descendant, making this a naturally harmonious window for close relationships. Emotional openness between you and a partner or collaborator comes easily.",
+    ("Moon", "DSC", "opposition"):  "The Moon is opposite your Descendant — on your Ascendant — which can make your own emotional state feel louder than what partners are bringing. Check the balance.",
+
+    ("Moon", "MC", "conjunction"):  "The Moon is crossing your Midheaven, briefly putting your emotional state on public display. How you feel is visible in your professional life right now — authenticity is an asset.",
+    ("Moon", "MC", "sextile"):      "The Moon is gently supporting your Midheaven, making career effort feel emotionally meaningful for a few hours. Public interactions benefit from your natural warmth.",
+    ("Moon", "MC", "square"):       "The Moon is squaring your Midheaven, which can bring tension between professional demands and emotional needs. Noticing what you actually feel beneath the role is the useful work here.",
+    ("Moon", "MC", "trine"):        "The Moon is flowing into your Midheaven right now, making professional engagement feel emotionally satisfying. Your public presence carries genuine warmth and draws people toward you.",
+    ("Moon", "MC", "opposition"):   "The Moon is opposite your Midheaven — on your IC — pulling emotional energy toward home and private life for a few hours. The need for comfort and withdrawal is temporarily stronger than the pull of public ambition.",
+
+    ("Moon", "IC", "conjunction"):  "The Moon is at your IC — the deepest point of the chart. Emotional needs around home, family, and belonging are at their most acute. Tending to your inner life is exactly the right priority.",
+    ("Moon", "IC", "sextile"):      "The Moon is gently supporting your IC, making home feel like a genuine refuge and family connections feel easy and nourishing for a few hours.",
+    ("Moon", "IC", "square"):       "The Moon is squaring your IC, which can surface tension between the demands of the outer world and the emotional pull of home and private life.",
+    ("Moon", "IC", "trine"):        "The Moon is flowing into your IC right now, making the private, domestic side of life feel comforting and emotionally complete. A good few hours for home, rest, or family.",
+    ("Moon", "IC", "opposition"):   "The Moon is opposite your IC — on your Midheaven — briefly pulling focus outward. Emotional energy is spent on public roles, while the private self waits quietly.",
+
+    # Transiting Mercury → Angles
+    ("Mercury", "ASC", "conjunction"): "Mercury is crossing your Ascendant, sharpening how you come across and what you lead with in conversation. Your mind is on display — a good time to articulate ideas you've been developing.",
+    ("Mercury", "ASC", "sextile"):     "Mercury is supporting your Ascendant right now, making communication feel natural and your personal style feel intellectually engaging. Introductions and networking go well.",
+    ("Mercury", "ASC", "square"):      "Mercury is squaring your Ascendant, which can make it hard to say exactly what you mean or have it land the way you intend. Take an extra moment before speaking.",
+    ("Mercury", "ASC", "trine"):       "Mercury is flowing into your Ascendant, making your communication style especially appealing and clear right now. What you say and how you say it feel well-matched.",
+    ("Mercury", "ASC", "opposition"):  "Mercury is opposite your Ascendant — on your Descendant — emphasizing dialogue and information exchange in relationships. Listening actively to a partner's perspective is especially productive.",
+
+    ("Mercury", "DSC", "conjunction"): "Mercury is on your Descendant, activating communication within close partnerships. Important conversations about a relationship's terms, direction, or needs are well-timed right now.",
+    ("Mercury", "DSC", "sextile"):     "Mercury is gently supporting your Descendant, making relational communication feel easy and productive. A good window for discussion, negotiation, or simply catching up with a significant person.",
+    ("Mercury", "DSC", "square"):      "Mercury is squaring your Descendant, which can bring miscommunication or intellectual friction in partnerships. Say what you mean and invite the same in return.",
+    ("Mercury", "DSC", "trine"):       "Mercury is flowing into your Descendant, making conversation with partners flow easily and productively. Contracts, agreements, and honest exchanges are all well-supported.",
+    ("Mercury", "DSC", "opposition"):  "Mercury is opposite your Descendant — on your Ascendant — making your own voice especially prominent. Make sure you're leaving room for the other person to be heard.",
+
+    ("Mercury", "MC", "conjunction"):  "Mercury is conjunct your Midheaven, making this an excellent window for professional communication, presentations, or any public-facing intellectual work. Your ideas carry weight right now.",
+    ("Mercury", "MC", "sextile"):      "Mercury is supporting your Midheaven, making career communications feel well-timed and well-received. A good window for proposals, reports, or any important professional exchange.",
+    ("Mercury", "MC", "square"):       "Mercury is squaring your Midheaven, which can bring mental pressure around career decisions or communication with authority figures. Think carefully before committing to a public position.",
+    ("Mercury", "MC", "trine"):        "Mercury is flowing into your Midheaven, making professional communication especially sharp and effective right now. Ideas land well and the mind serves ambition seamlessly.",
+    ("Mercury", "MC", "opposition"):   "Mercury is opposite your Midheaven — on your IC — which can turn mental energy toward home, family history, or private reflection rather than outward ambition. Useful for internal processing.",
+
+    ("Mercury", "IC", "conjunction"):  "Mercury is at your IC, stimulating thought and conversation around home, family, and your private foundations. Planning around domestic matters or processing family history comes naturally.",
+    ("Mercury", "IC", "sextile"):      "Mercury is gently supporting your IC, making family communication feel easy and domestic planning feel clear-headed. A good window for home-related decisions.",
+    ("Mercury", "IC", "square"):       "Mercury is squaring your IC, which can bring mental restlessness around home life or difficult conversations within the family. Patience and clarity of intention help.",
+    ("Mercury", "IC", "trine"):        "Mercury is flowing into your IC, making this a good window for thoughtful domestic planning, meaningful family conversations, or reconnecting intellectually with your roots.",
+    ("Mercury", "IC", "opposition"):   "Mercury is opposite your IC — on your Midheaven — directing mental energy outward toward career and public life. Home and family are temporarily on the back burner of your thinking.",
+
+    # Transiting Venus → Angles
+    ("Venus", "ASC", "conjunction"):  "Venus is crossing your Ascendant, lending personal charm, warmth, and aesthetic appeal to your presence. Others are drawn to you naturally right now — a wonderful window for social events or creative self-expression.",
+    ("Venus", "ASC", "sextile"):      "Venus is gently supporting your Ascendant, making you easy to like and pleasant to be around. Social and creative opportunities come through your natural charm.",
+    ("Venus", "ASC", "square"):       "Venus is squaring your Ascendant, which can bring a mild tension between how you want to appear and what actually feels comfortable. Vanity or people-pleasing can surface — stay genuine.",
+    ("Venus", "ASC", "trine"):        "Venus is flowing into your Ascendant, making this one of the nicest windows for social connection and creative self-presentation. You feel good in your skin and others respond in kind.",
+    ("Venus", "ASC", "opposition"):   "Venus is opposite your Ascendant — on your Descendant — making beauty and affection a theme in your closest relationships. Love, aesthetics, and relational harmony come into sharp focus.",
+
+    ("Venus", "DSC", "conjunction"):  "Venus is conjunct your Descendant, making this a peak window for romantic connection and partnership harmony. A relationship deepens, a new attraction begins, or existing bonds feel especially beautiful.",
+    ("Venus", "DSC", "sextile"):      "Venus is supporting your Descendant, making partnership feel warm and mutually appreciative right now. A good window for smoothing rough edges in a relationship or deepening collaborative bonds.",
+    ("Venus", "DSC", "square"):       "Venus is squaring your Descendant, which can surface tension between what you desire in a relationship and what the partnership currently offers. Honest discussion of values serves well here.",
+    ("Venus", "DSC", "trine"):        "Venus is flowing into your Descendant, making close relationships feel especially harmonious and beautiful right now. Love is easy, collaboration is pleasant, and the give-and-take feels balanced.",
+    ("Venus", "DSC", "opposition"):   "Venus is opposite your Descendant — on your Ascendant — turning personal charm inward. How you feel about yourself is the determining factor in how relationships feel right now.",
+
+    ("Venus", "MC", "conjunction"):   "Venus is conjunct your Midheaven, one of the best transits for professional reputation and public appeal. Artistic work, social visibility, and career advancement all benefit from this graceful energy.",
+    ("Venus", "MC", "sextile"):       "Venus is supporting your Midheaven, lending a pleasing quality to your professional interactions and public persona. Career efforts that require diplomacy or aesthetic sensibility flourish.",
+    ("Venus", "MC", "square"):        "Venus is squaring your Midheaven, which can create tension between the desire for ease and the demands of professional ambition. Social niceties may not be enough — real effort is still required.",
+    ("Venus", "MC", "trine"):         "Venus is flowing into your Midheaven, making your public presence attractive and your professional interactions pleasant. Creative careers, client work, and anything requiring social grace are especially well-supported.",
+    ("Venus", "MC", "opposition"):    "Venus is opposite your Midheaven — on your IC — turning affection and beauty toward home and private life. The people and places that comfort you privately feel especially precious right now.",
+
+    ("Venus", "IC", "conjunction"):   "Venus is at your IC, warming the home and private life with affection and beauty. A wonderful window for domestic pleasures, family harmony, and tending to what nourishes you at the root.",
+    ("Venus", "IC", "sextile"):       "Venus is gently supporting your IC, making home feel like a place of beauty and comfort. Family relationships benefit from a gentle, appreciative tone.",
+    ("Venus", "IC", "square"):        "Venus is squaring your IC, which can bring mild tension between the desire for domestic harmony and underlying family dynamics that need addressing. Surface sweetness won't resolve deeper friction.",
+    ("Venus", "IC", "trine"):         "Venus is flowing into your IC, making home and family life feel genuinely pleasant and nourishing. A good window for beautifying your space or deepening family bonds.",
+    ("Venus", "IC", "opposition"):    "Venus is opposite your IC — on your Midheaven — directing charm and beauty outward into the public world. Home life is temporarily in the background of your affections.",
+
+    # Transiting Mars → Angles
+    ("Mars", "ASC", "conjunction"):  "Mars is crossing your Ascendant, charging your physical presence with drive and assertiveness. You project energy and confidence easily now — channel it into purposeful action rather than letting it spill as aggression.",
+    ("Mars", "ASC", "sextile"):      "Mars is supporting your Ascendant, giving you a confident, energized quality in how you come across. A good window to initiate something that requires personal boldness.",
+    ("Mars", "ASC", "square"):       "Mars is squaring your Ascendant, which can produce friction between your drive and how others receive it. You may come across as more forceful than intended — adjust your approach without softening your intent.",
+    ("Mars", "ASC", "trine"):        "Mars is flowing into your Ascendant, making you feel capable and assertive in exactly the right measure. Physical energy and personal presence are both high and well-directed.",
+    ("Mars", "ASC", "opposition"):   "Mars is opposite your Ascendant — on your Descendant — activating the relationship axis with competitive or passionate energy. A significant encounter, confrontation, or intense connection is likely.",
+
+    ("Mars", "DSC", "conjunction"):  "Mars is on your Descendant, bringing energy and possible tension into close partnerships. This can ignite passion or spark conflict — either way, something latent in a key relationship comes to a head.",
+    ("Mars", "DSC", "sextile"):      "Mars is gently supporting your Descendant, making assertive partnership communication feel productive. A good window for moving a shared goal forward with confidence.",
+    ("Mars", "DSC", "square"):       "Mars is squaring your Descendant, which can stir conflict or competitive friction in close relationships. The underlying issue is usually about unmet needs — address those rather than the argument.",
+    ("Mars", "DSC", "trine"):        "Mars is flowing into your Descendant, giving partnerships an energized, forward-moving quality. Collaborative drive is high; what you build together now benefits from motivated, clear-eyed effort.",
+    ("Mars", "DSC", "opposition"):   "Mars is opposite your Descendant — on your Ascendant — charging your personal presence. The energy is yours to direct; whether it serves or harms your relationships depends on how consciously you wield it.",
+
+    ("Mars", "MC", "conjunction"):   "Mars is conjunct your Midheaven — a potent career transit. Ambition, drive, and willingness to compete are all amplified. This is a window for bold professional moves, but avoid burning bridges in the process.",
+    ("Mars", "MC", "sextile"):       "Mars is supporting your Midheaven, lending confident momentum to career pursuits. A good window for pushing a professional project forward or making your ambitions visible.",
+    ("Mars", "MC", "square"):        "Mars is squaring your Midheaven, creating tension between your drives and your professional situation. Frustration with authority or slow progress can be channeled into productive restructuring.",
+    ("Mars", "MC", "trine"):         "Mars is flowing into your Midheaven, giving your career ambitions a direct, energized quality. Forward movement comes naturally; the effort you put in now tends to produce real professional results.",
+    ("Mars", "MC", "opposition"):    "Mars is opposite your Midheaven — on your IC — driving energy toward home and private life. Ambition turns inward; domestic projects or family conflicts may demand the same intensity usually reserved for career.",
+
+    ("Mars", "IC", "conjunction"):   "Mars is at your IC, stirring energy — and possibly conflict — in the domestic and private sphere. Family tensions may surface, or you may find the drive to tackle long-avoided home projects.",
+    ("Mars", "IC", "sextile"):       "Mars is gently energizing your IC, making this a good window for home improvements, family initiatives, or addressing something in your private life that has needed attention.",
+    ("Mars", "IC", "square"):        "Mars is squaring your IC, which can produce domestic friction or inner restlessness around your sense of belonging. Anger rooted in home or family history may need conscious acknowledgment.",
+    ("Mars", "IC", "trine"):         "Mars is flowing into your IC, making it easier to take decisive action on home and family matters. Domestic energy is high and productive.",
+    ("Mars", "IC", "opposition"):    "Mars is opposite your IC — on your Midheaven — driving ambition outward and possibly creating tension with home life. Career and domestic needs are competing for the same energy.",
+
+    # Transiting Jupiter → Angles
+    ("Jupiter", "ASC", "conjunction"):  "Jupiter is conjunct your Ascendant, expanding your presence and opening a window of genuine opportunity in how you move through the world. This transit often coincides with growth in confidence, visibility, and physical vitality.",
+    ("Jupiter", "ASC", "sextile"):      "Jupiter is supporting your Ascendant, making your social presence feel open and fortunate. Opportunities arrive naturally through the way you show up — stay present and say yes.",
+    ("Jupiter", "ASC", "square"):       "Jupiter is squaring your Ascendant, which can expand confidence into overreach. New possibilities are real, but taking on more than you can comfortably carry is the main hazard.",
+    ("Jupiter", "ASC", "trine"):        "Jupiter is flowing into your Ascendant, making this a genuinely expansive window for personal growth, public connection, and forward-moving opportunity that fits your authentic self.",
+    ("Jupiter", "ASC", "opposition"):   "Jupiter is opposite your Ascendant — on your Descendant — expanding your relationship world. Significant partnerships grow, new alliances form, and the benefits of collaboration are especially apparent.",
+
+    ("Jupiter", "DSC", "conjunction"):  "Jupiter is conjunct your Descendant, expanding the relationship sphere in meaningful ways. A partnership grows significantly, a beneficial new connection arrives, or existing collaborations open to new possibility.",
+    ("Jupiter", "DSC", "sextile"):      "Jupiter is gently supporting your Descendant, making partnership and collaboration feel generative and mutually beneficial. A good window for deepening important relationships.",
+    ("Jupiter", "DSC", "square"):       "Jupiter is squaring your Descendant, which can expand relationship expectations beyond what is realistic. Optimism about a partnership needs checking against honest assessment.",
+    ("Jupiter", "DSC", "trine"):        "Jupiter is flowing into your Descendant, making this an excellent period for partnerships, legal agreements, and any significant one-on-one collaboration that benefits from growth and goodwill.",
+    ("Jupiter", "DSC", "opposition"):   "Jupiter is opposite your Descendant — on your Ascendant — expanding personal confidence and presence. The self is growing; ensure that growth enriches rather than overwhelms your relationships.",
+
+    ("Jupiter", "MC", "conjunction"):   "Jupiter is conjunct your Midheaven — one of the most significant career transits possible. Professional expansion, recognition, and new opportunity are all amplified. This is a genuine peak for public life.",
+    ("Jupiter", "MC", "sextile"):       "Jupiter is supporting your Midheaven, opening doors in career and public life with quiet but real good fortune. Move toward what you want professionally — the climate is genuinely receptive.",
+    ("Jupiter", "MC", "square"):        "Jupiter is squaring your Midheaven, which can produce overconfidence in career matters or promises that outpace what you can deliver. Keep ambition grounded in what is actually achievable.",
+    ("Jupiter", "MC", "trine"):         "Jupiter is flowing into your Midheaven, making this an excellent window for professional advancement, recognition, and public expansion. The effort you've put in is ready to be rewarded.",
+    ("Jupiter", "MC", "opposition"):    "Jupiter is opposite your Midheaven — on your IC — expanding home, family, and private foundations. Domestic life grows or improves; inner resources are being enriched even if outer ambition is quieter.",
+
+    ("Jupiter", "IC", "conjunction"):   "Jupiter is at your IC, bringing expansion and improvement to your home, family, and private foundations. This can mean a literal move, a growing family, or a profound deepening of your sense of belonging.",
+    ("Jupiter", "IC", "sextile"):       "Jupiter is gently expanding your IC, making home life feel more spacious, generous, and supportive. A good window for family investment or strengthening your domestic foundation.",
+    ("Jupiter", "IC", "square"):        "Jupiter is squaring your IC, which can bring growth in the private sphere that strains existing structures — a bigger home that is also a bigger responsibility, for example. Expand with care.",
+    ("Jupiter", "IC", "trine"):         "Jupiter is flowing into your IC, making this a naturally abundant time for home, family, and the private life that sustains everything else. Roots grow deeper; the foundation becomes more generous.",
+    ("Jupiter", "IC", "opposition"):    "Jupiter is opposite your IC — on your Midheaven — expanding public life and career. Home may temporarily feel less central as the outer world offers more opportunity than usual.",
+
+    # Transiting Saturn → Angles
+    ("Saturn", "ASC", "conjunction"):  "Saturn is conjunct your Ascendant — a significant, multi-year passage. Your identity, body, and the way you meet the world are being tested and ultimately strengthened. Maturity and authenticity become non-negotiable.",
+    ("Saturn", "ASC", "sextile"):      "Saturn is supporting your Ascendant with quiet steadiness, making this a period where disciplined self-presentation and consistent effort earn gradual recognition.",
+    ("Saturn", "ASC", "square"):       "Saturn is squaring your Ascendant, which can feel like a period of self-doubt or external pressure on how you show up. The friction points toward where greater authenticity or discipline is needed.",
+    ("Saturn", "ASC", "trine"):        "Saturn is flowing into your Ascendant, lending a calm authority to your presence. How you carry yourself earns respect naturally, and responsibility feels manageable rather than burdensome.",
+    ("Saturn", "ASC", "opposition"):   "Saturn is opposite your Ascendant — on your Descendant — placing the weight of accountability on close partnerships. Relationships that lack real foundations are being tested; those that are solid are deepened.",
+
+    ("Saturn", "DSC", "conjunction"):  "Saturn is conjunct your Descendant, bringing serious attention to close partnerships. Relationships are tested for real depth — what is genuine deepens; what was held together by inertia may end.",
+    ("Saturn", "DSC", "sextile"):      "Saturn is gently supporting your Descendant, making this a period where commitment in relationships is natural and rewarding. Long-term partnerships are built on firmer ground.",
+    ("Saturn", "DSC", "square"):       "Saturn is squaring your Descendant, which can bring strain, distance, or hard accountability in significant relationships. What needs to be said or renegotiated can no longer be avoided.",
+    ("Saturn", "DSC", "trine"):        "Saturn is flowing into your Descendant, supporting lasting relational commitments. Partnerships formed or deepened now are built on genuine mutual understanding and respect.",
+    ("Saturn", "DSC", "opposition"):   "Saturn is opposite your Descendant — on your Ascendant — putting pressure on how you carry yourself rather than directly on your relationships. Your own discipline and authenticity are the key variables.",
+
+    ("Saturn", "MC", "conjunction"):   "Saturn is conjunct your Midheaven — a defining career transit. Ambitions are tested against reality; what you are genuinely capable of is being clarified. The rewards of sustained effort, over years, may now arrive.",
+    ("Saturn", "MC", "sextile"):       "Saturn is gently supporting your Midheaven, making structured career effort feel rewarded and purposeful. Professional progress is quiet but durable.",
+    ("Saturn", "MC", "square"):        "Saturn is squaring your Midheaven, placing real pressure on career direction and public reputation. External obstacles or authority friction are pointing at where your professional foundations need reinforcing.",
+    ("Saturn", "MC", "trine"):         "Saturn is flowing into your Midheaven, making disciplined professional effort translate into lasting achievement. A good window for building something in your public life that will endure.",
+    ("Saturn", "MC", "opposition"):    "Saturn is opposite your Midheaven — on your IC — placing accountability on home and private foundations. What has been neglected in your inner life or family situation is now asking for serious attention.",
+
+    ("Saturn", "IC", "conjunction"):   "Saturn is at your IC, pressing on your most private foundations — home, family, and the psychological roots of your sense of self. This is a serious passage that asks what you are truly built on.",
+    ("Saturn", "IC", "sextile"):       "Saturn is gently supporting your IC, making this a good period for solidifying your domestic situation and taking quiet, durable responsibility for your private life.",
+    ("Saturn", "IC", "square"):        "Saturn is squaring your IC, which can bring pressure from family history, home instability, or an unresolved sense of not-belonging. The invitation is to honestly examine your foundations.",
+    ("Saturn", "IC", "trine"):         "Saturn is flowing into your IC, making it easier to build a stable, lasting private foundation. Domestic structures that are put in place now tend to hold.",
+    ("Saturn", "IC", "opposition"):    "Saturn is opposite your IC — on your Midheaven — directing its weight toward career and public life. Private life is simplified while outer structures and responsibilities demand full attention.",
+
+    # Transiting Uranus → Angles
+    ("Uranus", "ASC", "conjunction"):  "Uranus is conjunct your Ascendant over a multi-year period — a radical reinvention of identity, appearance, and how you meet the world. Who you have been presenting yourself as no longer fits; who you are becoming is still taking shape.",
+    ("Uranus", "ASC", "sextile"):      "Uranus is supporting your Ascendant over time, opening space for a freer, more authentic self-expression. Changes in your personal style or public identity feel liberating rather than destabilizing.",
+    ("Uranus", "ASC", "square"):       "Uranus is squaring your Ascendant in an extended transit that can feel like the ground shifting under your sense of self. External disruptions mirror the need for a more authentic way of showing up.",
+    ("Uranus", "ASC", "trine"):        "Uranus is flowing into your Ascendant over a multi-year period, allowing originality and authenticity to become natural features of how you present yourself in the world.",
+    ("Uranus", "ASC", "opposition"):   "Uranus is opposite your Ascendant — on your Descendant — bringing sudden or unusual relationship developments over an extended period. Freedom, individuality, and the need for space are themes in significant partnerships.",
+
+    ("Uranus", "DSC", "conjunction"):  "Uranus is conjunct your Descendant over a multi-year period, disrupting and reinventing your relationship sphere. Existing partnerships change dramatically or end; new and unconventional connections arrive.",
+    ("Uranus", "DSC", "sextile"):      "Uranus is gently supporting your Descendant over time, bringing fresh, inventive energy into relationships. Unusual connections and new collaborative possibilities open up.",
+    ("Uranus", "DSC", "square"):       "Uranus is squaring your Descendant in a slow transit that can unsettle close partnerships or trigger sudden changes in relationship status. Freedom and commitment are working out a new arrangement.",
+    ("Uranus", "DSC", "trine"):        "Uranus is flowing into your Descendant, allowing relationships to become more authentic and free over time. The best partnerships during this period are those that can hold both intimacy and independence.",
+    ("Uranus", "DSC", "opposition"):   "Uranus is opposite your Descendant — on your Ascendant — charging your identity with the urge for radical authenticity. Relationships feel the downstream effects of your own need to break from old patterns.",
+
+    ("Uranus", "MC", "conjunction"):   "Uranus is conjunct your Midheaven — a career-disrupting, potentially career-liberating transit. Your professional direction undergoes sudden or radical change. What once felt like the right path may give way to something entirely unexpected.",
+    ("Uranus", "MC", "sextile"):       "Uranus is supporting your Midheaven over time, bringing innovative opportunities into your career and encouraging unconventional paths to professional growth.",
+    ("Uranus", "MC", "square"):        "Uranus is squaring your Midheaven in a slow transit that can bring unexpected disruptions to career or public reputation. The instability points toward needed change in your professional direction.",
+    ("Uranus", "MC", "trine"):         "Uranus is flowing into your Midheaven over an extended period, allowing career innovation and authentic professional direction to develop without forcing a complete break from what came before.",
+    ("Uranus", "MC", "opposition"):    "Uranus is opposite your Midheaven — on your IC — bringing sudden changes in home and private life that ripple outward. The foundations are shifting; the outer edifice of career and reputation responds in turn.",
+
+    ("Uranus", "IC", "conjunction"):   "Uranus is at your IC over an extended period, disrupting home, family, and your deepest sense of belonging. Unexpected moves, family upheaval, or a radical re-rooting of your private life are common.",
+    ("Uranus", "IC", "sextile"):       "Uranus is gently supporting your IC over time, opening new and freer possibilities for your home life and family structure. Domestic innovation feels exciting rather than unsettling.",
+    ("Uranus", "IC", "square"):        "Uranus is squaring your IC in a slow transit that can unsettle home and family life or prompt a sudden reassessment of where — and with whom — you truly belong.",
+    ("Uranus", "IC", "trine"):         "Uranus is flowing into your IC, making this an extended period of refreshing and reinventing your private foundations in ways that feel liberating rather than destabilizing.",
+    ("Uranus", "IC", "opposition"):    "Uranus is opposite your IC — on your Midheaven — bringing radical change to public and professional life. The domestic sphere becomes quieter and more uncertain as the career axis undergoes its revolution.",
+
+    # Transiting Neptune → Angles
+    ("Neptune", "ASC", "conjunction"):  "Neptune is conjunct your Ascendant over a multi-year period, dissolving the edges of your identity and opening you to unusual sensitivity and spiritual permeability. Who you are becomes harder to define — and more expansive for it.",
+    ("Neptune", "ASC", "sextile"):      "Neptune is gently connecting with your Ascendant over time, lending a spiritually attuned, compassionate quality to your presence. Others experience you as unusually empathetic and inspiring.",
+    ("Neptune", "ASC", "square"):       "Neptune is squaring your Ascendant in a slow transit that can blur your sense of self or make it hard to know how you're coming across. Be wary of projection and idealization in how you present yourself.",
+    ("Neptune", "ASC", "trine"):        "Neptune is flowing into your Ascendant over a multi-year period, making your personal presence more imaginative, spiritually open, and compassionate. Artistic and healing work flourish through how you show up.",
+    ("Neptune", "ASC", "opposition"):   "Neptune is opposite your Ascendant — on your Descendant — dissolving boundaries in close relationships. The line between self and other becomes thin; clarity about what you project onto partners is essential.",
+
+    ("Neptune", "DSC", "conjunction"):  "Neptune is conjunct your Descendant over a multi-year period, bringing idealism, spiritual depth, or confusion into close partnerships. Relationships may feel fated, transcendent — or require careful reality-testing.",
+    ("Neptune", "DSC", "sextile"):      "Neptune is gently supporting your Descendant over time, inspiring compassionate, spiritually attuned connection in relationships. A meaningful partnership may feel almost soulmate-like.",
+    ("Neptune", "DSC", "square"):       "Neptune is squaring your Descendant in a slow transit that can cloud relationship reality with idealization or confusion. See partners as they genuinely are, not as you wish or fear them to be.",
+    ("Neptune", "DSC", "trine"):        "Neptune is flowing into your Descendant, making this an extended period of deep, spiritually attuned connection in partnerships. The highest form of compassionate love is accessible in close relationships right now.",
+    ("Neptune", "DSC", "opposition"):   "Neptune is opposite your Descendant — on your Ascendant — dissolving the ego's clarity about identity. Relationships reflect back where your self-concept has become permeable or unclear.",
+
+    ("Neptune", "MC", "conjunction"):   "Neptune is conjunct your Midheaven over a multi-year period, dissolving clarity about career direction and public identity. Confusion about purpose is real — but so is the opening toward a more spiritually meaningful vocation.",
+    ("Neptune", "MC", "sextile"):       "Neptune is gently supporting your Midheaven, inspiring creative and spiritually aligned career work over time. A vocation with genuine meaning becomes more accessible.",
+    ("Neptune", "MC", "square"):        "Neptune is squaring your Midheaven in a slow transit that can blur career goals or undermine public reputation through confusion or wishful thinking. Grounding your professional vision in concrete steps is essential.",
+    ("Neptune", "MC", "trine"):         "Neptune is flowing into your Midheaven, making this a period where creative, healing, or spiritually meaningful work can be genuinely recognized and rewarded in the public sphere.",
+    ("Neptune", "MC", "opposition"):    "Neptune is opposite your Midheaven — on your IC — dissolving private foundations in ways that are hard to name. Inner life becomes deeply fluid; the outer professional identity compensates by hardening or drifting.",
+
+    ("Neptune", "IC", "conjunction"):   "Neptune is at your IC over a long period, dissolving the fixed sense of home, family, and roots. What once felt like solid ground becomes more fluid — spiritually rich and sometimes disorienting.",
+    ("Neptune", "IC", "sextile"):       "Neptune is gently supporting your IC over time, opening your home and family life to greater compassion, imagination, and spiritual nourishment.",
+    ("Neptune", "IC", "square"):        "Neptune is squaring your IC in a slow transit that can blur boundaries in family life or make the private foundations of your existence feel unstable. What is genuinely nourishing, and what is illusion?",
+    ("Neptune", "IC", "trine"):         "Neptune is flowing into your IC, making home and family life feel spiritually nourishing and compassionately held over an extended period. The inner life becomes a genuine sanctuary.",
+    ("Neptune", "IC", "opposition"):    "Neptune is opposite your IC — on your Midheaven — dissolving certainty about career and public direction. The outer world becomes misty as the inner private life asks for deeper spiritual honesty.",
+
+    # Transiting Pluto → Angles
+    ("Pluto", "ASC", "conjunction"):   "Pluto is conjunct your Ascendant in a rare, long transit — a total transformation of identity, body, and how you meet the world. Who you were before is being dismantled to make room for who you are becoming. The process is not gentle, but it is essential.",
+    ("Pluto", "ASC", "sextile"):       "Pluto is gently supporting your Ascendant over time, enabling deep personal transformation to unfold at a sustainable pace. Your identity is evolving from the inside out.",
+    ("Pluto", "ASC", "square"):        "Pluto is squaring your Ascendant in a slow, powerful transit. External events and internal pressure combine to force a fundamental change in how you carry yourself in the world. What is not genuinely you cannot survive this passage.",
+    ("Pluto", "ASC", "trine"):         "Pluto is flowing into your Ascendant over a multi-year period, supporting a deep and purposeful transformation of identity and self-presentation. You emerge from this period more fully and authentically yourself.",
+    ("Pluto", "ASC", "opposition"):    "Pluto is opposite your Ascendant — on your Descendant — bringing transformative forces through close relationships. Someone or something in your relationship sphere is the catalyst for a fundamental change in who you are.",
+
+    ("Pluto", "DSC", "conjunction"):   "Pluto is conjunct your Descendant over an extended period, transforming your relationship sphere from the ground up. Significant partnerships end or are profoundly remade; the kinds of people and bonds you attract are fundamentally changing.",
+    ("Pluto", "DSC", "sextile"):       "Pluto is gently deepening your Descendant over time, enriching close partnerships with unusual depth and transformative possibility.",
+    ("Pluto", "DSC", "square"):        "Pluto is squaring your Descendant in a slow, intense transit. Power dynamics in close relationships are surfacing and demanding honest reckoning. What does not serve genuine mutual growth is being dismantled.",
+    ("Pluto", "DSC", "trine"):         "Pluto is flowing into your Descendant, enabling deep and lasting transformation in close partnerships over time. Relationships that survive this period are profoundly real.",
+    ("Pluto", "DSC", "opposition"):    "Pluto is opposite your Descendant — on your Ascendant — driving transformation through the self. The changes in who you are inevitably reshape who and what you attract in relationship.",
+
+    ("Pluto", "MC", "conjunction"):    "Pluto is conjunct your Midheaven — a rare, defining career transit. Professional life is being stripped down and rebuilt from what is most essential and powerful. The public role you emerge with is fundamentally different from the one you entered with.",
+    ("Pluto", "MC", "sextile"):        "Pluto is gently supporting your Midheaven over time, enabling deep, purposeful transformation in career and public life at a pace that can be absorbed and integrated.",
+    ("Pluto", "MC", "square"):         "Pluto is squaring your Midheaven in a slow, demanding transit. Career structures, public reputation, or your relationship with authority are under intense pressure. What is most authentic about your ambitions is all that will remain.",
+    ("Pluto", "MC", "trine"):          "Pluto is flowing into your Midheaven over an extended period, enabling a profound and lasting transformation of your career direction and public identity. What you build now in professional life carries unusual depth and consequence.",
+    ("Pluto", "MC", "opposition"):     "Pluto is opposite your Midheaven — on your IC — bringing transformative pressure to home, family, and private foundations. The roots must be renegotiated before the outer structure of career and reputation can be genuinely renewed.",
+
+    ("Pluto", "IC", "conjunction"):    "Pluto is at your IC in a rare, long transit, transforming your most private foundations — home, family history, and the psychological roots of your sense of self. What has been buried in the family lineage is surfacing for reckoning and release.",
+    ("Pluto", "IC", "sextile"):        "Pluto is gently supporting your IC over time, enabling deep transformation of home and family life in ways that feel purposeful rather than catastrophic.",
+    ("Pluto", "IC", "square"):         "Pluto is squaring your IC in a slow, powerful transit. Home instability, family upheaval, or the forced confrontation of deep psychological roots are themes. What was hidden in the foundations is now impossible to ignore.",
+    ("Pluto", "IC", "trine"):          "Pluto is flowing into your IC over an extended period, allowing the deepest private foundations of your life to be transformed in ways that are lasting and genuinely healing.",
+    ("Pluto", "IC", "opposition"):     "Pluto is opposite your IC — on your Midheaven — directing transformative pressure at career and public life. The private sphere must release old power structures before the public one can be genuinely rebuilt.",
+}
+
 # ── Lookup helpers ────────────────────────────────────────────────────────────
 
 def natal_aspect_text(p1: str, p2: str, aspect: str) -> str:
@@ -1031,3 +2374,15 @@ def planet_in_sign_text(planet: str, sign: str) -> str:
 
 def planet_in_house_text(planet: str, house: int) -> str:
     return PLANET_IN_HOUSE.get((planet, house), "")
+
+
+def transit_in_sign_text(planet: str, sign: str) -> str:
+    return TRANSIT_IN_SIGN.get((planet, sign), "")
+
+
+def sky_aspect_text(p1: str, p2: str, aspect: str) -> str:
+    return SKY_ASPECT.get((*sorted([p1, p2]), aspect), "")
+
+
+def transit_to_natal_text(transit_planet: str, natal_planet: str, aspect: str) -> str:
+    return TRANSIT_TO_NATAL.get((transit_planet, natal_planet, aspect), "")
