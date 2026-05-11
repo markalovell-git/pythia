@@ -282,6 +282,28 @@ class _ZodiacWheel(QWidget):
         show_natal  = self._cb_natal.isChecked()
         show_labels = self._cb_labels.isChecked()
 
+        # Spotlight: when a sign or house is hovered, occupants stay bright,
+        # everything else dims. Angles are never spotlit.
+        spotlight_active = bool(self._hovered_sign) or bool(self._hovered_house)
+        spotlit_natals: set[str] = set()
+        spotlit_transits: set[str] = set()
+        if spotlight_active:
+            cusps = self._chart.house_cusps if self._chart else None
+            def _matches(pos) -> bool:
+                if self._hovered_sign:
+                    return pos.sign == self._hovered_sign
+                if self._hovered_house and cusps:
+                    return chart_model.get_house_number(pos.longitude, cusps) == self._hovered_house
+                return False
+            if self._chart:
+                for n, p in self._chart.positions.items():
+                    if n not in ANGLE_NAMES and _matches(p):
+                        spotlit_natals.add(n)
+            if self._transits:
+                for n, p in self._transits.positions.items():
+                    if n not in ANGLE_NAMES and _matches(p):
+                        spotlit_transits.add(n)
+
         # Rotate the whole chart so ASC lands at the left (the horizon line is horizontal).
         # When no chart is loaded, fall back to the legacy "Aries at bottom" layout.
         if self._chart and "ASC" in self._chart.positions:
@@ -423,8 +445,13 @@ class _ZodiacWheel(QWidget):
                 mid_lon     = (cusp_lon + sector_span / 2) % 360
                 lx, ly = _angle_to_xy(cx, cy, label_r_band, mid_lon, rot)
                 self._house_positions[i + 1] = (lx, ly)
+                is_house_hov = (i + 1) == self._hovered_house
+                if is_house_hov:
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.setBrush(QBrush(QColor(255, 255, 255, 30)))
+                    painter.drawEllipse(QPointF(lx, ly), 22, 22)
                 num_color = QColor("#7070a0")
-                if (i + 1) == self._hovered_house:
+                if is_house_hov:
                     num_color = num_color.lighter(160)
                 painter.setPen(QPen(num_color))
                 painter.drawText(QRectF(lx - 30, ly - 24, 60, 48),
@@ -567,6 +594,12 @@ class _ZodiacWheel(QWidget):
                 if name == self._hovered:
                     color = color.lighter(130)
                     painter.setPen(QPen(color, 2.0))
+                elif spotlight_active and name in spotlit_natals:
+                    color = color.lighter(130)
+                    painter.setPen(QPen(color, 1.5))
+                elif spotlight_active:
+                    color.setAlpha(50)
+                    painter.setPen(QPen(color, 1.0))
                 else:
                     color.setAlpha(140)
                     painter.setPen(QPen(color, 1.0))
@@ -580,6 +613,8 @@ class _ZodiacWheel(QWidget):
                 self._planet_positions[name] = (gx, gy)
                 color = QColor(PLANET_COLORS.get(name, "#ffffff"))
                 is_hovered = name == self._hovered
+                is_spotlit = spotlight_active and name in spotlit_natals
+                is_dimmed  = spotlight_active and not is_spotlit
 
                 pt = GLYPH_PT_OVERRIDE.get(name, GLYPH_PT)
                 if pt != GLYPH_PT:
@@ -594,7 +629,9 @@ class _ZodiacWheel(QWidget):
                     painter.setBrush(QBrush(QColor(255, 255, 255, 30)))
                     painter.drawEllipse(QPointF(gx, gy), half + 4, half + 4)
 
-                painter.setPen(QPen(QColor("#ffffff") if is_hovered else color))
+                if is_dimmed:
+                    color.setAlpha(70)
+                painter.setPen(QPen(QColor("#ffffff") if (is_hovered or is_spotlit) else color))
                 painter.drawText(QRectF(gx - half, gy - half, GLYPH_PX, GLYPH_PX),
                                  Qt.AlignmentFlag.AlignCenter, glyph)
 
@@ -620,6 +657,12 @@ class _ZodiacWheel(QWidget):
                 if name == self._hovered_transit:
                     color = color.lighter(130)
                     painter.setPen(QPen(color, 2.0))
+                elif spotlight_active and name in spotlit_transits:
+                    color = color.lighter(130)
+                    painter.setPen(QPen(color, 1.5))
+                elif spotlight_active:
+                    color.setAlpha(40)
+                    painter.setPen(QPen(color, 1.0))
                 else:
                     color.setAlpha(100)
                     painter.setPen(QPen(color, 1.0))
@@ -635,6 +678,8 @@ class _ZodiacWheel(QWidget):
                 self._transit_positions[name] = (gx, gy)
                 color = QColor(PLANET_COLORS.get(name, "#ffffff"))
                 is_hovered = name == self._hovered_transit
+                is_spotlit = spotlight_active and name in spotlit_transits
+                is_dimmed  = spotlight_active and not is_spotlit
 
                 pt = round(GLYPH_PT_OVERRIDE[name] * TRANSIT_GLYPH_PT / GLYPH_PT) if name in GLYPH_PT_OVERRIDE else TRANSIT_GLYPH_PT
                 f = QFont()
@@ -647,13 +692,14 @@ class _ZodiacWheel(QWidget):
                     painter.drawEllipse(QPointF(gx, gy), half_t + 4, half_t + 4)
 
                 # Base layer — normal planet color
-                color.setAlpha(185)
-                painter.setPen(QPen(QColor("#ffffff") if is_hovered else color))
+                color.setAlpha(60 if is_dimmed else 185)
+                painter.setPen(QPen(QColor("#ffffff") if (is_hovered or is_spotlit) else color))
                 painter.drawText(QRectF(gx - half_t, gy - half_t, TRANSIT_GLYPH_PX, TRANSIT_GLYPH_PX),
                                  Qt.AlignmentFlag.AlignCenter, glyph)
 
                 # Ghost layer — blue on top
-                painter.setPen(QPen(QColor(120, 150, 255, 128)))
+                ghost_alpha = 40 if is_dimmed else 128
+                painter.setPen(QPen(QColor(120, 150, 255, ghost_alpha)))
                 painter.drawText(QRectF(gx - half_t, gy - half_t, TRANSIT_GLYPH_PX, TRANSIT_GLYPH_PX),
                                  Qt.AlignmentFlag.AlignCenter, glyph)
 
@@ -1057,12 +1103,19 @@ class ChartView(QWidget):
             return
         numeral = HOUSE_NUMERALS[hnum - 1]
         subtitle, description = HOUSE_INFO.get(hnum, ("", ""))
+        cusps = self._chart.house_cusps if self._chart else None
+        def in_house(name, pos, is_transit):
+            if not cusps:
+                return False
+            return chart_model.get_house_number(pos.longitude, cusps) == hnum
+        occupants = self._occupants_html(in_house)
         html = f"""
         <p style="font-size:24px; color:#9090cc; margin:0 0 4px 0;"><b>House {numeral}</b></p>
         <p style="color:#7070a0; margin:0 0 10px 0; font-size:13px;">{subtitle}</p>
         <p style="color:#a0a0c0; margin:0 0 14px 0; font-size:14px; line-height:1.6;">
             {description}
         </p>
+        {occupants}
         """
         self.info_panel.setHtml(html)
 
@@ -1071,14 +1124,50 @@ class ChartView(QWidget):
             return
         glyph = SIGN_GLYPHS[SIGN_NAMES.index(name)]
         element, description = SIGN_INFO.get(name, ("", ""))
+        def in_sign(n, pos, is_transit):
+            return pos.sign == name
+        occupants = self._occupants_html(in_sign)
         html = f"""
         <p style="font-size:24px; color:#9090cc; margin:0 0 4px 0;">{glyph} <b>{name}</b></p>
         <p style="color:#7070a0; margin:0 0 10px 0; font-size:13px;">{element}</p>
         <p style="color:#a0a0c0; margin:0 0 14px 0; font-size:14px; line-height:1.6;">
             {description}
         </p>
+        {occupants}
         """
         self.info_panel.setHtml(html)
+
+    def _occupants_html(self, predicate) -> str:
+        rows = []
+        if self._chart:
+            for name, pos in self._chart.positions.items():
+                if name in ANGLE_NAMES:
+                    continue
+                if predicate(name, pos, False):
+                    rows.append((name, pos, False))
+        transits = self.wheel._transits
+        if transits:
+            for name, pos in transits.positions.items():
+                if name in ANGLE_NAMES:
+                    continue
+                if predicate(name, pos, True):
+                    rows.append((name, pos, True))
+        if not rows:
+            return ""
+        lines = ""
+        for name, pos, is_transit in rows:
+            glyph = PLANET_GLYPHS.get(name, name[:2])
+            color = PLANET_COLORS.get(name, "#ffffff")
+            tag = " <span style='color:#5fd6e0; font-weight:600;'>· transit</span>" if is_transit else ""
+            lines += (
+                f'<span style="color:{color}; font-size:18px;">{glyph}</span> '
+                f'{name} '
+                f'<span style="color:#555">{pos.sign} {pos.degree:.1f}°</span>{tag}<br>'
+            )
+        return (
+            "<p style='color:#666; font-size:13px; margin:8px 0 6px 0;'>Occupants:</p>"
+            f"<p style='font-size:13px; line-height:1.8; margin:0;'>{lines}</p>"
+        )
 
     def _on_error(self, msg: str):
         self.status_label.setText(f"Error: {msg}")
