@@ -357,3 +357,94 @@ def compute_transits(natal_positions: dict, zodiac_system: str, dt: datetime | N
                     })
 
     return sorted(transits, key=lambda x: x["orb"])
+
+
+_TRANSIT_WINDOW_SKIP = frozenset({"Moon"})
+
+
+def _group_indices_to_windows(indices: list[int], dates: list) -> list[dict]:
+    if not indices:
+        return []
+    windows = []
+    start = prev = indices[0]
+    for idx in indices[1:]:
+        if idx - prev > 1:
+            windows.append({"start": dates[start].date().isoformat(),
+                            "end":   dates[prev].date().isoformat()})
+            start = idx
+        prev = idx
+    windows.append({"start": dates[start].date().isoformat(),
+                    "end":   dates[prev].date().isoformat()})
+    return windows
+
+
+def _build_transit_windows(
+    day_lons: list[dict[str, float]],
+    dates: list,
+    natal_positions: dict,
+) -> list[dict]:
+    """Group daily longitude snapshots into aspect windows. Pure logic — no Skyfield calls."""
+    active: dict[tuple, list[int]] = {}
+    for i, lons in enumerate(day_lons):
+        for tp_name, tp_lon in lons.items():
+            for np_name, np_data in natal_positions.items():
+                diff = _angular_difference(tp_lon, np_data["longitude"])
+                for aspect_name, angle, orb in ASPECTS:
+                    if abs(diff - angle) <= orb:
+                        active.setdefault((tp_name, np_name, aspect_name), []).append(i)
+                        break
+    return [
+        {"transit_planet": tp, "natal_planet": np, "aspect": asp,
+         "windows": _group_indices_to_windows(idxs, dates)}
+        for (tp, np, asp), idxs in active.items()
+    ]
+
+
+def compute_transit_windows(
+    natal_positions: dict,
+    zodiac_system: str,
+    center_dt: datetime | None = None,
+    window_months: int = 6,
+) -> list[dict]:
+    """Scan ±window_months from center_dt for transit-to-natal aspect windows.
+
+    Moon is excluded (moves too fast for daily steps to be reliable).
+    Returns [{transit_planet, natal_planet, aspect, windows: [{start, end}]}].
+    """
+    center     = (center_dt or datetime.now(timezone.utc)).replace(tzinfo=timezone.utc)
+    half       = timedelta(days=window_months * 30)
+    scan_start = max(center - half, datetime(EPHEMERIS_MIN_YEAR, 1, 2, tzinfo=timezone.utc))
+    scan_end   = min(center + half, datetime(EPHEMERIS_MAX_YEAR, 12, 30, tzinfo=timezone.utc))
+
+    n_days = (scan_end - scan_start).days + 1
+    dates  = [scan_start + timedelta(days=i) for i in range(n_days)]
+
+    planets_obj, ts = _load_ephemeris()
+    earth  = planets_obj["earth"]
+    times  = ts.from_datetimes(dates)
+    tt_arr = times.tt  # numpy array of TT Julian dates
+
+    day_lons: list[dict[str, float]] = [{} for _ in range(n_days)]
+
+    for name, body in PLANETS:
+        if name in _TRANSIT_WINDOW_SKIP:
+            continue
+        lon_arr = earth.at(times).observe(planets_obj[body]).frame_latlon(ecliptic_frame)[1].degrees
+        for i in range(n_days):
+            tropical = float(lon_arr[i]) % 360
+            day_lons[i][name] = (
+                (tropical - _lahiri_ayanamsa(float(tt_arr[i]))) % 360
+                if zodiac_system == "sidereal"
+                else tropical
+            )
+
+    for i in range(n_days):
+        tt      = float(tt_arr[i])
+        T       = (tt - _J2000) / _DAYS_PER_CENTURY
+        nn_lon  = (_NN_LON_J2000 - _NN_RATE * T) % 360
+        if zodiac_system == "sidereal":
+            nn_lon = (nn_lon - _lahiri_ayanamsa(tt)) % 360
+        day_lons[i]["North Node"] = nn_lon
+        day_lons[i]["South Node"] = (nn_lon + 180.0) % 360
+
+    return _build_transit_windows(day_lons, dates, natal_positions)

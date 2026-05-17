@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
 from app.common.database import get_db, UserData, UserSettings, NatalChart
-from app.astrology.chart import compute_natal_chart, compute_transits, compute_planet_positions, compute_sky_aspects
+from app.astrology.chart import compute_natal_chart, compute_transits, compute_planet_positions, compute_sky_aspects, compute_transit_windows
 
 chart_router = APIRouter()
 
@@ -93,6 +93,33 @@ async def calculate_transits(
         "zodiac_system": settings.zodiac_system,
         "date": (dt or datetime.now(timezone.utc)).isoformat(),
         "transits": transits,
+    }
+
+
+@chart_router.get("/transit_windows/{user_id}")
+async def get_transit_windows(
+    user_id: str,
+    date: str | None = Query(None, description="ISO datetime to center the 12-month scan on, e.g. 2026-05-17T12:00:00. Defaults to now."),
+    db: Session = Depends(get_db),
+):
+    chart = db.query(NatalChart).filter(NatalChart.user_id == user_id).first()
+    if not chart:
+        raise HTTPException(status_code=404, detail="Natal chart not found — call /calculate_natal_chart first")
+    dt = None
+    if date:
+        try:
+            dt = datetime.fromisoformat(date).replace(tzinfo=timezone.utc)
+        except ValueError:
+            raise HTTPException(status_code=422, detail=f"Invalid date format: {date!r}. Use ISO format e.g. 2026-05-17T12:00:00")
+    settings = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
+    try:
+        windows = compute_transit_windows(chart.positions, settings.zodiac_system, dt)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return {
+        "user_id": user_id,
+        "date": (dt or datetime.now(timezone.utc)).isoformat(),
+        "windows": windows,
     }
 
 

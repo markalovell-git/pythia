@@ -1,6 +1,7 @@
+from datetime import datetime, timezone, timedelta
 from unittest.mock import patch
 
-from app.astrology.chart import compute_sky_aspects
+from app.astrology.chart import compute_sky_aspects, _group_indices_to_windows, _build_transit_windows
 
 MOCK_POSITIONS = {
     "Sun":     {"longitude": 84.50,  "sign": "Gemini",    "degree": 24.50},
@@ -236,3 +237,151 @@ def test_sky_aspects_out_of_range_date(client, created_user):
     response = client.get(f"/api/sky_aspects/{created_user}", params={"date": "1850-01-01T00:00:00"})
     assert response.status_code == 422
     assert "range" in response.json()["detail"].lower()
+
+
+# ── Unit tests: _group_indices_to_windows ─────────────────────────────────────
+
+_BASE_DATE = datetime(2026, 5, 1, tzinfo=timezone.utc)
+_DATES_10  = [_BASE_DATE + timedelta(days=i) for i in range(10)]
+
+
+def test_group_indices_single_window():
+    result = _group_indices_to_windows([0, 1, 2], _DATES_10)
+    assert result == [{"start": "2026-05-01", "end": "2026-05-03"}]
+
+
+def test_group_indices_two_windows():
+    result = _group_indices_to_windows([0, 1, 4, 5, 6], _DATES_10)
+    assert len(result) == 2
+    assert result[0] == {"start": "2026-05-01", "end": "2026-05-02"}
+    assert result[1] == {"start": "2026-05-05", "end": "2026-05-07"}
+
+
+def test_group_indices_three_windows_retrograde_loop():
+    result = _group_indices_to_windows([0, 1, 3, 4, 7, 8], _DATES_10)
+    assert len(result) == 3
+
+
+def test_group_indices_single_day():
+    result = _group_indices_to_windows([3], _DATES_10)
+    assert result == [{"start": "2026-05-04", "end": "2026-05-04"}]
+
+
+def test_group_indices_empty():
+    assert _group_indices_to_windows([], _DATES_10) == []
+
+
+# ── Unit tests: _build_transit_windows ───────────────────────────────────────
+
+_NATAL_SUN_90 = {"Sun": {"longitude": 90.0}}
+
+
+def test_build_transit_windows_detects_conjunction():
+    # Saturn at 92° — 2° orb conjunction with natal Sun at 90°
+    dates    = [_BASE_DATE + timedelta(days=i) for i in range(3)]
+    day_lons = [{"Saturn": 92.0} for _ in dates]
+    result   = _build_transit_windows(day_lons, dates, _NATAL_SUN_90)
+    assert len(result) == 1
+    r = result[0]
+    assert r["transit_planet"] == "Saturn"
+    assert r["natal_planet"]   == "Sun"
+    assert r["aspect"]         == "conjunction"
+    assert r["windows"]        == [{"start": "2026-05-01", "end": "2026-05-03"}]
+
+
+def test_build_transit_windows_no_aspect():
+    # Saturn 45° from natal Sun — no standard aspect within orb
+    dates    = [_BASE_DATE]
+    day_lons = [{"Saturn": 135.0}]
+    result   = _build_transit_windows(day_lons, dates, _NATAL_SUN_90)
+    assert result == []
+
+
+def test_build_transit_windows_two_separate_windows():
+    # Days 0-2 active, days 5-7 active (gap at days 3-4)
+    dates    = [_BASE_DATE + timedelta(days=i) for i in range(8)]
+    day_lons = (
+        [{"Saturn": 92.0}] * 3   # days 0-2: conjunction (orb 2°)
+        + [{"Saturn": 100.0}] * 2  # days 3-4: outside orb (10° from Sun at 90°)
+        + [{"Saturn": 92.0}] * 3   # days 5-7: back in orb (retrograde)
+    )
+    result = _build_transit_windows(day_lons, dates, _NATAL_SUN_90)
+    assert len(result) == 1
+    assert len(result[0]["windows"]) == 2
+    assert result[0]["windows"][0] == {"start": "2026-05-01", "end": "2026-05-03"}
+    assert result[0]["windows"][1] == {"start": "2026-05-06", "end": "2026-05-08"}
+
+
+def test_build_transit_windows_moon_not_excluded():
+    # _build_transit_windows itself doesn't filter Moon — that's compute_transit_windows' job
+    dates    = [_BASE_DATE]
+    day_lons = [{"Moon": 91.0}]
+    result   = _build_transit_windows(day_lons, dates, _NATAL_SUN_90)
+    assert len(result) == 1
+    assert result[0]["transit_planet"] == "Moon"
+
+
+def test_build_transit_windows_trine():
+    # Saturn at 210° — 0° orb trine with natal Sun at 90° (120° apart)
+    dates    = [_BASE_DATE]
+    day_lons = [{"Saturn": 210.0}]
+    result   = _build_transit_windows(day_lons, dates, _NATAL_SUN_90)
+    assert len(result) == 1
+    assert result[0]["aspect"] == "trine"
+
+
+# ── Endpoint tests: GET /transit_windows/{user_id} ───────────────────────────
+
+MOCK_WINDOWS = [
+    {
+        "transit_planet": "Saturn",
+        "natal_planet":   "Sun",
+        "aspect":         "conjunction",
+        "windows":        [{"start": "2026-04-01", "end": "2026-05-15"}],
+    }
+]
+
+
+def test_transit_windows_success(client, created_user):
+    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_CHART_RETURN):
+        client.post(f"/api/calculate_natal_chart/{created_user}")
+    with patch("app.backend.chart_router.compute_transit_windows", return_value=MOCK_WINDOWS):
+        response = client.get(f"/api/transit_windows/{created_user}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["user_id"] == created_user
+    assert "date" in data
+    assert len(data["windows"]) == 1
+    assert data["windows"][0]["transit_planet"] == "Saturn"
+    assert data["windows"][0]["windows"][0]["start"] == "2026-04-01"
+
+
+def test_transit_windows_no_natal_chart(client, created_user):
+    response = client.get(f"/api/transit_windows/{created_user}")
+    assert response.status_code == 404
+
+
+def test_transit_windows_with_date(client, created_user):
+    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_CHART_RETURN):
+        client.post(f"/api/calculate_natal_chart/{created_user}")
+    with patch("app.backend.chart_router.compute_transit_windows", return_value=MOCK_WINDOWS) as mock:
+        response = client.get(f"/api/transit_windows/{created_user}", params={"date": "2026-03-15T12:00:00"})
+    assert response.status_code == 200
+    assert "2026-03-15" in response.json()["date"]
+    assert mock.call_args[0][2].year == 2026
+
+
+def test_transit_windows_invalid_date(client, created_user):
+    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_CHART_RETURN):
+        client.post(f"/api/calculate_natal_chart/{created_user}")
+    response = client.get(f"/api/transit_windows/{created_user}", params={"date": "bad-date"})
+    assert response.status_code == 422
+
+
+def test_transit_windows_empty_result(client, created_user):
+    with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_CHART_RETURN):
+        client.post(f"/api/calculate_natal_chart/{created_user}")
+    with patch("app.backend.chart_router.compute_transit_windows", return_value=[]):
+        response = client.get(f"/api/transit_windows/{created_user}")
+    assert response.status_code == 200
+    assert response.json()["windows"] == []

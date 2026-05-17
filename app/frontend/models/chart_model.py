@@ -41,6 +41,20 @@ class Transit:
 
 
 @dataclass
+class TransitWindow:
+    start: str  # "YYYY-MM-DD"
+    end: str    # "YYYY-MM-DD"
+
+
+@dataclass
+class TransitWindowResult:
+    transit_planet: str
+    natal_planet: str
+    aspect: str
+    windows: list[TransitWindow]
+
+
+@dataclass
 class Aspect:
     planet1: str
     planet2: str
@@ -82,6 +96,21 @@ def load_transits(user_id: str, date: str | None = None) -> TransitData:
     ]
     transits.sort(key=lambda t: t.orb)
     return TransitData(date=raw["date"], transits=transits)
+
+
+def load_transit_windows(user_id: str, date: str | None = None) -> list[TransitWindowResult]:
+    raw = api_client.get_transit_windows(user_id, date=date)
+    if not raw:
+        return []
+    return [
+        TransitWindowResult(
+            transit_planet=r["transit_planet"],
+            natal_planet=r["natal_planet"],
+            aspect=r["aspect"],
+            windows=[TransitWindow(**w) for w in r["windows"]],
+        )
+        for r in raw["windows"]
+    ]
 
 
 def load_sky_aspects(user_id: str, date: str | None = None) -> list[Aspect]:

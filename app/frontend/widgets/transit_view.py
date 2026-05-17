@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from PyQt6.QtCore import Qt, QDateTime
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
@@ -17,12 +19,28 @@ def _table_cell(text: str, color: str | None = None) -> QTableWidgetItem:
     return item
 
 
+def _format_transit_dates(windows: list[chart_model.TransitWindow]) -> str:
+    parts = []
+    for w in windows:
+        s = datetime.strptime(w.start, "%Y-%m-%d")
+        e = datetime.strptime(w.end, "%Y-%m-%d")
+        if s.year != e.year:
+            parts.append(f"{s.strftime('%b %-d %Y')}–{e.strftime('%b %-d %Y')}")
+        elif s.month == e.month:
+            parts.append(f"{s.strftime('%b %-d')}–{e.strftime('%-d')}")
+        else:
+            parts.append(f"{s.strftime('%b %-d')}–{e.strftime('%b %-d')}")
+    return ",  ".join(parts)
+
+
 class TransitView(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._user_id: str | None = None
         self._worker: ApiWorker | None = None
         self._sky_worker: ApiWorker | None = None
+        self._windows_worker: ApiWorker | None = None
+        self._current_transits: list[chart_model.Transit] = []
         self._build_ui()
 
     def _build_ui(self):
@@ -53,9 +71,9 @@ class TransitView(QWidget):
         transit_label.setStyleSheet("font-weight: bold; margin-top: 6px;")
         layout.addWidget(transit_label)
 
-        self.table = QTableWidget(0, 5)
+        self.table = QTableWidget(0, 6)
         self.table.setHorizontalHeaderLabels([
-            "Transit Planet", "Aspect", "Natal Planet", "Orb", "Transit Position",
+            "Transit Planet", "Aspect", "Natal Planet", "Orb", "Transit Position", "Dates",
         ])
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -91,10 +109,9 @@ class TransitView(QWidget):
     def _on_calculate(self):
         if not self._user_id:
             return
-        if self._worker is not None:
-            self._worker.cancel()
-        if self._sky_worker is not None:
-            self._sky_worker.cancel()
+        for w in (self._worker, self._sky_worker, self._windows_worker):
+            if w is not None:
+                w.cancel()
         date_str = self.dt_edit.dateTime().toString("yyyy-MM-ddTHH:mm:ss")
 
         self.status_label.setText("Calculating…")
@@ -109,8 +126,14 @@ class TransitView(QWidget):
         self._sky_worker.error.connect(self._on_sky_error)
         self._sky_worker.start()
 
+        self._windows_worker = ApiWorker(chart_model.load_transit_windows, self._user_id, date_str)
+        self._windows_worker.result.connect(self._on_windows_result)
+        self._windows_worker.error.connect(lambda _: None)
+        self._windows_worker.start()
+
     def _on_result(self, data: chart_model.TransitData):
         self.status_label.setText(f"{len(data.transits)} active aspect(s) — {data.date[:16]}")
+        self._current_transits = data.transits
         self.table.setRowCount(len(data.transits))
         for row, t in enumerate(data.transits):
             clr = ASPECT_COLORS.get(t.aspect)
@@ -119,6 +142,13 @@ class TransitView(QWidget):
             self.table.setItem(row, 2, _table_cell(t.natal_planet))
             self.table.setItem(row, 3, _table_cell(f"{t.orb:.2f}°"))
             self.table.setItem(row, 4, _table_cell(f"{t.transit_position.sign} {t.transit_position.degree:.1f}°"))
+
+    def _on_windows_result(self, windows: list[chart_model.TransitWindowResult]):
+        lookup = {(w.transit_planet, w.natal_planet, w.aspect): w.windows for w in windows}
+        for row, t in enumerate(self._current_transits):
+            ws = lookup.get((t.transit_planet, t.natal_planet, t.aspect), [])
+            if ws:
+                self.table.setItem(row, 5, _table_cell(_format_transit_dates(ws)))
 
     def _on_error(self, msg: str):
         self.status_label.setText(f"Error: {msg}")
