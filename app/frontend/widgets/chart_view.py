@@ -746,10 +746,11 @@ class _ZodiacWheel(QWidget):
 
         # ── Transit-to-natal aspect lines ────────────────────────
         show_transits_on = self._cb_transits.isChecked()
-        show_all_t_asp   = show_transits_on and self._cb_transit_aspects.isChecked()
-        show_hover_t_asp = show_transits_on and bool(eff_hov_transit)
-        show_angle_t_asp = show_transits_on and angles_on and eff_hov in ANGLE_NAMES
-        if (show_all_t_asp or show_hover_t_asp or show_angle_t_asp) and self._transit_aspects and self._chart:
+        show_all_t_asp       = show_transits_on and self._cb_transit_aspects.isChecked()
+        show_hover_t_asp     = show_transits_on and bool(eff_hov_transit)
+        show_angle_t_asp     = show_transits_on and angles_on and eff_hov in ANGLE_NAMES
+        show_natal_hov_t_asp = show_transits_on and show_natal and bool(eff_hov) and eff_hov not in ANGLE_NAMES
+        if (show_all_t_asp or show_hover_t_asp or show_angle_t_asp or show_natal_hov_t_asp) and self._transit_aspects and self._chart:
             dash_pen = QPen()
             dash_pen.setWidth(1)
             dash_pen.setStyle(Qt.PenStyle.DashLine)
@@ -757,7 +758,7 @@ class _ZodiacWheel(QWidget):
                 if not show_all_t_asp:
                     if show_hover_t_asp and t.transit_planet == eff_hov_transit:
                         pass
-                    elif show_angle_t_asp and t.natal_planet == eff_hov:
+                    elif (show_angle_t_asp or show_natal_hov_t_asp) and t.natal_planet == eff_hov:
                         pass
                     else:
                         continue
@@ -1223,9 +1224,10 @@ class ChartView(QWidget):
             (r.transit_planet, r.natal_planet, r.aspect): r.windows
             for r in results
         }
-        shown = self._locked_transit or self.wheel.hovered_transit
-        if shown:
-            self._show_transit_info(shown)
+        if shown_transit := self._locked_transit or self.wheel.hovered_transit:
+            self._show_transit_info(shown_transit)
+        if shown_natal := self._locked_planet or self.wheel.hovered:
+            self._show_planet_info(shown_natal)
 
     def _on_sky_windows(self, results: list[chart_model.SkyWindowResult]):
         self._sky_windows = {
@@ -1450,18 +1452,6 @@ class ChartView(QWidget):
         # ── Natal aspects section ────────────────────────────────────────────
         my_aspects = [a for a in self.wheel.aspects if a.planet1 == name or a.planet2 == name]
 
-        transit_aspect_lines_html = ""
-        if is_angle and self._transit_aspects:
-            for t in self._transit_aspects.transits:
-                if t.natal_planet != name:
-                    continue
-                asp_color = ASPECT_COLORS.get(t.aspect, "#888")
-                transit_aspect_lines_html += (
-                    f'<span style="color:{asp_color}">╌</span> '
-                    f'{t.aspect.title()} transit {t.transit_planet} '
-                    f'<span style="color:#555">(orb {t.orb:.1f}°)</span><br>'
-                )
-
         aspects_content = ""
         if "natal_aspects" in self._panel_expanded:
             for a in my_aspects:
@@ -1479,11 +1469,40 @@ class ChartView(QWidget):
                     f'<span style="color:#555">(orb {a.orb:.1f}°)</span></p>'
                     f"{interp_html}"
                 )
-            if transit_aspect_lines_html:
-                aspects_content += (
-                    f"<p style='color:#666; font-size:12px; margin:6px 0 4px 12px;'>Active transits:</p>"
-                    f"<p style='font-size:13px; line-height:2.0; margin:0 0 0 12px;'>{transit_aspect_lines_html}</p>"
+
+        # ── Active transits section ──────────────────────────────────────────
+        active_transit_items = []
+        if self._transit_aspects:
+            for t in self._transit_aspects.transits:
+                if t.natal_planet != name:
+                    continue
+                asp_color = ASPECT_COLORS.get(t.aspect, "#888")
+                interp = transit_to_natal_text(t.transit_planet, name, t.aspect)
+                interp_html = (
+                    f"<p style='color:#5a5a7a; font-size:12px; line-height:1.5; margin:0 0 6px 16px;'>"
+                    f"{interp}</p>"
+                ) if interp else ""
+                ws = self._transit_windows.get((t.transit_planet, name, t.aspect), [])
+                date_span = (
+                    f' <span style="color:#667799; font-size:11px;">'
+                    f'{chart_model.format_transit_dates(ws)}</span>'
+                ) if ws else ""
+                active_transit_items.append(
+                    f"<p style='font-size:13px; line-height:1.8; margin:0;'>"
+                    f'<span style="color:{asp_color}">■</span> '
+                    f'Transit {t.transit_planet} {t.aspect.title()} '
+                    f'<span style="color:#555">(orb {t.orb:.1f}°)</span>'
+                    f'{date_span}</p>'
+                    + interp_html
                 )
+
+        active_transit_section = ""
+        if active_transit_items:
+            active_transit_section = self._section_header(
+                "active_transits", f"Active Transits ({len(active_transit_items)})"
+            )
+            if "active_transits" in self._panel_expanded:
+                active_transit_section += "".join(active_transit_items)
 
         html = (
             f"{lock_badge}"
@@ -1494,6 +1513,7 @@ class ChartView(QWidget):
             f"{''.join([self._section_header('placement', 'Placement'), placement_content]) if not is_angle else ''}"
             f"{self._section_header('natal_aspects', f'Natal Aspects ({len(my_aspects)})')}"
             f"{aspects_content}"
+            f"{active_transit_section}"
         )
         self.info_panel.setHtml(html)
 
