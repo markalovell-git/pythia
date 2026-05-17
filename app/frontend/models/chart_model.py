@@ -98,6 +98,22 @@ def load_transits(user_id: str, date: str | None = None) -> TransitData:
     return TransitData(date=raw["date"], transits=transits)
 
 
+def format_transit_dates(windows: list[TransitWindow]) -> str:
+    """Format transit windows as e.g. 'Apr 28–May 15' or 'Apr 1–15,  May 3–20' (retrograde loop)."""
+    from datetime import datetime as _dt
+    parts = []
+    for w in windows:
+        s = _dt.strptime(w.start, "%Y-%m-%d")
+        e = _dt.strptime(w.end, "%Y-%m-%d")
+        if s.year != e.year:
+            parts.append(f"{s.strftime('%b %-d %Y')}–{e.strftime('%b %-d %Y')}")
+        elif s.month == e.month:
+            parts.append(f"{s.strftime('%b %-d')}–{e.strftime('%-d')}")
+        else:
+            parts.append(f"{s.strftime('%b %-d')}–{e.strftime('%b %-d')}")
+    return ",  ".join(parts)
+
+
 def load_transit_windows(user_id: str, date: str | None = None) -> list[TransitWindowResult]:
     raw = api_client.get_transit_windows(user_id, date=date)
     if not raw:

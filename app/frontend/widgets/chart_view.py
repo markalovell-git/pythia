@@ -1046,9 +1046,11 @@ class ChartView(QWidget):
         self._worker: ApiWorker | None = None
         self._transit_worker: ApiWorker | None = None
         self._transit_aspect_worker: ApiWorker | None = None
+        self._transit_windows_worker: ApiWorker | None = None
         self._sky_aspect_worker: ApiWorker | None = None
         self._chart: chart_model.ChartData | None = None
         self._transit_aspects: chart_model.TransitData | None = None
+        self._transit_windows: dict[tuple, list[chart_model.TransitWindow]] = {}
         self._planet_names: list[str] = []
         self._table_mode: str = "natal"   # "natal" or "transit"
         self._locked_planet: str = ""
@@ -1177,7 +1179,8 @@ class ChartView(QWidget):
     def _fetch_transits(self):
         if not self._user_id:
             return
-        for w in (self._transit_worker, self._transit_aspect_worker, self._sky_aspect_worker):
+        for w in (self._transit_worker, self._transit_aspect_worker,
+                  self._transit_windows_worker, self._sky_aspect_worker):
             if w is not None:
                 w.cancel()
         self._transit_worker = ApiWorker(chart_model.load_transit_positions, self._user_id)
@@ -1190,6 +1193,11 @@ class ChartView(QWidget):
         self._transit_aspect_worker.error.connect(lambda _: None)
         self._transit_aspect_worker.start()
 
+        self._transit_windows_worker = ApiWorker(chart_model.load_transit_windows, self._user_id)
+        self._transit_windows_worker.result.connect(self._on_transit_windows)
+        self._transit_windows_worker.error.connect(lambda _: None)
+        self._transit_windows_worker.start()
+
         self._sky_aspect_worker = ApiWorker(chart_model.load_sky_aspects, self._user_id)
         self._sky_aspect_worker.result.connect(self._on_sky_aspects)
         self._sky_aspect_worker.error.connect(lambda _: None)
@@ -1201,6 +1209,12 @@ class ChartView(QWidget):
     def _on_transit_aspects(self, data: chart_model.TransitData | None):
         self._transit_aspects = data
         self.wheel.set_transit_aspects(data)
+
+    def _on_transit_windows(self, results: list[chart_model.TransitWindowResult]):
+        self._transit_windows = {
+            (r.transit_planet, r.natal_planet, r.aspect): r.windows
+            for r in results
+        }
 
     def _on_sky_aspects(self, aspects: list):
         self.wheel.set_sky_aspects(aspects)
@@ -1526,11 +1540,17 @@ class ChartView(QWidget):
                     f"<p style='color:#5a5a7a; font-size:12px; line-height:1.5; margin:0 0 6px 16px;'>"
                     f"{interp}</p>"
                 ) if interp else ""
+                ws = self._transit_windows.get((name, t.natal_planet, t.aspect), [])
+                date_span = (
+                    f' <span style="color:#667799; font-size:11px;">'
+                    f'{chart_model.format_transit_dates(ws)}</span>'
+                ) if ws else ""
                 transit_items.append(
                     f"<p style='font-size:13px; line-height:1.8; margin:0;'>"
                     f'<span style="color:{asp_color}">■</span> '
                     f'{t.aspect.title()} natal {t.natal_planet} '
-                    f'<span style="color:#555">(orb {t.orb:.1f}°)</span></p>'
+                    f'<span style="color:#555">(orb {t.orb:.1f}°)</span>'
+                    f'{date_span}</p>'
                     + interp_html
                 )
 

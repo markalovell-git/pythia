@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from PyQt6.QtCore import Qt, QDateTime
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
@@ -19,18 +17,6 @@ def _table_cell(text: str, color: str | None = None) -> QTableWidgetItem:
     return item
 
 
-def _format_transit_dates(windows: list[chart_model.TransitWindow]) -> str:
-    parts = []
-    for w in windows:
-        s = datetime.strptime(w.start, "%Y-%m-%d")
-        e = datetime.strptime(w.end, "%Y-%m-%d")
-        if s.year != e.year:
-            parts.append(f"{s.strftime('%b %-d %Y')}–{e.strftime('%b %-d %Y')}")
-        elif s.month == e.month:
-            parts.append(f"{s.strftime('%b %-d')}–{e.strftime('%-d')}")
-        else:
-            parts.append(f"{s.strftime('%b %-d')}–{e.strftime('%b %-d')}")
-    return ",  ".join(parts)
 
 
 class TransitView(QWidget):
@@ -148,7 +134,7 @@ class TransitView(QWidget):
         for row, t in enumerate(self._current_transits):
             ws = lookup.get((t.transit_planet, t.natal_planet, t.aspect), [])
             if ws:
-                self.table.setItem(row, 5, _table_cell(_format_transit_dates(ws)))
+                self.table.setItem(row, 5, _table_cell(chart_model.format_transit_dates(ws)))
 
     def _on_error(self, msg: str):
         self.status_label.setText(f"Error: {msg}")
