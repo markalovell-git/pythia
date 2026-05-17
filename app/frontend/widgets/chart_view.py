@@ -746,9 +746,9 @@ class _ZodiacWheel(QWidget):
 
         # ── Transit-to-natal aspect lines ────────────────────────
         show_transits_on = self._cb_transits.isChecked()
-        show_all_t_asp   = show_transits_on and show_natal and self._cb_transit_aspects.isChecked()
-        show_hover_t_asp = show_transits_on and show_natal and bool(eff_hov_transit)
-        show_angle_t_asp = show_transits_on and show_natal and eff_hov in ANGLE_NAMES
+        show_all_t_asp   = show_transits_on and self._cb_transit_aspects.isChecked()
+        show_hover_t_asp = show_transits_on and bool(eff_hov_transit)
+        show_angle_t_asp = show_transits_on and angles_on and eff_hov in ANGLE_NAMES
         if (show_all_t_asp or show_hover_t_asp or show_angle_t_asp) and self._transit_aspects and self._chart:
             dash_pen = QPen()
             dash_pen.setWidth(1)
@@ -764,6 +764,8 @@ class _ZodiacWheel(QWidget):
                 if t.natal_planet not in self._chart.positions:
                     continue
                 if not angles_on and t.natal_planet in ANGLE_NAMES:
+                    continue
+                if not show_natal and t.natal_planet not in ANGLE_NAMES:
                     continue
                 if not self._transits or t.transit_planet not in self._transits.positions:
                     continue
