@@ -1215,6 +1215,10 @@ class ChartView(QWidget):
             (r.transit_planet, r.natal_planet, r.aspect): r.windows
             for r in results
         }
+        # Refresh sidebar if a transit is currently visible so dates appear without re-hover.
+        shown = self._locked_transit or self.wheel.hovered_transit
+        if shown:
+            self._show_transit_info(shown)
 
     def _on_sky_aspects(self, aspects: list):
         self.wheel.set_sky_aspects(aspects)
