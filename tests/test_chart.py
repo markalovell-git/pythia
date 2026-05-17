@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch
 
-from app.astrology.chart import compute_sky_aspects, _group_indices_to_windows, _build_transit_windows
+from app.astrology.chart import compute_sky_aspects, _group_indices_to_windows, _build_transit_windows, _build_sky_windows
 
 MOCK_POSITIONS = {
     "Sun":     {"longitude": 84.50,  "sign": "Gemini",    "degree": 24.50},
@@ -383,5 +383,106 @@ def test_transit_windows_empty_result(client, created_user):
         client.post(f"/api/calculate_natal_chart/{created_user}")
     with patch("app.backend.chart_router.compute_transit_windows", return_value=[]):
         response = client.get(f"/api/transit_windows/{created_user}")
+    assert response.status_code == 200
+    assert response.json()["windows"] == []
+
+
+# ── Unit tests: _build_sky_windows ───────────────────────────────────────────
+
+def test_build_sky_windows_detects_conjunction():
+    # Saturn at 92°, Jupiter at 90° — 2° orb conjunction
+    dates    = [_BASE_DATE + timedelta(days=i) for i in range(3)]
+    day_lons = [{"Saturn": 92.0, "Jupiter": 90.0} for _ in dates]
+    result   = _build_sky_windows(day_lons, dates)
+    assert len(result) == 1
+    r = result[0]
+    assert r["aspect"] == "conjunction"
+    assert set([r["planet1"], r["planet2"]]) == {"Saturn", "Jupiter"}
+    assert r["windows"] == [{"start": "2026-05-01", "end": "2026-05-03"}]
+
+
+def test_build_sky_windows_planet_order_consistent():
+    # Jupiter appears before Saturn in PLANETS list — planet1 must be Jupiter
+    dates    = [_BASE_DATE]
+    day_lons = [{"Jupiter": 90.0, "Saturn": 92.0}]
+    result   = _build_sky_windows(day_lons, dates)
+    assert result[0]["planet1"] == "Jupiter"
+    assert result[0]["planet2"] == "Saturn"
+
+
+def test_build_sky_windows_excludes_node_pair():
+    # North Node opposite South Node — always 180° but should be excluded
+    dates    = [_BASE_DATE]
+    day_lons = [{"North Node": 0.0, "South Node": 180.0}]
+    result   = _build_sky_windows(day_lons, dates)
+    assert result == []
+
+
+def test_build_sky_windows_no_aspect():
+    # 45° apart — no standard aspect within orb
+    dates    = [_BASE_DATE]
+    day_lons = [{"Saturn": 0.0, "Jupiter": 45.0}]
+    result   = _build_sky_windows(day_lons, dates)
+    assert result == []
+
+
+def test_build_sky_windows_two_windows():
+    dates    = [_BASE_DATE + timedelta(days=i) for i in range(8)]
+    day_lons = (
+        [{"Saturn": 92.0, "Jupiter": 90.0}] * 3
+        + [{"Saturn": 100.0, "Jupiter": 90.0}] * 2
+        + [{"Saturn": 92.0, "Jupiter": 90.0}] * 3
+    )
+    result = _build_sky_windows(day_lons, dates)
+    assert len(result) == 1
+    assert len(result[0]["windows"]) == 2
+
+
+# ── Endpoint tests: GET /sky_windows/{user_id} ───────────────────────────────
+
+MOCK_SKY_WINDOWS = [
+    {
+        "planet1":  "Jupiter",
+        "planet2":  "Saturn",
+        "aspect":   "conjunction",
+        "windows":  [{"start": "2026-04-01", "end": "2026-05-20"}],
+    }
+]
+
+
+def test_sky_windows_success(client, created_user):
+    with patch("app.backend.chart_router.compute_sky_windows", return_value=MOCK_SKY_WINDOWS):
+        response = client.get(f"/api/sky_windows/{created_user}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["user_id"] == created_user
+    assert "date" in data
+    assert len(data["windows"]) == 1
+    assert data["windows"][0]["planet1"] == "Jupiter"
+    assert data["windows"][0]["windows"][0]["start"] == "2026-04-01"
+
+
+def test_sky_windows_user_not_found(client):
+    with patch("app.backend.chart_router.compute_sky_windows", return_value=MOCK_SKY_WINDOWS):
+        response = client.get("/api/sky_windows/nonexistent-uuid")
+    assert response.status_code == 404
+
+
+def test_sky_windows_with_date(client, created_user):
+    with patch("app.backend.chart_router.compute_sky_windows", return_value=MOCK_SKY_WINDOWS) as mock:
+        response = client.get(f"/api/sky_windows/{created_user}", params={"date": "2026-01-15T12:00:00"})
+    assert response.status_code == 200
+    assert "2026-01-15" in response.json()["date"]
+    assert mock.call_args[0][1].year == 2026
+
+
+def test_sky_windows_invalid_date(client, created_user):
+    response = client.get(f"/api/sky_windows/{created_user}", params={"date": "bad-date"})
+    assert response.status_code == 422
+
+
+def test_sky_windows_empty_result(client, created_user):
+    with patch("app.backend.chart_router.compute_sky_windows", return_value=[]):
+        response = client.get(f"/api/sky_windows/{created_user}")
     assert response.status_code == 200
     assert response.json()["windows"] == []

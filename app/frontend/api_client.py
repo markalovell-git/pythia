@@ -112,6 +112,11 @@ def get_sky_aspects(user_id: str, date: str | None = None) -> dict:
     return _get(f"/sky_aspects/{user_id}", **params)
 
 
+def get_sky_windows(user_id: str, date: str | None = None) -> dict | None:
+    params = {"date": date} if date else {}
+    return _get(f"/sky_windows/{user_id}", **params)
+
+
 def get_transit_windows(user_id: str, date: str | None = None) -> dict | None:
     params = {"date": date} if date else {}
     return _get(f"/transit_windows/{user_id}", **params)

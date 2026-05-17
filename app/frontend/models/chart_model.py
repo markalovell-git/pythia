@@ -47,6 +47,14 @@ class TransitWindow:
 
 
 @dataclass
+class SkyWindowResult:
+    planet1: str
+    planet2: str
+    aspect: str
+    windows: list[TransitWindow]
+
+
+@dataclass
 class TransitWindowResult:
     transit_planet: str
     natal_planet: str
@@ -112,6 +120,21 @@ def format_transit_dates(windows: list[TransitWindow]) -> str:
         else:
             parts.append(f"{s.strftime('%b %-d')}–{e.strftime('%b %-d')}")
     return ",  ".join(parts)
+
+
+def load_sky_windows(user_id: str, date: str | None = None) -> list[SkyWindowResult]:
+    raw = api_client.get_sky_windows(user_id, date=date)
+    if not raw:
+        return []
+    return [
+        SkyWindowResult(
+            planet1=r["planet1"],
+            planet2=r["planet2"],
+            aspect=r["aspect"],
+            windows=[TransitWindow(**w) for w in r["windows"]],
+        )
+        for r in raw["windows"]
+    ]
 
 
 def load_transit_windows(user_id: str, date: str | None = None) -> list[TransitWindowResult]:

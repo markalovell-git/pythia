@@ -400,29 +400,19 @@ def _build_transit_windows(
     ]
 
 
-def compute_transit_windows(
-    natal_positions: dict,
+def _scan_daily_longitudes(
     zodiac_system: str,
-    center_dt: datetime | None = None,
-    window_months: int = 6,
-) -> list[dict]:
-    """Scan ±window_months from center_dt for transit-to-natal aspect windows.
-
-    Moon is excluded (moves too fast for daily steps to be reliable).
-    Returns [{transit_planet, natal_planet, aspect, windows: [{start, end}]}].
-    """
-    center     = (center_dt or datetime.now(timezone.utc)).replace(tzinfo=timezone.utc)
-    half       = timedelta(days=window_months * 30)
-    scan_start = max(center - half, datetime(EPHEMERIS_MIN_YEAR, 1, 2, tzinfo=timezone.utc))
-    scan_end   = min(center + half, datetime(EPHEMERIS_MAX_YEAR, 12, 30, tzinfo=timezone.utc))
-
+    scan_start: datetime,
+    scan_end: datetime,
+) -> tuple[list[dict[str, float]], list]:
+    """Vectorized ephemeris scan — returns (day_lons, dates). Moon excluded."""
     n_days = (scan_end - scan_start).days + 1
     dates  = [scan_start + timedelta(days=i) for i in range(n_days)]
 
     planets_obj, ts = _load_ephemeris()
     earth  = planets_obj["earth"]
     times  = ts.from_datetimes(dates)
-    tt_arr = times.tt  # numpy array of TT Julian dates
+    tt_arr = times.tt
 
     day_lons: list[dict[str, float]] = [{} for _ in range(n_days)]
 
@@ -439,12 +429,79 @@ def compute_transit_windows(
             )
 
     for i in range(n_days):
-        tt      = float(tt_arr[i])
-        T       = (tt - _J2000) / _DAYS_PER_CENTURY
-        nn_lon  = (_NN_LON_J2000 - _NN_RATE * T) % 360
+        tt     = float(tt_arr[i])
+        T      = (tt - _J2000) / _DAYS_PER_CENTURY
+        nn_lon = (_NN_LON_J2000 - _NN_RATE * T) % 360
         if zodiac_system == "sidereal":
             nn_lon = (nn_lon - _lahiri_ayanamsa(tt)) % 360
         day_lons[i]["North Node"] = nn_lon
         day_lons[i]["South Node"] = (nn_lon + 180.0) % 360
 
+    return day_lons, dates
+
+
+# Canonical planet order matching compute_planet_positions output (Moon excluded).
+_PLANET_ORDER = {
+    name: i for i, (name, _) in enumerate(PLANETS) if name not in _TRANSIT_WINDOW_SKIP
+}
+_PLANET_ORDER["North Node"] = len(_PLANET_ORDER)
+_PLANET_ORDER["South Node"] = len(_PLANET_ORDER) + 1
+
+
+def _build_sky_windows(
+    day_lons: list[dict[str, float]],
+    dates: list,
+) -> list[dict]:
+    """Group daily longitude snapshots into sky (transit-to-transit) aspect windows."""
+    active: dict[tuple, list[int]] = {}
+    for i, lons in enumerate(day_lons):
+        names = sorted(lons.keys(), key=lambda n: _PLANET_ORDER.get(n, 999))
+        for j, name1 in enumerate(names):
+            for name2 in names[j + 1:]:
+                if {name1, name2} == {"North Node", "South Node"}:
+                    continue
+                diff = _angular_difference(lons[name1], lons[name2])
+                for aspect_name, angle, orb in ASPECTS:
+                    if abs(diff - angle) <= orb:
+                        active.setdefault((name1, name2, aspect_name), []).append(i)
+                        break
+    return [
+        {"planet1": p1, "planet2": p2, "aspect": asp,
+         "windows": _group_indices_to_windows(idxs, dates)}
+        for (p1, p2, asp), idxs in active.items()
+    ]
+
+
+def compute_transit_windows(
+    natal_positions: dict,
+    zodiac_system: str,
+    center_dt: datetime | None = None,
+    window_months: int = 6,
+) -> list[dict]:
+    """Scan ±window_months from center_dt for transit-to-natal aspect windows.
+
+    Moon is excluded. Returns [{transit_planet, natal_planet, aspect, windows: [{start, end}]}].
+    """
+    center     = (center_dt or datetime.now(timezone.utc)).replace(tzinfo=timezone.utc)
+    half       = timedelta(days=window_months * 30)
+    scan_start = max(center - half, datetime(EPHEMERIS_MIN_YEAR, 1, 2, tzinfo=timezone.utc))
+    scan_end   = min(center + half, datetime(EPHEMERIS_MAX_YEAR, 12, 30, tzinfo=timezone.utc))
+    day_lons, dates = _scan_daily_longitudes(zodiac_system, scan_start, scan_end)
     return _build_transit_windows(day_lons, dates, natal_positions)
+
+
+def compute_sky_windows(
+    zodiac_system: str,
+    center_dt: datetime | None = None,
+    window_months: int = 6,
+) -> list[dict]:
+    """Scan ±window_months from center_dt for transit-to-transit (sky) aspect windows.
+
+    Moon is excluded. Returns [{planet1, planet2, aspect, windows: [{start, end}]}].
+    """
+    center     = (center_dt or datetime.now(timezone.utc)).replace(tzinfo=timezone.utc)
+    half       = timedelta(days=window_months * 30)
+    scan_start = max(center - half, datetime(EPHEMERIS_MIN_YEAR, 1, 2, tzinfo=timezone.utc))
+    scan_end   = min(center + half, datetime(EPHEMERIS_MAX_YEAR, 12, 30, tzinfo=timezone.utc))
+    day_lons, dates = _scan_daily_longitudes(zodiac_system, scan_start, scan_end)
+    return _build_sky_windows(day_lons, dates)

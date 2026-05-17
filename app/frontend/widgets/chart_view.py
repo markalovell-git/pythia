@@ -1047,10 +1047,12 @@ class ChartView(QWidget):
         self._transit_worker: ApiWorker | None = None
         self._transit_aspect_worker: ApiWorker | None = None
         self._transit_windows_worker: ApiWorker | None = None
+        self._sky_windows_worker: ApiWorker | None = None
         self._sky_aspect_worker: ApiWorker | None = None
         self._chart: chart_model.ChartData | None = None
         self._transit_aspects: chart_model.TransitData | None = None
         self._transit_windows: dict[tuple, list[chart_model.TransitWindow]] = {}
+        self._sky_windows: dict[tuple, list[chart_model.TransitWindow]] = {}
         self._planet_names: list[str] = []
         self._table_mode: str = "natal"   # "natal" or "transit"
         self._locked_planet: str = ""
@@ -1180,7 +1182,8 @@ class ChartView(QWidget):
         if not self._user_id:
             return
         for w in (self._transit_worker, self._transit_aspect_worker,
-                  self._transit_windows_worker, self._sky_aspect_worker):
+                  self._transit_windows_worker, self._sky_windows_worker,
+                  self._sky_aspect_worker):
             if w is not None:
                 w.cancel()
         self._transit_worker = ApiWorker(chart_model.load_transit_positions, self._user_id)
@@ -1197,6 +1200,11 @@ class ChartView(QWidget):
         self._transit_windows_worker.result.connect(self._on_transit_windows)
         self._transit_windows_worker.error.connect(lambda _: None)
         self._transit_windows_worker.start()
+
+        self._sky_windows_worker = ApiWorker(chart_model.load_sky_windows, self._user_id)
+        self._sky_windows_worker.result.connect(self._on_sky_windows)
+        self._sky_windows_worker.error.connect(lambda _: None)
+        self._sky_windows_worker.start()
 
         self._sky_aspect_worker = ApiWorker(chart_model.load_sky_aspects, self._user_id)
         self._sky_aspect_worker.result.connect(self._on_sky_aspects)
@@ -1215,7 +1223,15 @@ class ChartView(QWidget):
             (r.transit_planet, r.natal_planet, r.aspect): r.windows
             for r in results
         }
-        # Refresh sidebar if a transit is currently visible so dates appear without re-hover.
+        shown = self._locked_transit or self.wheel.hovered_transit
+        if shown:
+            self._show_transit_info(shown)
+
+    def _on_sky_windows(self, results: list[chart_model.SkyWindowResult]):
+        self._sky_windows = {
+            (r.planet1, r.planet2, r.aspect): r.windows
+            for r in results
+        }
         shown = self._locked_transit or self.wheel.hovered_transit
         if shown:
             self._show_transit_info(shown)
@@ -1572,11 +1588,17 @@ class ChartView(QWidget):
                 f"<p style='color:#5a5a7a; font-size:12px; line-height:1.5; margin:0 0 6px 16px;'>"
                 f"{interp}</p>"
             ) if interp else ""
+            ws = self._sky_windows.get((asp.planet1, asp.planet2, asp.aspect), [])
+            date_span = (
+                f' <span style="color:#667799; font-size:11px;">'
+                f'{chart_model.format_transit_dates(ws)}</span>'
+            ) if ws else ""
             sky_items.append(
                 f"<p style='font-size:13px; line-height:1.8; margin:0;'>"
                 f'<span style="color:{asp_color}">·</span> '
                 f'{asp.aspect.title()} transit {other} '
-                f'<span style="color:#555">(orb {asp.orb:.1f}°)</span></p>'
+                f'<span style="color:#555">(orb {asp.orb:.1f}°)</span>'
+                f'{date_span}</p>'
                 + interp_html
             )
 
