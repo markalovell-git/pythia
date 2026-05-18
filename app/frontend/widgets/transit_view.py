@@ -10,6 +10,16 @@ from app.frontend.widgets.chart_view import ASPECT_COLORS
 from app.frontend.workers.api_worker import ApiWorker
 
 
+_CATEGORY_COLORS = {
+    "major":      "#ffd700",
+    "notable":    "#44bb88",
+    "minor":      "#7070a0",
+    "background": "#444444",
+}
+
+_SIGNIFICANT_CATEGORIES = {"major", "notable"}
+
+
 def _table_cell(text: str, color: str | None = None) -> QTableWidgetItem:
     item = QTableWidgetItem(text)
     if color:
@@ -50,6 +60,14 @@ class TransitView(QWidget):
         self.calc_btn = QPushButton("Calculate")
         self.calc_btn.clicked.connect(self._on_calculate)
         controls.addWidget(self.calc_btn)
+
+        self.sig_btn = QPushButton("Significant Transits Only: OFF")
+        self.sig_btn.setCheckable(True)
+        self.sig_btn.setChecked(False)
+        self.sig_btn.toggled.connect(self._on_sig_toggled)
+        self._update_sig_btn_style(False)
+        controls.addWidget(self.sig_btn)
+
         controls.addStretch()
         layout.addLayout(controls)
 
@@ -57,9 +75,9 @@ class TransitView(QWidget):
         transit_label.setStyleSheet("font-weight: bold; margin-top: 6px;")
         layout.addWidget(transit_label)
 
-        self.table = QTableWidget(0, 6)
+        self.table = QTableWidget(0, 7)
         self.table.setHorizontalHeaderLabels([
-            "Transit Planet", "Aspect", "Natal Planet", "Orb", "Transit Position", "Dates",
+            "Transit Planet", "Aspect", "Natal Planet", "Orb", "Score", "Transit Position", "Dates",
         ])
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -123,18 +141,63 @@ class TransitView(QWidget):
         self.table.setRowCount(len(data.transits))
         for row, t in enumerate(data.transits):
             clr = ASPECT_COLORS.get(t.aspect)
+            cat_clr = _CATEGORY_COLORS.get(t.category, "#888")
             self.table.setItem(row, 0, _table_cell(t.transit_planet))
             self.table.setItem(row, 1, _table_cell(t.aspect.title(), clr))
             self.table.setItem(row, 2, _table_cell(t.natal_planet))
             self.table.setItem(row, 3, _table_cell(f"{t.orb:.2f}°"))
-            self.table.setItem(row, 4, _table_cell(f"{t.transit_position.sign} {t.transit_position.degree:.1f}°"))
+            score_item = _table_cell(f"{t.score:.2f}", cat_clr)
+            score_item.setData(Qt.ItemDataRole.UserRole, t.peak_score)
+            self.table.setItem(row, 4, score_item)
+            self.table.setItem(row, 5, _table_cell(f"{t.transit_position.sign} {t.transit_position.degree:.1f}°"))
+        self._apply_sig_filter()
+
+    def _on_sig_toggled(self, checked: bool):
+        self._update_sig_btn_style(checked)
+        self._apply_sig_filter()
+
+    def _update_sig_btn_style(self, checked: bool):
+        self.sig_btn.setText(
+            "Significant Transits Only: ON" if checked else "Significant Transits Only: OFF"
+        )
+        if checked:
+            self.sig_btn.setStyleSheet("""
+                QPushButton {
+                    color: #e0e0e0;
+                    background: #2e2e52;
+                    border: 1px solid #6666aa;
+                    border-radius: 6px;
+                    padding-left: 12px;
+                    padding-right: 12px;
+                    font-weight: bold;
+                }
+                QPushButton:hover { background: #383870; }
+            """)
+        else:
+            self.sig_btn.setStyleSheet("""
+                QPushButton {
+                    color: #aaa;
+                    background: #2a2a3e;
+                    border: 1px solid #444466;
+                    border-radius: 6px;
+                    padding-left: 12px;
+                    padding-right: 12px;
+                }
+                QPushButton:hover { background: #333352; color: #ccc; }
+            """)
+
+    def _apply_sig_filter(self):
+        sig_only = self.sig_btn.isChecked()
+        for row, t in enumerate(self._current_transits):
+            hide = sig_only and t.category not in _SIGNIFICANT_CATEGORIES
+            self.table.setRowHidden(row, hide)
 
     def _on_windows_result(self, windows: list[chart_model.TransitWindowResult]):
         lookup = {(w.transit_planet, w.natal_planet, w.aspect): w.windows for w in windows}
         for row, t in enumerate(self._current_transits):
             ws = lookup.get((t.transit_planet, t.natal_planet, t.aspect), [])
             if ws:
-                self.table.setItem(row, 5, _table_cell(chart_model.format_transit_dates(ws)))
+                self.table.setItem(row, 6, _table_cell(chart_model.format_transit_dates(ws)))
 
     def _on_error(self, msg: str):
         self.status_label.setText(f"Error: {msg}")

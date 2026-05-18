@@ -4,8 +4,35 @@ from datetime import datetime, timezone
 
 from app.common.database import get_db, UserData, UserSettings, NatalChart
 from app.astrology.chart import compute_natal_chart, compute_transits, compute_planet_positions, compute_sky_aspects, compute_transit_windows, compute_sky_windows
+from app.astrology.scoring import score_transit, categorize, get_timescale, DEFAULT_CONFIG
 
 chart_router = APIRouter()
+
+_ASC_SIGN_RULERS = {
+    "Aries": "Mars", "Taurus": "Venus", "Gemini": "Mercury",
+    "Cancer": "Moon", "Leo": "Sun", "Virgo": "Mercury",
+    "Libra": "Venus", "Scorpio": "Pluto", "Sagittarius": "Jupiter",
+    "Capricorn": "Saturn", "Aquarius": "Uranus", "Pisces": "Neptune",
+}
+
+
+def _chart_ruler(asc_sign: str | None) -> str | None:
+    return _ASC_SIGN_RULERS.get(asc_sign) if asc_sign else None
+
+
+def _house_number(longitude: float, cusps: list[float] | None) -> int | None:
+    if not cusps or len(cusps) != 12:
+        return None
+    for i in range(12):
+        start = cusps[i]
+        end   = cusps[(i + 1) % 12]
+        if end > start:
+            if start <= longitude < end:
+                return i + 1
+        else:
+            if longitude >= start or longitude < end:
+                return i + 1
+    return 1
 
 
 @chart_router.post("/calculate_natal_chart/{user_id}")
@@ -88,6 +115,25 @@ async def calculate_transits(
         transits = compute_transits(chart.positions, settings.zodiac_system, dt)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+
+    asc_data = chart.positions.get("ASC") or {}
+    ruler = _chart_ruler(asc_data.get("sign"))
+    for t in transits:
+        natal_house = _house_number(t["transit_position"]["longitude"], chart.house_cusps)
+        result = score_transit(
+            t["transit_planet"], t["natal_planet"], t["aspect"], t["orb"],
+            t.get("is_applying", True), t.get("speed"),
+            natal_house, ruler, DEFAULT_CONFIG,
+        )
+        if result is not None:
+            t["score"], t["peak_score"] = result
+        else:
+            t["score"] = t["peak_score"] = 0.0
+        t["category"] = categorize(t["score"], DEFAULT_CONFIG)
+        t["timescale"] = get_timescale(t["transit_planet"], DEFAULT_CONFIG)
+
+    transits.sort(key=lambda x: x["peak_score"], reverse=True)
+
     return {
         "user_id": user_id,
         "zodiac_system": settings.zodiac_system,

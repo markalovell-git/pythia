@@ -74,6 +74,13 @@ class MainWindow(QMainWindow):
             self._nav_buttons.append(btn)
 
         sb_layout.addStretch()
+        about_btn = QPushButton("About")
+        about_btn.setStyleSheet(
+            "color: #888; background: transparent; border: none; padding: 8px;"
+        )
+        about_btn.clicked.connect(self._show_about)
+        sb_layout.addWidget(about_btn)
+
         sign_out_btn = QPushButton("Sign Out")
         sign_out_btn.setStyleSheet(
             "color: #888; background: transparent; border: none; padding: 8px;"
@@ -120,6 +127,10 @@ class MainWindow(QMainWindow):
     def _show_diary(self):    self._select_nav(2)
     def _show_timeline(self): self._select_nav(3)
     def _show_settings(self): self._select_nav(4)
+
+    def _show_about(self):
+        from app.frontend.widgets.about_dialog import AboutDialog
+        AboutDialog(self).exec()
 
     def _restore_geometry(self):
         geom = self._settings.value(f"geometry/{self._user_id}")

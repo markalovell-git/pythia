@@ -101,6 +101,13 @@ ASPECT_COLORS = {
     "opposition":  "#ff8800",
 }
 
+TRANSIT_BADGE_COLORS = {
+    "major":      "#ffd700",
+    "notable":    "#44bb88",
+    "minor":      "#7070a0",
+    "background": "#444444",
+}
+
 # ── Wheel geometry ────────────────────────────────────────────────────────────
 CHART_MARGIN_PX      = 24     # px trimmed from min(w,h) before halving to get base radius
 SCALE_REF_SIZE       = 900.0  # wheel size (px) at which scale factor = 1.0
@@ -1487,12 +1494,24 @@ class ChartView(QWidget):
                     f' <span style="color:#667799; font-size:11px;">'
                     f'{chart_model.format_transit_dates(ws)}</span>'
                 ) if ws else ""
+                badge_clr = TRANSIT_BADGE_COLORS.get(t.category, "#888")
+                badge = (
+                    f' <span style="color:{badge_clr}; font-size:10px;">'
+                    f'[{t.category} · {t.peak_score:.2f}]</span>'
+                )
+                if t.days_to_exact is not None:
+                    if t.days_to_exact > 0:
+                        exact_tag = f' <span style="color:#556677; font-size:10px;">exact in {t.days_to_exact:.0f}d</span>'
+                    else:
+                        exact_tag = f' <span style="color:#556677; font-size:10px;">exact {abs(t.days_to_exact):.0f}d ago</span>'
+                else:
+                    exact_tag = ""
                 active_transit_items.append(
                     f"<p style='font-size:13px; line-height:1.8; margin:0;'>"
                     f'<span style="color:{asp_color}">■</span> '
                     f'Transit {t.transit_planet} {t.aspect.title()} '
                     f'<span style="color:#555">(orb {t.orb:.1f}°)</span>'
-                    f'{date_span}</p>'
+                    f'{date_span}{badge}{exact_tag}</p>'
                     + interp_html
                 )
 
@@ -1585,12 +1604,24 @@ class ChartView(QWidget):
                     f' <span style="color:#667799; font-size:11px;">'
                     f'{chart_model.format_transit_dates(ws)}</span>'
                 ) if ws else ""
+                badge_clr = TRANSIT_BADGE_COLORS.get(t.category, "#888")
+                badge = (
+                    f' <span style="color:{badge_clr}; font-size:10px;">'
+                    f'[{t.category} · {t.peak_score:.2f}]</span>'
+                )
+                if t.days_to_exact is not None:
+                    if t.days_to_exact > 0:
+                        exact_tag = f' <span style="color:#556677; font-size:10px;">exact in {t.days_to_exact:.0f}d</span>'
+                    else:
+                        exact_tag = f' <span style="color:#556677; font-size:10px;">exact {abs(t.days_to_exact):.0f}d ago</span>'
+                else:
+                    exact_tag = ""
                 transit_items.append(
                     f"<p style='font-size:13px; line-height:1.8; margin:0;'>"
                     f'<span style="color:{asp_color}">■</span> '
                     f'{t.aspect.title()} natal {t.natal_planet} '
                     f'<span style="color:#555">(orb {t.orb:.1f}°)</span>'
-                    f'{date_span}</p>'
+                    f'{date_span}{badge}{exact_tag}</p>'
                     + interp_html
                 )
 

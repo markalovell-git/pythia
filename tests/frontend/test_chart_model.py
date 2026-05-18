@@ -25,27 +25,40 @@ def test_load_chart_returns_none_when_missing(mock_api):
     assert chart_model.load_chart("u1") is None
 
 
-def test_load_transits_sorted_by_orb(mock_api):
+def test_load_transits_preserves_api_order(mock_api):
+    # The backend now sorts by peak_score descending; the frontend preserves that order.
+    # Simulate the API returning transits already ordered by peak_score (Saturn first).
     mock_api["calculate_transits"].return_value = {
         "date": "2026-05-09T12:00:00",
         "transits": [
             {
-                "transit_planet": "Mars", "natal_planet": "Sun",
-                "aspect": "square", "orb": 3.5,
-                "transit_position": {"longitude": 90.0, "sign": "Cancer", "degree": 0.0},
+                "transit_planet": "Saturn", "natal_planet": "Sun",
+                "aspect": "conjunction", "orb": 1.0,
+                "transit_position": {"longitude": 85.5, "sign": "Gemini", "degree": 25.5},
                 "natal_position": {"longitude": 84.5, "sign": "Gemini", "degree": 24.5},
+                "score": 0.80, "peak_score": 0.85, "category": "major",
+                "is_applying": True, "days_to_exact": 5.0, "speed": 0.034,
             },
             {
-                "transit_planet": "Jupiter", "natal_planet": "Moon",
-                "aspect": "trine", "orb": 1.2,
-                "transit_position": {"longitude": 121.2, "sign": "Leo", "degree": 1.2},
+                "transit_planet": "Mars", "natal_planet": "Moon",
+                "aspect": "trine", "orb": 3.5,
+                "transit_position": {"longitude": 123.5, "sign": "Leo", "degree": 3.5},
                 "natal_position": {"longitude": 120.0, "sign": "Leo", "degree": 0.0},
+                "score": 0.30, "peak_score": 0.45, "category": "notable",
+                "is_applying": False, "days_to_exact": -2.0, "speed": 0.5,
             },
         ],
     }
     data = chart_model.load_transits("u1")
-    assert data.transits[0].orb == 1.2
-    assert data.transits[1].orb == 3.5
+    assert data.transits[0].transit_planet == "Saturn"
+    assert data.transits[0].score == 0.80
+    assert data.transits[0].peak_score == 0.85
+    assert data.transits[0].category == "major"
+    assert data.transits[0].is_applying is True
+    assert data.transits[0].days_to_exact == 5.0
+    assert data.transits[1].transit_planet == "Mars"
+    assert data.transits[1].category == "notable"
+    assert data.transits[1].is_applying is False
 
 
 def test_get_zodiac_system(mock_api):

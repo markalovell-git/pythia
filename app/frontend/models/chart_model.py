@@ -38,6 +38,12 @@ class Transit:
     orb: float
     transit_position: PlanetPosition
     natal_position: PlanetPosition
+    score: float = 0.0
+    peak_score: float = 0.0
+    category: str = "background"
+    is_applying: bool = True
+    days_to_exact: float | None = None
+    speed: float | None = None
 
 
 @dataclass
@@ -97,12 +103,23 @@ def load_transits(user_id: str, date: str | None = None) -> TransitData:
             natal_planet=t["natal_planet"],
             aspect=t["aspect"],
             orb=t["orb"],
-            transit_position=PlanetPosition(**t["transit_position"]),
-            natal_position=PlanetPosition(**t["natal_position"]),
+            transit_position=PlanetPosition(**{
+                k: v for k, v in t["transit_position"].items()
+                if k in ("longitude", "sign", "degree", "retrograde")
+            }),
+            natal_position=PlanetPosition(**{
+                k: v for k, v in t["natal_position"].items()
+                if k in ("longitude", "sign", "degree", "retrograde")
+            }),
+            score=t.get("score", 0.0),
+            peak_score=t.get("peak_score", 0.0),
+            category=t.get("category", "background"),
+            is_applying=t.get("is_applying", True),
+            days_to_exact=t.get("days_to_exact"),
+            speed=t.get("speed"),
         )
         for t in raw["transits"]
     ]
-    transits.sort(key=lambda t: t.orb)
     return TransitData(date=raw["date"], transits=transits)
 
 
@@ -170,7 +187,10 @@ def load_transit_positions(user_id: str) -> ChartData | None:
     return ChartData(
         user_id=raw["user_id"],
         zodiac_system=raw["zodiac_system"],
-        positions={name: PlanetPosition(**pos) for name, pos in raw["positions"].items()},
+        positions={
+            name: PlanetPosition(**{k: v for k, v in pos.items() if k in _PLANET_POSITION_KEYS})
+            for name, pos in raw["positions"].items()
+        },
         computed_at=raw["date"],
     )
 
@@ -231,12 +251,16 @@ def get_house_number(longitude: float, cusps: list[float]) -> int | None:
     return 1
 
 
+_PLANET_POSITION_KEYS = {"longitude", "sign", "degree", "retrograde"}
+
+
 def _parse_chart(raw: dict) -> ChartData:
     return ChartData(
         user_id=raw["user_id"],
         zodiac_system=raw["zodiac_system"],
         positions={
-            name: PlanetPosition(**pos) for name, pos in raw["positions"].items()
+            name: PlanetPosition(**{k: v for k, v in pos.items() if k in _PLANET_POSITION_KEYS})
+            for name, pos in raw["positions"].items()
         },
         computed_at=raw["computed_at"],
         house_cusps=raw.get("house_cusps"),

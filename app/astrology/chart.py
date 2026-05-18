@@ -259,7 +259,8 @@ def compute_planet_positions(dt_utc: datetime, zodiac_system: str) -> dict:
             final_lon_next = (tropical_lon_next - _lahiri_ayanamsa(t_next.tt)) % 360
         else:
             final_lon_next = tropical_lon_next
-        retrograde = bool(((final_lon_next - final_lon + 180) % 360 - 180) < 0)
+        signed_motion = float((final_lon_next - final_lon + 180) % 360 - 180)
+        retrograde = bool(signed_motion < 0)
 
         sign, degree = _longitude_to_sign(final_lon)
         positions[name] = {
@@ -267,6 +268,7 @@ def compute_planet_positions(dt_utc: datetime, zodiac_system: str) -> dict:
             "sign": sign,
             "degree": round(degree, 4),
             "retrograde": retrograde,
+            "speed": round(signed_motion, 4),
         }
 
     # Mean North Node via standard formula (accurate to ~0.1°)
@@ -276,6 +278,7 @@ def compute_planet_positions(dt_utc: datetime, zodiac_system: str) -> dict:
         north_node_lon = (north_node_lon - _lahiri_ayanamsa(t.tt)) % 360
     south_node_lon = (north_node_lon + 180.0) % 360
 
+    _node_speed = round(-_NN_RATE / _DAYS_PER_CENTURY, 4)  # ≈ −0.053°/day
     for node_name, node_lon in [("North Node", north_node_lon), ("South Node", south_node_lon)]:
         sign, degree = _longitude_to_sign(node_lon)
         positions[node_name] = {
@@ -283,6 +286,7 @@ def compute_planet_positions(dt_utc: datetime, zodiac_system: str) -> dict:
             "sign": sign,
             "degree": round(degree, 4),
             "retrograde": True,  # Mean Node always moves retrograde
+            "speed": _node_speed,
         }
 
     return positions
@@ -346,14 +350,27 @@ def compute_transits(natal_positions: dict, zodiac_system: str, dt: datetime | N
         for natal_planet, natal_data in natal_positions.items():
             diff = _angular_difference(transit_data["longitude"], natal_data["longitude"])
             for aspect_name, angle, orb in ASPECTS:
-                if abs(diff - angle) <= orb:
+                current_orb = abs(diff - angle)
+                if current_orb <= orb:
+                    speed = float(transit_data.get("speed", 0.0))
+                    t_lon_tomorrow = (transit_data["longitude"] + speed) % 360
+                    diff_tomorrow = _angular_difference(t_lon_tomorrow, natal_data["longitude"])
+                    orb_tomorrow = abs(diff_tomorrow - angle)
+                    orb_change = float(orb_tomorrow - current_orb)  # negative = applying
+                    is_applying = orb_change < 0
+                    days_to_exact = (
+                        round(-float(current_orb) / orb_change, 1) if abs(orb_change) > 1e-6 else None
+                    )
                     transits.append({
                         "transit_planet": transit_planet,
                         "natal_planet": natal_planet,
                         "aspect": aspect_name,
-                        "orb": round(abs(diff - angle), 2),
+                        "orb": round(current_orb, 2),
                         "transit_position": transit_data,
                         "natal_position": natal_data,
+                        "speed": speed,
+                        "is_applying": is_applying,
+                        "days_to_exact": days_to_exact,
                     })
 
     return sorted(transits, key=lambda x: x["orb"])
