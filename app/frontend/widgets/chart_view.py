@@ -1121,7 +1121,11 @@ class ChartView(QWidget):
         ic_layout.addWidget(self.user_name_label)
         ic_layout.addWidget(self.user_birth_label)
         ic_layout.addWidget(self.user_location_label)
+        ic_layout.addSpacing(16)
 
+        filter_title = QLabel("Display")
+        filter_title.setStyleSheet("font-size: 13px; font-weight: bold; color: #c0c0e0;")
+        ic_layout.addWidget(filter_title)
         ic_layout.addWidget(self.wheel.filter_box)
         ic_layout.addStretch()
         splitter.addWidget(info_col)
