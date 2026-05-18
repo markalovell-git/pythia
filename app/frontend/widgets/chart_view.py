@@ -1,6 +1,6 @@
 import math
 from datetime import datetime
-from PyQt6.QtCore import Qt, QRectF, QPointF, QUrl, pyqtSignal
+from PyQt6.QtCore import Qt, QRectF, QPointF, QUrl, QEvent, pyqtSignal
 from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QPainterPath
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
@@ -1057,14 +1057,19 @@ _ASPECT_ABBR = {
 }
 
 
+_DETAIL_ROLE = Qt.ItemDataRole.UserRole + 1   # (natal_planet, aspect) tuple
+
+
 class _TransitList(QListWidget):
-    transit_entered = pyqtSignal(str)
+    transit_entered = pyqtSignal(str)                # planet name → wheel highlight
+    transit_detail  = pyqtSignal(str, str, str)      # transit_planet, natal_planet, aspect
     transit_left    = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMouseTracking(True)
         self.viewport().setMouseTracking(True)
+        self.viewport().installEventFilter(self)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setSelectionMode(QListWidget.SelectionMode.NoSelection)
         self.setStyleSheet("""
@@ -1077,13 +1082,28 @@ class _TransitList(QListWidget):
             QListWidget::item { padding: 3px 4px; border-radius: 3px; }
             QListWidget::item:hover { background: #1a1a3a; }
         """)
-        self.itemEntered.connect(
-            lambda item: self.transit_entered.emit(item.data(Qt.ItemDataRole.UserRole) or "")
-        )
+        self._hovered_name = ""
 
-    def leaveEvent(self, event):
-        super().leaveEvent(event)
-        self.transit_left.emit()
+    def eventFilter(self, obj, event):
+        if obj is self.viewport():
+            t = event.type()
+            if t == QEvent.Type.MouseMove:
+                item = self.itemAt(event.pos())
+                name = (item.data(Qt.ItemDataRole.UserRole) or "") if item else ""
+                if name != self._hovered_name:
+                    self._hovered_name = name
+                    if name:
+                        self.transit_entered.emit(name)
+                        detail = item.data(_DETAIL_ROLE)
+                        if detail:
+                            self.transit_detail.emit(name, detail[0], detail[1])
+                    else:
+                        self.transit_left.emit()
+            elif t == QEvent.Type.Leave:
+                if self._hovered_name:
+                    self._hovered_name = ""
+                    self.transit_left.emit()
+        return super().eventFilter(obj, event)
 
 
 class ChartView(QWidget):
@@ -1179,8 +1199,17 @@ class ChartView(QWidget):
 
         self._transit_list = _TransitList()
         self._transit_list.transit_entered.connect(self.wheel.set_external_transit_hover)
-        self._transit_list.transit_left.connect(lambda: self.wheel.set_external_transit_hover(""))
-        ic_layout.addWidget(self._transit_list, stretch=1)
+        self._transit_list.transit_detail.connect(self._on_transit_list_detail)
+        self._transit_list.transit_left.connect(self._on_transit_list_left)
+        ic_layout.addWidget(self._transit_list)
+
+        self._transit_interp = QLabel("")
+        self._transit_interp.setWordWrap(True)
+        self._transit_interp.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self._transit_interp.setStyleSheet(
+            "color: #7070a0; font-size: 11px; padding: 4px 4px 0 4px;"
+        )
+        ic_layout.addWidget(self._transit_interp, stretch=1)
 
         splitter.addWidget(info_col)
 
@@ -1318,6 +1347,15 @@ class ChartView(QWidget):
         self._sky_aspect_worker.error.connect(lambda _: None)
         self._sky_aspect_worker.start()
 
+    def _on_transit_list_detail(self, transit_planet: str, natal_planet: str, aspect: str):
+        self.wheel.set_external_transit_hover(transit_planet)
+        text = transit_to_natal_text(transit_planet, natal_planet, aspect)
+        self._transit_interp.setText(text or "")
+
+    def _on_transit_list_left(self):
+        self.wheel.set_external_transit_hover("")
+        self._transit_interp.setText("")
+
     def _on_transits(self, transits: chart_model.ChartData | None):
         self.wheel.set_transits(transits)
 
@@ -1336,6 +1374,7 @@ class ChartView(QWidget):
             abbr = _ASPECT_ABBR.get(t.aspect, t.aspect[:3])
             item = QListWidgetItem(f"{t.transit_planet} {abbr} {t.natal_planet}")
             item.setData(Qt.ItemDataRole.UserRole, t.transit_planet)
+            item.setData(_DETAIL_ROLE, (t.natal_planet, t.aspect))
             item.setForeground(QColor(TRANSIT_BADGE_COLORS[t.category]))
             self._transit_list.addItem(item)
 
