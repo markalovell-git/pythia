@@ -1,4 +1,5 @@
 import math
+from datetime import datetime
 from PyQt6.QtCore import Qt, QRectF, QPointF, QUrl, pyqtSignal
 from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QPainterPath
 from PyQt6.QtWidgets import (
@@ -7,7 +8,7 @@ from PyQt6.QtWidgets import (
     QFrame, QTextBrowser, QHeaderView, QCheckBox,
 )
 
-from app.frontend.models import chart_model
+from app.frontend.models import chart_model, user_model
 from app.frontend.workers.api_worker import ApiWorker
 from app.frontend.data.interpretations import (
     natal_aspect_text, planet_in_sign_text, planet_in_house_text,
@@ -180,6 +181,7 @@ ALPHA_LABEL_SHADOW         = 200  # drop-shadow behind circle labels
 WHEEL_MIN_SIZE     = 420
 SIDEBAR_MIN        = 340
 SIDEBAR_MAX        = 550
+INFO_COL_WIDTH     = 255
 HEADER_HEIGHT      = 40
 STATUS_HEIGHT      = 20
 RECALC_BTN_WIDTH   = 110
@@ -278,17 +280,12 @@ class _ZodiacWheel(QWidget):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setMouseTracking(True)
 
-        self._filter_box = QFrame(self)
-        self._filter_box.setStyleSheet("""
-            QFrame {
-                background: rgba(10, 10, 30, 180);
-                border: 1px solid #2a2a50;
-                border-radius: 6px;
-            }
+        self.filter_box = QFrame()
+        self.filter_box.setStyleSheet("""
             QCheckBox { color: #9090cc; font-size: 12px; padding: 2px 6px; }
             QCheckBox::indicator { width: 13px; height: 13px; }
         """)
-        fb_layout = QVBoxLayout(self._filter_box)
+        fb_layout = QVBoxLayout(self.filter_box)
         fb_layout.setContentsMargins(6, 6, 6, 6)
         fb_layout.setSpacing(2)
         self._cb_natal           = QCheckBox("Natal Planets")
@@ -323,8 +320,6 @@ class _ZodiacWheel(QWidget):
         self._cb_labels.toggled.connect(self.update)
         self._cb_houses.toggled.connect(self.update)
         self._cb_angles.toggled.connect(self.update)
-        self._filter_box.adjustSize()
-        self._filter_box.move(10, 10)
 
     def set_chart(self, chart: chart_model.ChartData | None):
         self._chart = chart
@@ -1057,6 +1052,7 @@ class ChartView(QWidget):
         self._transit_windows_worker: ApiWorker | None = None
         self._sky_windows_worker: ApiWorker | None = None
         self._sky_aspect_worker: ApiWorker | None = None
+        self._user_worker: ApiWorker | None = None
         self._chart: chart_model.ChartData | None = None
         self._transit_aspects: chart_model.TransitData | None = None
         self._transit_windows: dict[tuple, list[chart_model.TransitWindow]] = {}
@@ -1071,8 +1067,8 @@ class ChartView(QWidget):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         sidebar_w = max(SIDEBAR_MIN, min(SIDEBAR_MAX, round(self.width() * 0.20)))
-        wheel_w   = max(0, self.width() - sidebar_w)
-        self._splitter.setSizes([wheel_w, sidebar_w])
+        wheel_w   = max(0, self.width() - INFO_COL_WIDTH - sidebar_w)
+        self._splitter.setSizes([INFO_COL_WIDTH, wheel_w, sidebar_w])
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
@@ -1084,14 +1080,11 @@ class ChartView(QWidget):
         header_bar.setFixedHeight(HEADER_HEIGHT)
         header = QHBoxLayout(header_bar)
         header.setContentsMargins(12, 0, 12, 0)
-        self.title_label = QLabel("Natal Chart")
-        self.title_label.setStyleSheet("font-size: 16px; font-weight: bold;")
         self.zodiac_label = QLabel("")
         self.zodiac_label.setStyleSheet("color: #888;")
         self.recalc_btn = QPushButton("Recalculate")
         self.recalc_btn.setFixedWidth(RECALC_BTN_WIDTH)
         self.recalc_btn.clicked.connect(self._on_recalculate)
-        header.addWidget(self.title_label)
         header.addStretch()
         header.addWidget(self.zodiac_label)
         header.addSpacing(12)
@@ -1104,6 +1097,35 @@ class ChartView(QWidget):
         splitter.setChildrenCollapsible(False)
 
         self.wheel = _ZodiacWheel()
+
+        # ── Info column ───────────────────────────────────────────
+        info_col = QWidget()
+        info_col.setFixedWidth(INFO_COL_WIDTH)
+        info_col.setStyleSheet("background: #0d0d1a;")
+        ic_layout = QVBoxLayout(info_col)
+        ic_layout.setContentsMargins(8, 10, 8, 8)
+        ic_layout.setSpacing(8)
+        self.title_label = QLabel("Natal Chart")
+        self.title_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #c0c0e0;")
+        ic_layout.addWidget(self.title_label)
+
+        _meta_style = "color: #8080aa; font-size: 12px;"
+        self.user_name_label = QLabel("")
+        self.user_name_label.setStyleSheet(_meta_style)
+        self.user_name_label.setWordWrap(True)
+        self.user_birth_label = QLabel("")
+        self.user_birth_label.setStyleSheet(_meta_style)
+        self.user_location_label = QLabel("")
+        self.user_location_label.setStyleSheet(_meta_style)
+        self.user_location_label.setWordWrap(True)
+        ic_layout.addWidget(self.user_name_label)
+        ic_layout.addWidget(self.user_birth_label)
+        ic_layout.addWidget(self.user_location_label)
+
+        ic_layout.addWidget(self.wheel.filter_box)
+        ic_layout.addStretch()
+        splitter.addWidget(info_col)
+
         splitter.addWidget(self.wheel)
 
         # ── Right sidebar ─────────────────────────────────────────
@@ -1151,9 +1173,10 @@ class ChartView(QWidget):
         sb_layout.addWidget(self.info_panel, stretch=1)
 
         splitter.addWidget(sidebar)
-        splitter.setStretchFactor(0, 1)
-        splitter.setStretchFactor(1, 0)
-        splitter.setSizes([10000 - SIDEBAR_MIN, SIDEBAR_MIN])
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        splitter.setStretchFactor(2, 0)
+        splitter.setSizes([INFO_COL_WIDTH, 10000 - INFO_COL_WIDTH - SIDEBAR_MIN, SIDEBAR_MIN])
         layout.addWidget(splitter, stretch=1)
 
         self.wheel.planet_hovered.connect(self._on_wheel_hover)
@@ -1172,6 +1195,22 @@ class ChartView(QWidget):
     def load(self, user_id: str):
         self._user_id = user_id
         self._fetch(chart_model.load_chart)
+        self._user_worker = ApiWorker(user_model.get_user, user_id)
+        self._user_worker.result.connect(self._on_user)
+        self._user_worker.error.connect(lambda _: None)
+        self._user_worker.start()
+
+    def _on_user(self, user: user_model.UserDetail | None):
+        if not user:
+            return
+        try:
+            dt = datetime.fromisoformat(user.birth_datetime)
+            birth_str = dt.strftime("%-d %B %Y")
+        except ValueError:
+            birth_str = user.birth_datetime
+        self.user_name_label.setText(user.name)
+        self.user_birth_label.setText(birth_str)
+        self.user_location_label.setText(user.birth_location)
 
     def _on_recalculate(self):
         if self._user_id:

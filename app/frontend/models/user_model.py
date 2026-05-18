@@ -32,7 +32,7 @@ def get_user(user_id: str) -> UserDetail | None:
         return None
     d = raw["user_data"]
     return UserDetail(
-        user_id=raw["user_id"],
+        user_id=user_id,
         username=d["username"],
         name=d["name"],
         birth_datetime=d["birth_datetime"],
