@@ -44,6 +44,7 @@ class Transit:
     is_applying: bool = True
     days_to_exact: float | None = None
     speed: float | None = None
+    timescale: str = "medium"
 
 
 @dataclass
@@ -117,6 +118,7 @@ def load_transits(user_id: str, date: str | None = None) -> TransitData:
             is_applying=t.get("is_applying", True),
             days_to_exact=t.get("days_to_exact"),
             speed=t.get("speed"),
+            timescale=t.get("timescale", "medium"),
         )
         for t in raw["transits"]
     ]
@@ -211,6 +213,38 @@ def get_house_system(user_id: str) -> str:
 
 def set_house_system(user_id: str, house_system: str) -> None:
     api_client.update_user_settings(user_id, house_system=house_system)
+
+
+def get_ai_settings(user_id: str) -> dict:
+    raw = api_client.get_user_settings(user_id)
+    if not raw:
+        return {"ai_provider": "ollama", "anthropic_key": None, "openai_key": None,
+                "ollama_url": "http://localhost:11434", "ollama_model": "llama3.2"}
+    return {
+        "ai_provider":   raw.get("ai_provider",   "ollama"),
+        "anthropic_key": raw.get("anthropic_key", None),
+        "openai_key":    raw.get("openai_key",    None),
+        "ollama_url":    raw.get("ollama_url",    "http://localhost:11434"),
+        "ollama_model":  raw.get("ollama_model",  "qwen3:14b"),
+    }
+
+
+def set_ai_settings(
+    user_id: str,
+    ai_provider: str | None = None,
+    anthropic_key: str | None = None,
+    openai_key: str | None = None,
+    ollama_url: str | None = None,
+    ollama_model: str | None = None,
+) -> None:
+    api_client.update_user_settings(
+        user_id,
+        ai_provider=ai_provider,
+        anthropic_key=anthropic_key,
+        openai_key=openai_key,
+        ollama_url=ollama_url,
+        ollama_model=ollama_model,
+    )
 
 
 def compute_natal_aspects(chart: ChartData) -> list[Aspect]:

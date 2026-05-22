@@ -33,5 +33,8 @@
 - [ ] **Play forward / play backward** — buttons that step transits through time (e.g. 1 day per tick, configurable rate). Re-fetches transits at the new date and animates positions.
 - [ ] **Custom date input** — a date/time picker or text box to jump transits to any date.
 
+## Consult Page
+- [ ] **Fix markdown rendering** — LLM output contains raw markdown (`**bold**`, `##` headers, etc.) that displays as literal characters in the QLabel text panels. Render as formatted text instead.
+
 ## Code Quality
 - [ ] Pull all magic numbers out of `chart_view.py` into a dedicated constants section or `ChartStyle` dataclass (radius fractions, STACK_STEP_FRACTION, CLUSTER_THRESHOLD_DEG, arc_step, glyph sizes, etc.)

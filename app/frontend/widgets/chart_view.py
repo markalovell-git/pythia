@@ -1372,7 +1372,19 @@ class ChartView(QWidget):
             if t.category not in ("major", "notable"):
                 continue
             abbr = _ASPECT_ABBR.get(t.aspect, t.aspect[:3])
-            item = QListWidgetItem(f"{t.transit_planet} {abbr} {t.natal_planet}")
+            if t.days_to_exact is None:
+                timing = ""
+            elif abs(t.days_to_exact) < 1:
+                timing = " · exact"
+            elif t.days_to_exact > 0:
+                timing = f" · exact in {t.days_to_exact:.0f}d"
+            else:
+                timing = f" · {abs(t.days_to_exact):.0f}d past exact"
+            ws = self._transit_windows.get((t.transit_planet, t.natal_planet, t.aspect), [])
+            date_str = chart_model.format_transit_dates(ws)
+            line1 = f"{t.transit_planet} {abbr} {t.natal_planet}{timing}"
+            text = f"{line1}\n{date_str}" if date_str else line1
+            item = QListWidgetItem(text)
             item.setData(Qt.ItemDataRole.UserRole, t.transit_planet)
             item.setData(_DETAIL_ROLE, (t.natal_planet, t.aspect))
             item.setForeground(QColor(TRANSIT_BADGE_COLORS[t.category]))
@@ -1383,6 +1395,7 @@ class ChartView(QWidget):
             (r.transit_planet, r.natal_planet, r.aspect): r.windows
             for r in results
         }
+        self._populate_transit_list()
         if shown_transit := self._locked_transit or self.wheel.hovered_transit:
             self._show_transit_info(shown_transit)
         if shown_natal := self._locked_planet or self.wheel.hovered:

@@ -82,13 +82,25 @@ def get_user_settings(user_id: str) -> dict | None:
 def update_user_settings(
     user_id: str,
     zodiac_system: str | None = None,
-    house_system: str | None = None,
+    house_system:  str | None = None,
+    ai_provider:   str | None = None,
+    anthropic_key: str | None = None,
+    openai_key:    str | None = None,
+    ollama_url:    str | None = None,
+    ollama_model:  str | None = None,
 ) -> dict:
     payload: dict = {}
-    if zodiac_system is not None:
-        payload["zodiac_system"] = zodiac_system
-    if house_system is not None:
-        payload["house_system"] = house_system
+    for key, val in [
+        ("zodiac_system", zodiac_system),
+        ("house_system",  house_system),
+        ("ai_provider",   ai_provider),
+        ("anthropic_key", anthropic_key),
+        ("openai_key",    openai_key),
+        ("ollama_url",    ollama_url),
+        ("ollama_model",  ollama_model),
+    ]:
+        if val is not None:
+            payload[key] = val
     return _put(f"/update_user_settings/{user_id}", json=payload)
 
 
@@ -125,6 +137,16 @@ def get_transit_windows(user_id: str, date: str | None = None) -> dict | None:
 def get_transit_positions(user_id: str, date: str | None = None) -> dict:
     params = {"date": date} if date else {}
     return _get(f"/transit_positions/{user_id}", **params)
+
+
+# ── Consult cache ─────────────────────────────────────────────────────────────
+
+def get_consult_cache(user_id: str, horizon: str) -> dict | None:
+    return _get(f"/consult_cache/{user_id}/{horizon}")
+
+
+def set_consult_cache(user_id: str, horizon: str, content: str) -> dict:
+    return _put(f"/consult_cache/{user_id}/{horizon}", json={"content": content})
 
 
 # ── Geocode ───────────────────────────────────────────────────────────────────

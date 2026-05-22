@@ -9,6 +9,7 @@ from app.frontend.widgets.chart_view import ChartView
 from app.frontend.widgets.transit_view import TransitView
 from app.frontend.widgets.diary_view import DiaryView
 from app.frontend.widgets.timeline_view import TimelineView
+from app.frontend.widgets.consult_view import ConsultView
 from app.frontend.widgets.settings_view import SettingsView
 
 
@@ -54,10 +55,11 @@ class MainWindow(QMainWindow):
 
         self._nav_buttons: list[QPushButton] = []
         nav_items = [
-            ("Chart", self._show_chart),
+            ("Chart",    self._show_chart),
             ("Transits", self._show_transits),
-            ("Diary", self._show_diary),
+            ("Diary",    self._show_diary),
             ("Timeline", self._show_timeline),
+            ("Consult",  self._show_consult),
             ("Settings", self._show_settings),
         ]
         for label, slot in nav_items:
@@ -95,12 +97,14 @@ class MainWindow(QMainWindow):
         self.transit_view = TransitView()
         self.diary_view = DiaryView()
         self.timeline_view = TimelineView()
+        self.consult_view = ConsultView()
         self.settings_view = SettingsView()
 
         self.stack.addWidget(self.chart_view)
         self.stack.addWidget(self.transit_view)
         self.stack.addWidget(self.diary_view)
         self.stack.addWidget(self.timeline_view)
+        self.stack.addWidget(self.consult_view)
         self.stack.addWidget(self.settings_view)
         root.addWidget(self.stack)
 
@@ -115,6 +119,7 @@ class MainWindow(QMainWindow):
         self.transit_view.load(user_id)
         self.diary_view.load(user_id)
         self.timeline_view.load(user_id)
+        self.consult_view.load(user_id)
         self.settings_view.load(user_id)
 
     def _select_nav(self, index: int):
@@ -126,7 +131,8 @@ class MainWindow(QMainWindow):
     def _show_transits(self): self._select_nav(1)
     def _show_diary(self):    self._select_nav(2)
     def _show_timeline(self): self._select_nav(3)
-    def _show_settings(self): self._select_nav(4)
+    def _show_consult(self):  self._select_nav(4)
+    def _show_settings(self): self._select_nav(5)
 
     def _show_about(self):
         from app.frontend.widgets.about_dialog import AboutDialog

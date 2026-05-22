@@ -1,7 +1,7 @@
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QComboBox, QGroupBox, QMessageBox,
+    QComboBox, QGroupBox, QLineEdit, QMessageBox,
 )
 import httpx
 
@@ -22,6 +22,13 @@ def _calculate_chart_detail(user_id: str) -> chart_model.ChartData:
         except Exception:
             detail = e.response.text
         raise RuntimeError(detail or str(e))
+
+
+_AI_PROVIDERS = [
+    ("Ollama (local)",    "ollama"),
+    ("Claude (Anthropic)", "claude"),
+    ("ChatGPT (OpenAI)",  "openai"),
+]
 
 
 class SettingsView(QWidget):
@@ -68,6 +75,50 @@ class SettingsView(QWidget):
         house_layout.addStretch()
         layout.addWidget(house_group)
 
+        # ── AI Interpreter ────────────────────────────────────────────────────
+        ai_group = QGroupBox("AI Interpreter")
+        ai_layout = QVBoxLayout(ai_group)
+
+        provider_row = QHBoxLayout()
+        provider_row.addWidget(QLabel("Provider:"))
+        self.ai_provider_combo = QComboBox()
+        for label, key in _AI_PROVIDERS:
+            self.ai_provider_combo.addItem(label, userData=key)
+        self.ai_provider_combo.currentIndexChanged.connect(self._on_ai_provider_changed)
+        provider_row.addWidget(self.ai_provider_combo)
+        provider_row.addStretch()
+        ai_layout.addLayout(provider_row)
+
+        # API key row (Claude / OpenAI)
+        self._key_row = QHBoxLayout()
+        self._key_row.addWidget(QLabel("API Key:"))
+        self.ai_key_edit = QLineEdit()
+        self.ai_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self.ai_key_edit.setPlaceholderText("sk-…")
+        self._key_row.addWidget(self.ai_key_edit)
+        ai_layout.addLayout(self._key_row)
+
+        # Ollama URL row
+        self._url_row = QHBoxLayout()
+        self._url_row.addWidget(QLabel("Ollama URL:"))
+        self.ollama_url_edit = QLineEdit()
+        self.ollama_url_edit.setPlaceholderText("http://localhost:11434")
+        self._url_row.addWidget(self.ollama_url_edit)
+        ai_layout.addLayout(self._url_row)
+
+        # Ollama model row
+        self._model_row = QHBoxLayout()
+        self._model_row.addWidget(QLabel("Model:"))
+        self.ollama_model_edit = QLineEdit()
+        self.ollama_model_edit.setPlaceholderText("qwen3:14b")
+        self._model_row.addWidget(self.ollama_model_edit)
+        ai_layout.addLayout(self._model_row)
+
+        save_ai_btn = QPushButton("Save")
+        save_ai_btn.clicked.connect(self._on_save_ai)
+        ai_layout.addWidget(save_ai_btn)
+        layout.addWidget(ai_group)
+
         account_group = QGroupBox("Account")
         account_layout = QVBoxLayout(account_group)
         delete_btn = QPushButton("Delete My Account…")
@@ -88,6 +139,19 @@ class SettingsView(QWidget):
         idx = self.house_combo.findData(self._loaded_house)
         if idx >= 0:
             self.house_combo.setCurrentIndex(idx)
+        ai = chart_model.get_ai_settings(user_id)
+        idx = self.ai_provider_combo.findData(ai["ai_provider"])
+        if idx >= 0:
+            self.ai_provider_combo.setCurrentIndex(idx)
+        self.ollama_url_edit.setText(ai.get("ollama_url") or "http://localhost:11434")
+        self.ollama_model_edit.setText(ai.get("ollama_model") or "llama3.2")
+        # Populate the key field based on current provider
+        provider = ai["ai_provider"]
+        if provider == "claude":
+            self.ai_key_edit.setText(ai.get("anthropic_key") or "")
+        elif provider == "openai":
+            self.ai_key_edit.setText(ai.get("openai_key") or "")
+        self._on_ai_provider_changed()
 
     def _on_save_zodiac(self):
         if not self._user_id:
@@ -124,6 +188,37 @@ class SettingsView(QWidget):
             self,
             "House system unavailable",
             f"Couldn't switch to {_HOUSE_SYSTEM_LABELS[new_value]}:\n\n{msg}",
+        )
+
+    def _on_ai_provider_changed(self, _index: int = 0):
+        provider = self.ai_provider_combo.currentData()
+        is_ollama = (provider == "ollama")
+        # Show/hide relevant rows
+        for i in range(self._key_row.count()):
+            w = self._key_row.itemAt(i).widget()
+            if w:
+                w.setVisible(not is_ollama)
+        for i in range(self._url_row.count()):
+            w = self._url_row.itemAt(i).widget()
+            if w:
+                w.setVisible(is_ollama)
+        for i in range(self._model_row.count()):
+            w = self._model_row.itemAt(i).widget()
+            if w:
+                w.setVisible(is_ollama)
+
+    def _on_save_ai(self):
+        if not self._user_id:
+            return
+        provider = self.ai_provider_combo.currentData()
+        key = self.ai_key_edit.text().strip() or None
+        chart_model.set_ai_settings(
+            self._user_id,
+            ai_provider=provider,
+            anthropic_key=key if provider == "claude" else None,
+            openai_key=key if provider == "openai" else None,
+            ollama_url=self.ollama_url_edit.text().strip() or None,
+            ollama_model=self.ollama_model_edit.text().strip() or None,
         )
 
     def _on_delete_account(self):
