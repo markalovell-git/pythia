@@ -415,10 +415,10 @@ def _send_claude(api_key: str, system: str, messages: list[dict]) -> str:
         return r.json()["content"][0]["text"]
     except httpx.HTTPStatusError as e:
         try:
-            detail = e.response.json().get("error", {}).get("message", e.response.text)
+            detail = e.response.json().get("error", {}).get("message", "")
         except Exception:
-            detail = e.response.text
-        raise RuntimeError(f"Anthropic API error: {detail}") from e
+            detail = ""
+        raise RuntimeError(f"Anthropic API error {e.response.status_code}: {detail or '(no detail)'}") from e
     except Exception as e:
         raise RuntimeError(f"Claude request failed: {e}") from e
 
@@ -443,10 +443,10 @@ def _send_openai(api_key: str, system: str, messages: list[dict]) -> str:
         return r.json()["choices"][0]["message"]["content"]
     except httpx.HTTPStatusError as e:
         try:
-            detail = e.response.json().get("error", {}).get("message", e.response.text)
+            detail = e.response.json().get("error", {}).get("message", "")
         except Exception:
-            detail = e.response.text
-        raise RuntimeError(f"OpenAI API error: {detail}") from e
+            detail = ""
+        raise RuntimeError(f"OpenAI API error {e.response.status_code}: {detail or '(no detail)'}") from e
     except Exception as e:
         raise RuntimeError(f"OpenAI request failed: {e}") from e
 

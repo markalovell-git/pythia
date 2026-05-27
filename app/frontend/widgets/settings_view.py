@@ -20,8 +20,8 @@ def _calculate_chart_detail(user_id: str) -> chart_model.ChartData:
         try:
             detail = e.response.json().get("detail", "")
         except Exception:
-            detail = e.response.text
-        raise RuntimeError(detail or str(e))
+            detail = ""
+        raise RuntimeError(detail or f"HTTP {e.response.status_code}")
 
 
 _AI_PROVIDERS = [
