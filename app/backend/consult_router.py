@@ -14,7 +14,7 @@ _LONGER_TERM_DAYS = 7
 def _is_valid(entry: ConsultCache) -> bool:
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     if entry.horizon == "today":
-        return entry.cached_at.date() == date.today()
+        return entry.cached_at.date() == now.date()  # both UTC — avoids local/UTC date mismatch
     return (now - entry.cached_at).days < _LONGER_TERM_DAYS
 
 

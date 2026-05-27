@@ -1,3 +1,4 @@
+from datetime import datetime
 from PyQt6.QtCore import Qt, QEvent, QTimer
 from PyQt6.QtGui import QColor, QTextCursor
 from PyQt6.QtWidgets import (
@@ -151,6 +152,10 @@ class ConsultView(QWidget):
         longer_group = QGroupBox("Longer Term")
         longer_layout = QVBoxLayout(longer_group)
         longer_layout.setContentsMargins(4, 4, 4, 4)
+        self._longer_generated_label = QLabel()
+        self._longer_generated_label.setStyleSheet("color: #6060a0; font-size: 11px; padding: 0 2px;")
+        self._longer_generated_label.setVisible(False)
+        longer_layout.addWidget(self._longer_generated_label)
         self._longer_scroll = _ScrollLabel()
         self._longer_scroll.set_placeholder("Generating…")
         longer_layout.addWidget(self._longer_scroll)
@@ -302,9 +307,22 @@ class ConsultView(QWidget):
 
     def _on_longer_cache(self, result):
         if result:
+            self._set_longer_generated_date(result.get("cached_at"))
             self._on_longer_result(result["content"])
         else:
             self._start_longer_llm()
+
+    def _set_longer_generated_date(self, cached_at_iso: str | None = None):
+        if cached_at_iso:
+            try:
+                dt = datetime.fromisoformat(cached_at_iso)
+                label = dt.strftime("Generated %-d %b %Y")
+            except Exception:
+                label = f"Generated {cached_at_iso[:10]}"
+        else:
+            label = datetime.now().strftime("Generated %-d %b %Y")
+        self._longer_generated_label.setText(label)
+        self._longer_generated_label.setVisible(True)
 
     def _start_today_llm(self):
         self._today_scroll.start_thinking()
@@ -355,6 +373,7 @@ class ConsultView(QWidget):
 
     def _on_longer_stream_done(self):
         if self._longer_accumulated:
+            self._set_longer_generated_date(None)
             self._fire_and_forget(
                 api_client.set_consult_cache, self._user_id, "longer_term", self._longer_accumulated
             )
