@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
 from app.common.database import get_db, UserData, UserSettings, NatalChart
+from app.common.astro_utils import house_number as _house_number
 from app.astrology.chart import compute_natal_chart, compute_transits, compute_planet_positions, compute_sky_aspects, compute_transit_windows, compute_sky_windows
 from app.astrology.scoring import score_transit, categorize, get_timescale, DEFAULT_CONFIG
 
@@ -20,19 +21,6 @@ def _chart_ruler(asc_sign: str | None) -> str | None:
     return _ASC_SIGN_RULERS.get(asc_sign) if asc_sign else None
 
 
-def _house_number(longitude: float, cusps: list[float] | None) -> int | None:
-    if not cusps or len(cusps) != 12:
-        return None
-    for i in range(12):
-        start = cusps[i]
-        end   = cusps[(i + 1) % 12]
-        if end > start:
-            if start <= longitude < end:
-                return i + 1
-        else:
-            if longitude >= start or longitude < end:
-                return i + 1
-    return 1
 
 
 @chart_router.post("/calculate_natal_chart/{user_id}")

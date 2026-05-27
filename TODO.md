@@ -33,12 +33,8 @@
 - [ ] **Play forward / play backward** — buttons that step transits through time (e.g. 1 day per tick, configurable rate). Re-fetches transits at the new date and animates positions.
 - [ ] **Custom date input** — a date/time picker or text box to jump transits to any date.
 
-## Consult Page
-- [ ] **Fix markdown rendering** — LLM output contains raw markdown (`**bold**`, `##` headers, etc.) that displays as literal characters in the QLabel text panels. Render as formatted text instead.
-
 ## Code Quality
 - [ ] Pull all magic numbers out of `chart_view.py` into a dedicated constants section or `ChartStyle` dataclass (radius fractions, STACK_STEP_FRACTION, CLUSTER_THRESHOLD_DEG, arc_step, glyph sizes, etc.)
-- [ ] **Remove `get_house_number` duplication** — identical function exists in both `app/astrology/chart.py` (as `_house_number`) and `app/frontend/models/chart_model.py`. Move to a shared location (e.g. `app/common/astro_utils.py`) so changes only need to happen once.
 - [ ] **Default Ollama model** — `get_ai_settings()` falls back to `"qwen3:14b"` when the API is unreachable. Remove the hardcoded fallback and instead prompt the user to configure their default model on first startup (or in Settings) so there's no silent wrong-model assumption.
 - [ ] **Catch Placidus polar-latitude error at signup** — currently the user only finds out their birth latitude is incompatible with Placidus when the chart calculation fails (HTTP 422). Validate the latitude in the signup/user-edit flow and warn up front, offering to switch to Whole Sign automatically.
 - [ ] **Discuss: eager view loading at startup** — `MainWindow` instantiates all 6 views and calls `load()` on each at startup, firing parallel API requests even for views the user hasn't visited. Evaluate lazy-loading (create/load a view on first navigation) to speed up startup and avoid unnecessary requests on slow backends.
