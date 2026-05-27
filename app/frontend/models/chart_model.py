@@ -218,15 +218,12 @@ def set_house_system(user_id: str, house_system: str) -> None:
 
 def get_ai_settings(user_id: str) -> dict:
     raw = api_client.get_user_settings(user_id)
-    if not raw:
-        return {"ai_provider": "ollama", "anthropic_key": None, "openai_key": None,
-                "ollama_url": "http://localhost:11434", "ollama_model": "qwen3:14b"}
     return {
-        "ai_provider":   raw.get("ai_provider",   "ollama"),
-        "anthropic_key": raw.get("anthropic_key", None),
-        "openai_key":    raw.get("openai_key",    None),
-        "ollama_url":    raw.get("ollama_url",    "http://localhost:11434"),
-        "ollama_model":  raw.get("ollama_model",  "qwen3:14b"),
+        "ai_provider":   raw.get("ai_provider"),
+        "anthropic_key": raw.get("anthropic_key"),
+        "openai_key":    raw.get("openai_key"),
+        "ollama_url":    raw.get("ollama_url"),
+        "ollama_model":  raw.get("ollama_model"),
     }
 
 
