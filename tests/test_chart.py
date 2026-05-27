@@ -69,6 +69,42 @@ def test_calculate_natal_chart_out_of_range_birth_date(client):
     assert "1900" in response.json()["detail"]
 
 
+def test_calculate_natal_chart_polar_latitude_placidus_returns_422(client):
+    """Placidus is undefined at polar latitudes — router must return 422, not 500."""
+    response = client.post("/api/submit_user_data", json={
+        "username": "polaruser",
+        "name": "Polar User",
+        "birth_datetime": "1990-01-01T12:00:00",
+        "birth_timezone": "UTC",
+        "birth_location": "Arctic",
+        "birth_lat": 80.0,
+        "birth_lon": 0.0,
+    })
+    user_id = response.json()["user_id"]
+    # Switch to Placidus explicitly (default is already Placidus but be explicit)
+    client.put(f"/api/update_user_settings/{user_id}", json={"house_system": "placidus"})
+    response = client.post(f"/api/calculate_natal_chart/{user_id}")
+    assert response.status_code == 422
+    assert "placidus" in response.json()["detail"].lower()
+
+
+def test_calculate_natal_chart_polar_latitude_whole_sign_succeeds(client):
+    """Whole Sign houses work at any latitude — polar birth with whole_sign must succeed."""
+    response = client.post("/api/submit_user_data", json={
+        "username": "polaruser2",
+        "name": "Polar User 2",
+        "birth_datetime": "1990-01-01T12:00:00",
+        "birth_timezone": "UTC",
+        "birth_location": "Arctic",
+        "birth_lat": 80.0,
+        "birth_lon": 0.0,
+    })
+    user_id = response.json()["user_id"]
+    client.put(f"/api/update_user_settings/{user_id}", json={"house_system": "whole_sign"})
+    response = client.post(f"/api/calculate_natal_chart/{user_id}")
+    assert response.status_code == 200
+
+
 def test_get_natal_chart_success(client, created_user):
     with patch("app.backend.chart_router.compute_natal_chart", return_value=MOCK_CHART_RETURN):
         client.post(f"/api/calculate_natal_chart/{created_user}")

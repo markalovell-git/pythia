@@ -338,7 +338,11 @@ def _stream_claude(api_key: str, system: str, messages: list[dict]):
                     except json.JSONDecodeError:
                         pass
     except httpx.HTTPStatusError as e:
-        raise RuntimeError(f"Anthropic API error: {e.response.text}") from e
+        try:
+            detail = e.response.json().get("error", {}).get("message", "")
+        except Exception:
+            detail = ""
+        raise RuntimeError(f"Anthropic API error {e.response.status_code}: {detail or '(no detail)'}") from e
 
 
 def _stream_openai(api_key: str, system: str, messages: list[dict]):
@@ -363,7 +367,11 @@ def _stream_openai(api_key: str, system: str, messages: list[dict]):
                     except (json.JSONDecodeError, KeyError, IndexError):
                         pass
     except httpx.HTTPStatusError as e:
-        raise RuntimeError(f"OpenAI API error: {e.response.text}") from e
+        try:
+            detail = e.response.json().get("error", {}).get("message", "")
+        except Exception:
+            detail = ""
+        raise RuntimeError(f"OpenAI API error {e.response.status_code}: {detail or '(no detail)'}") from e
 
 
 # ── Non-streaming API callers (used for chat replies) ─────────────────────────

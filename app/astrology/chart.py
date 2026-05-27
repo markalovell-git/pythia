@@ -70,8 +70,8 @@ def compute_angles_and_cusps(
 ) -> tuple[dict, list[float]]:
     """Return (angle_positions_dict, house_cusps) for the given birth location.
 
-    house_system: "placidus" or "whole_sign". Placidus falls back to Whole Sign
-    automatically at polar latitudes where it is mathematically undefined.
+    house_system: "placidus" or "whole_sign". Placidus raises ValueError at polar
+    latitudes (roughly |lat| > 66°) where it is mathematically undefined.
     """
     gast  = t.gast
     lst   = (gast + birth_lon / 15.0) % 24

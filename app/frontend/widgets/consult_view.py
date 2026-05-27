@@ -1,9 +1,8 @@
 from datetime import datetime
-from PyQt6.QtCore import Qt, QEvent, QTimer
-from PyQt6.QtGui import QColor, QTextCursor
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QSplitter, QScrollArea, QLineEdit, QFrame, QSizePolicy, QTextEdit,
+    QSplitter, QScrollArea, QLineEdit, QFrame, QSizePolicy,
     QGroupBox,
 )
 

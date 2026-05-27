@@ -1,5 +1,9 @@
+import logging as _logging
+
 from sqlalchemy import create_engine, Column, String, DateTime, Float, ForeignKey, JSON, Date, text
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+
+_log = _logging.getLogger(__name__)
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
 engine = create_engine(
@@ -90,8 +94,9 @@ with engine.connect() as _conn:
                 f"ALTER TABLE user_settings ADD COLUMN {_col} TEXT DEFAULT {_dflt}"
             ))
             _conn.commit()
-        except Exception:
-            pass  # column already exists
+        except Exception as _e:
+            if "duplicate column name" not in str(_e).lower():
+                _log.error("Migration failed adding column %s: %s", _col, _e)
 
 
 def get_db():

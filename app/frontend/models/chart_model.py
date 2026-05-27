@@ -219,7 +219,7 @@ def get_ai_settings(user_id: str) -> dict:
     raw = api_client.get_user_settings(user_id)
     if not raw:
         return {"ai_provider": "ollama", "anthropic_key": None, "openai_key": None,
-                "ollama_url": "http://localhost:11434", "ollama_model": "llama3.2"}
+                "ollama_url": "http://localhost:11434", "ollama_model": "qwen3:14b"}
     return {
         "ai_provider":   raw.get("ai_provider",   "ollama"),
         "anthropic_key": raw.get("anthropic_key", None),
