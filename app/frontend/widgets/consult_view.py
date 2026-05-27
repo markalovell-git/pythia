@@ -1,8 +1,9 @@
 from datetime import datetime
 from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QTextCursor, QTextBlockFormat
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QSplitter, QScrollArea, QLineEdit, QFrame, QSizePolicy,
+    QSplitter, QScrollArea, QLineEdit, QFrame, QTextBrowser,
     QGroupBox,
 )
 
@@ -28,44 +29,69 @@ _CATEGORY_COLORS = {
     "minor":    "#8080aa",
 }
 
+_BROWSER_SS = "background-color: #0d0d1a; border: none; font-size: 15px; padding: 2px;"
 
 
-class _ScrollLabel(QScrollArea):
-    """A scroll area wrapping a word-wrapped, selectable QLabel."""
+class _ScrollLabel(QTextBrowser):
+    """Markdown-rendering scrollable text area with thinking animation."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWidgetResizable(True)
+        self.setOpenLinks(False)
+        self.setReadOnly(True)
         self.setFrameShape(QFrame.Shape.NoFrame)
-        self._label = QLabel()
-        self._label.setWordWrap(True)
-        self._label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self._label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self._label.setStyleSheet("color: #c0c0d8; font-size: 15px; padding: 4px;")
-        self._label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.setWidget(self._label)
+        self.setStyleSheet(_BROWSER_SS)
         self._think_step = 0
         self._think_timer = QTimer(self)
         self._think_timer.setInterval(450)
         self._think_timer.timeout.connect(self._tick_thinking)
 
+    def _apply_spacing(self):
+        """Fix up block margins after setMarkdown() — Qt's inline styles override CSS."""
+        doc = self.document()
+        cursor = QTextCursor(doc)
+        block = doc.begin()
+        while block.isValid():
+            fmt = block.blockFormat()
+            new_fmt = QTextBlockFormat(fmt)
+            is_list_item = block.textList() is not None
+            if fmt.headingLevel() > 0:
+                new_fmt.setTopMargin(20.0 if fmt.headingLevel() <= 2 else 14.0)
+                new_fmt.setBottomMargin(4.0)
+            elif not is_list_item and block.text().strip():
+                # Detect all-bold paragraph (LLM uses **text** as section titles)
+                it = block.begin()
+                weights = []
+                while not it.atEnd():
+                    weights.append(it.fragment().charFormat().fontWeight())
+                    it += 1
+                if weights and all(w >= 600 for w in weights):
+                    new_fmt.setTopMargin(14.0)
+                    new_fmt.setBottomMargin(4.0)
+                else:
+                    new_fmt.setBottomMargin(10.0)
+            cursor.setPosition(block.position())
+            cursor.setBlockFormat(new_fmt)
+            block = block.next()
+
     def _tick_thinking(self):
         self._think_step = (self._think_step + 1) % 4
         dots = "." * self._think_step
-        self._label.setText(f"<i style='color:#6060a0;'>Thinking{dots}</i>")
+        self.setHtml(f"<span style='color:#6060a0; font-style:italic;'>Thinking{dots}</span>")
 
     def start_thinking(self):
         self._think_step = 0
-        self._label.setText("<i style='color:#6060a0;'>Thinking</i>")
+        self.setHtml("<span style='color:#6060a0; font-style:italic;'>Thinking</span>")
         self._think_timer.start()
 
     def set_text(self, text: str):
         self._think_timer.stop()
-        self._label.setText(text)
+        self.setMarkdown(text)
+        self._apply_spacing()
 
     def set_placeholder(self, text: str):
         self._think_timer.stop()
-        self._label.setText(f"<i style='color:#6060a0;'>{text}</i>")
+        self.setHtml(f"<span style='color:#6060a0; font-style:italic;'>{text}</span>")
 
 
 class ConsultView(QWidget):
