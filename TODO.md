@@ -34,5 +34,4 @@
 - [ ] **Custom date input** — a date/time picker or text box to jump transits to any date.
 
 ## Code Quality
-- [ ] Pull all magic numbers out of `chart_view.py` into a dedicated constants section or `ChartStyle` dataclass (radius fractions, STACK_STEP_FRACTION, CLUSTER_THRESHOLD_DEG, arc_step, glyph sizes, etc.)
 - [ ] **Discuss: eager view loading at startup** — `MainWindow` instantiates all 6 views and calls `load()` on each at startup, firing parallel API requests even for views the user hasn't visited. Evaluate lazy-loading (create/load a view on first navigation) to speed up startup and avoid unnecessary requests on slow backends.

@@ -182,6 +182,9 @@ ALPHA_LABEL_SHADOW         = 200  # drop-shadow behind circle labels
 WHEEL_MIN_SIZE     = 420
 SIDEBAR_MIN        = 340
 SIDEBAR_MAX        = 550
+SIDEBAR_WIDTH_FRAC = 0.20   # sidebar width as fraction of total window width
+
+ANGLE_LABEL_NO_HOUSES_FRAC = 0.945  # angle-label radius (fraction of zodiac_inner) when house lines are hidden
 INFO_COL_WIDTH     = 255
 HEADER_HEIGHT      = 40
 STATUS_HEIGHT      = 20
@@ -669,7 +672,7 @@ class _ZodiacWheel(QWidget):
 
         # Angle axes (length depends on Houses toggle)
         axis_end      = radius_house_outer if houses_on else radius_zodiac_outer
-        angle_label_r = (radius_cosmos + radius_house_outer) / 2 if houses_on else radius_zodiac_inner * 0.945
+        angle_label_r = (radius_cosmos + radius_house_outer) / 2 if houses_on else radius_zodiac_inner * ANGLE_LABEL_NO_HOUSES_FRAC
         lbl_font = QFont()
         lbl_font.setPointSize(max(FONT_FLOOR_NORMAL, round(ANGLE_LABEL_PT * scale)))
         lbl_font.setBold(True)
@@ -1130,7 +1133,7 @@ class ChartView(QWidget):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        sidebar_w = max(SIDEBAR_MIN, min(SIDEBAR_MAX, round(self.width() * 0.20)))
+        sidebar_w = max(SIDEBAR_MIN, min(SIDEBAR_MAX, round(self.width() * SIDEBAR_WIDTH_FRAC)))
         wheel_w   = max(0, self.width() - INFO_COL_WIDTH - sidebar_w)
         self._splitter.setSizes([INFO_COL_WIDTH, wheel_w, sidebar_w])
 
