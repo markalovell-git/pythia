@@ -1,0 +1,35 @@
+name: Release
+
+# Build the AppImage and attach it to the GitHub Release when a vX.Y.Z tag is pushed.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  appimage:
+    runs-on: ubuntu-22.04   # older glibc -> runs on a broad range of distros
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Sync dependencies
+        run: uv sync
+
+      - name: Build AppImage
+        run: bash scripts/build_appimage.sh
+
+      - name: Smoke-test AppImage
+        # Fails the release if the bundle can't load ephemeris/timezone data.
+        run: APPIMAGE_EXTRACT_AND_RUN=1 ./Pythia-x86_64.AppImage --selftest
+
+      - name: Publish to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Pythia-x86_64.AppImage
+          fail_on_unmatched_files: true

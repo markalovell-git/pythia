@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Pythia
+GenericName=Astrology
+Comment=Natal charts, transits, diary, and timeline
+Exec=pythia
+Icon=pythia
+Terminal=false
+Categories=Education;
+StartupNotify=true
+StartupWMClass=Pythia

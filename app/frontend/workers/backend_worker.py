@@ -18,8 +18,11 @@ class BackendWorker(QThread):
 
     def run(self):
         log.debug("BackendWorker starting uvicorn")
+        # Import the app object directly (not the "module:attr" string) so a
+        # frozen PyInstaller build statically pulls in the backend package.
+        from app.backend.main import app as fastapi_app
         config = uvicorn.Config(
-            "app.backend.main:app",
+            fastapi_app,
             host=BACKEND_HOST,
             port=BACKEND_PORT,
             log_level="error",

@@ -33,5 +33,8 @@
 - [ ] **Play forward / play backward** — buttons that step transits through time (e.g. 1 day per tick, configurable rate). Re-fetches transits at the new date and animates positions.
 - [ ] **Custom date input** — a date/time picker or text box to jump transits to any date.
 
+## Packaging & Distribution
+- [ ] **Toolchain-free installer (PyInstaller / AppImage)** — the current git-pull updater needs `git` + `python` + `uv` on the machine (fine for the author; both are installed). A toolchain-free PyInstaller/AppImage installer for non-technical users is a separate future track we can add without throwing the git-pull approach away.
+
 ## Code Quality
 - [ ] **Discuss: eager view loading at startup** — `MainWindow` instantiates all 6 views and calls `load()` on each at startup, firing parallel API requests even for views the user hasn't visited. Evaluate lazy-loading (create/load a view on first navigation) to speed up startup and avoid unnecessary requests on slow backends.

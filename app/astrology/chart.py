@@ -1,5 +1,4 @@
 import math
-from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from functools import lru_cache
@@ -7,8 +6,9 @@ from functools import lru_cache
 from skyfield.api import Loader
 from skyfield.framelib import ecliptic_frame
 
-_DATA_DIR = Path(__file__).parent.parent.parent / "data"
-_DATA_DIR.mkdir(exist_ok=True)
+from app.common import paths
+
+_DATA_DIR = paths.ephemeris_dir()
 _loader = Loader(str(_DATA_DIR))
 
 PLANETS = [

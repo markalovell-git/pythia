@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
 )
 
 from app.frontend import app_state
+from app.version import get_version
 from app.frontend.widgets.chart_view import ChartView
 from app.frontend.widgets.transit_view import TransitView
 from app.frontend.widgets.diary_view import DiaryView
@@ -27,7 +28,7 @@ class MainWindow(QMainWindow):
         self._on_sign_out = on_sign_out
         self._user_id = user_id
         app_state.state.current_user_id = user_id
-        self.setWindowTitle("Pythia")
+        self.setWindowTitle(f"Pythia {get_version()}")
         self.setMinimumSize(1000, 700)
         self._build_ui(user_id)
         self._load_all(user_id)

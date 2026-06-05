@@ -3,9 +3,11 @@ import logging as _logging
 from sqlalchemy import create_engine, Column, String, DateTime, Float, ForeignKey, JSON, Date, text
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
+from app.common import paths
+
 _log = _logging.getLogger(__name__)
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{paths.db_path()}"
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )

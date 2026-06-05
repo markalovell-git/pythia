@@ -1,6 +1,8 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTextBrowser, QPushButton
 
+from app.version import get_version
+
 _ABOUT_HTML = """
 <style>
   body  { background: #0d0d1a; color: #c0c0d8; font-family: sans-serif; }
@@ -16,7 +18,7 @@ _ABOUT_HTML = """
   .label { font-weight: bold; }
 </style>
 
-<h1>Pythia</h1>
+<h1>Pythia <span style="font-size:14px; color:#7070aa">{version}</span></h1>
 <p>A natal chart and transit tool built with Python, PyQt6, and Skyfield.</p>
 
 <h2>Transit Rankings</h2>
@@ -117,7 +119,7 @@ class AboutDialog(QDialog):
 
         browser = QTextBrowser()
         browser.setOpenExternalLinks(False)
-        browser.setHtml(_ABOUT_HTML)
+        browser.setHtml(_ABOUT_HTML.replace("{version}", get_version()))
         browser.setStyleSheet("background: #0d0d1a; border: none;")
         layout.addWidget(browser)
 

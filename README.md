@@ -2,11 +2,55 @@
 
 Desktop astrology app — natal charts, transits, diary, timeline.
 
-## Run
+## Install (Linux)
+
+Download the latest **`Pythia-x86_64.AppImage`** from the
+[Releases page](https://github.com/markalovell-git/pythia/releases/latest),
+make it executable, and run it:
 
 ```
-uv run python -m app.frontend.main
+chmod +x Pythia-x86_64.AppImage
+./Pythia-x86_64.AppImage
 ```
+
+(Or right-click → Properties → "Allow executing file as program", then
+double-click.) Nothing else is required — Python, Qt, and the star ephemeris are
+all bundled. Some distros need `libfuse2` to run AppImages
+(`sudo apt install libfuse2` on Debian/Ubuntu).
+
+User data (database, ephemeris, logs) lives in `~/.local/share/Pythia/`,
+separate from the app, so updates never touch it.
+
+## Updates
+
+On launch the AppImage checks the GitHub Releases API for a newer version. If
+one exists it prompts before downloading the new AppImage, swaps itself in
+place, and relaunches. Decline to keep the current version. Offline or when run
+from source, the check is skipped.
+
+## Run from source (development)
+
+```
+uv sync
+uv run pythia
+```
+
+(equivalently `uv run python -m app.frontend.main`)
+
+## Releasing a new version
+
+The AppImage is built and published automatically by CI
+(`.github/workflows/release.yml`) when you push a `vX.Y.Z` tag:
+
+```
+# bump app/__version__ to match, commit, then:
+git tag v0.2.0
+git push --tags
+```
+
+GitHub Actions builds `Pythia-x86_64.AppImage` and attaches it to the `v0.2.0`
+Release; installed copies detect the new tag and offer it as an update. To build
+the AppImage locally instead: `bash scripts/build_appimage.sh`.
 
 ## Test
 

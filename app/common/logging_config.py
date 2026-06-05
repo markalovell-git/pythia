@@ -2,15 +2,17 @@ import logging
 import sys
 
 from app.common.config import LOG_LEVEL
+from app.common import paths
 
 
 def setup_logging(level: int = LOG_LEVEL):
     fmt = "%(asctime)s %(levelname)-8s %(name)-35s %(message)s"
     datefmt = "%H:%M:%S"
 
+    log_file = paths.log_dir() / "pythia.log"
     handlers = [
         logging.StreamHandler(sys.stderr),
-        logging.FileHandler("pythia.log", mode="w", encoding="utf-8"),
+        logging.FileHandler(str(log_file), mode="w", encoding="utf-8"),
     ]
 
     logging.basicConfig(level=level, format=fmt, datefmt=datefmt, handlers=handlers)
