@@ -43,14 +43,15 @@ The AppImage is built and published automatically by CI
 (`.github/workflows/release.yml`) when you push a `vX.Y.Z` tag:
 
 ```
-# bump app/__version__ to match, commit, then:
-git tag v0.2.0
-git push --tags
+# edit app/__version__ to the new number, then:
+git commit -am "Bump to 0.1.3"
+git tag v0.1.3
+git push && git push --tags
 ```
 
-GitHub Actions builds `Pythia-x86_64.AppImage` and attaches it to the `v0.2.0`
-Release; installed copies detect the new tag and offer it as an update. To build
-the AppImage locally instead: `bash scripts/build_appimage.sh`.
+GitHub Actions builds `Pythia-x86_64.AppImage`, smoke-tests it, and attaches it
+to the `v0.1.3` Release; installed copies detect the new tag and offer it as an
+update. To build the AppImage locally instead: `bash scripts/build_appimage.sh`.
 
 ## Test
 

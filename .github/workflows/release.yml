@@ -33,3 +33,21 @@ jobs:
         with:
           files: Pythia-x86_64.AppImage
           fail_on_unmatched_files: true
+          generate_release_notes: true
+          body: |
+            ## Install (Linux)
+
+            Download **Pythia-x86_64.AppImage** below, then make it executable and run it:
+
+            ```
+            chmod +x Pythia-x86_64.AppImage
+            ./Pythia-x86_64.AppImage
+            ```
+
+            Or right-click → Properties → "Allow executing file as program", then
+            double-click. Nothing else is required — Python, Qt, and the star
+            ephemeris are all bundled. Some distros need `libfuse2`
+            (`sudo apt install libfuse2` on Debian/Ubuntu).
+
+            Pythia auto-updates: on launch it checks for a newer release and offers
+            to install it.
