@@ -85,38 +85,7 @@ def _maybe_update():
     _relaunch()
 
 
-def _selftest() -> int:
-    """Verify bundled data loads (ephemeris + timezone). Exits 0 on success.
-
-    Used to smoke-test a packaged build (`pythia --selftest`) without a GUI.
-    """
-    from datetime import datetime, timezone
-    try:
-        from app.astrology.chart import compute_planet_positions
-        positions = compute_planet_positions(
-            datetime(2000, 1, 1, 12, tzinfo=timezone.utc), "tropical"
-        )
-        assert "Sun" in positions, "Sun missing from computed positions"
-
-        from timezonefinder import TimezoneFinder
-        tz = TimezoneFinder().timezone_at(lat=51.5074, lng=-0.1278)
-        assert tz, "timezone lookup returned nothing"
-
-        sign = positions["Sun"]["sign"]
-        print(
-            f"selftest OK — {get_version()}; Sun in {sign}; tz={tz}; "
-            f"self-update={'yes' if updater.can_self_update() else 'no'}"
-        )
-        return 0
-    except Exception as e:
-        print(f"selftest FAILED: {e}", file=sys.stderr)
-        return 1
-
-
 def main():
-    if "--selftest" in sys.argv:
-        sys.exit(_selftest())
-
     app = QApplication(sys.argv)
     app.setApplicationName("Pythia")
     app.setApplicationVersion(get_version())
