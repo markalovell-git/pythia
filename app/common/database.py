@@ -80,25 +80,33 @@ class DiaryEntry(Base):
     updated_at = Column(DateTime, nullable=False)
 
 
-Base.metadata.create_all(bind=engine)
+def init_db() -> None:
+    """Create tables and apply column migrations against the real database.
 
-# Migrate existing databases that predate AI settings columns
-with engine.connect() as _conn:
-    for _col, _dflt in [
-        ("ai_provider",   "'ollama'"),
-        ("anthropic_key", "NULL"),
-        ("openai_key",    "NULL"),
-        ("ollama_url",    "'http://localhost:11434'"),
-        ("ollama_model",  "'qwen3:14b'"),
-    ]:
-        try:
-            _conn.execute(text(
-                f"ALTER TABLE user_settings ADD COLUMN {_col} TEXT DEFAULT {_dflt}"
-            ))
-            _conn.commit()
-        except Exception as _e:
-            if "duplicate column name" not in str(_e).lower():
-                _log.error("Migration failed adding column %s: %s", _col, _e)
+    Called once at backend startup — not at import — so merely importing this
+    module (e.g. in tests, which use their own engine) never touches the user's
+    database on disk.
+    """
+    paths.migrate_legacy_db()
+    Base.metadata.create_all(bind=engine)
+
+    # Migrate existing databases that predate AI settings columns.
+    with engine.connect() as conn:
+        for col, dflt in [
+            ("ai_provider",   "'ollama'"),
+            ("anthropic_key", "NULL"),
+            ("openai_key",    "NULL"),
+            ("ollama_url",    "'http://localhost:11434'"),
+            ("ollama_model",  "'qwen3:14b'"),
+        ]:
+            try:
+                conn.execute(text(
+                    f"ALTER TABLE user_settings ADD COLUMN {col} TEXT DEFAULT {dflt}"
+                ))
+                conn.commit()
+            except Exception as e:
+                if "duplicate column name" not in str(e).lower():
+                    _log.error("Migration failed adding column %s: %s", col, e)
 
 
 def get_db():

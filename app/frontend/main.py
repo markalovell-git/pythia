@@ -3,10 +3,11 @@ import sys
 import time
 from PyQt6.QtWidgets import QApplication, QSplashScreen, QLabel, QMessageBox
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QPalette, QColor
 
 from app.common.logging_config import setup_logging, get_logger
 from app.common.config import BACKEND_STARTUP_TIMEOUT
+from app.common import runtime
 from app.version import get_version
 setup_logging()
 log = get_logger(__name__)
@@ -27,7 +28,7 @@ def _wait_for_backend(timeout: float = 10.0) -> bool:
 
 def _relaunch():
     """Re-exec the freshly downloaded AppImage. Guards against re-checking."""
-    appimage = updater.appimage_path()
+    appimage = runtime.appimage_path()
     if appimage is None:
         return
     os.environ["PYTHIA_SKIP_UPDATE"] = "1"
@@ -39,10 +40,10 @@ def _maybe_update():
     """If a newer release exists, prompt and (on confirm) update + relaunch."""
     if os.environ.pop("PYTHIA_SKIP_UPDATE", None):
         return
-    if not updater.can_self_update():
+    if not runtime.can_self_update():
         return
     try:
-        current, latest, behind = updater.check_for_update()
+        current, latest, release, behind = updater.check_for_update()
     except Exception as e:
         log.warning("Update check failed: %s", e)
         return
@@ -62,7 +63,6 @@ def _maybe_update():
 
     progress = QSplashScreen()
     pix = QPixmap(400, 120)
-    from PyQt6.QtGui import QColor
     pix.fill(QColor("#0d0d1a"))
     progress.setPixmap(pix)
     lbl = QLabel(f"Downloading {latest}…", progress)
@@ -72,7 +72,7 @@ def _maybe_update():
     progress.show()
     QApplication.processEvents()
 
-    ok, msg = updater.apply_update()
+    ok, msg = updater.apply_update(release)
     progress.close()
     log.debug("Update result: %s", msg)
     if not ok:
@@ -92,7 +92,6 @@ def main():
     app.setStyle("Fusion")
 
     # Dark palette
-    from PyQt6.QtGui import QPalette, QColor
     palette = QPalette()
     palette.setColor(QPalette.ColorRole.Window, QColor("#0d0d1a"))
     palette.setColor(QPalette.ColorRole.WindowText, QColor("#e0e0e0"))

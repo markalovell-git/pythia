@@ -1,5 +1,6 @@
 import logging
 import sys
+from logging.handlers import RotatingFileHandler
 
 from app.common.config import LOG_LEVEL
 from app.common import paths
@@ -12,7 +13,9 @@ def setup_logging(level: int = LOG_LEVEL):
     log_file = paths.log_dir() / "pythia.log"
     handlers = [
         logging.StreamHandler(sys.stderr),
-        logging.FileHandler(str(log_file), mode="w", encoding="utf-8"),
+        RotatingFileHandler(
+            str(log_file), maxBytes=1_000_000, backupCount=3, encoding="utf-8"
+        ),
     ]
 
     logging.basicConfig(level=level, format=fmt, datefmt=datefmt, handlers=handlers)

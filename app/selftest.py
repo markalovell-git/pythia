@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 def run() -> int:
     try:
         from app.version import get_version
-        from app.frontend import updater
+        from app.common import runtime
         from app.astrology.chart import compute_planet_positions
 
         positions = compute_planet_positions(
@@ -26,7 +26,7 @@ def run() -> int:
         sign = positions["Sun"]["sign"]
         print(
             f"selftest OK — {get_version()}; Sun in {sign}; tz={tz}; "
-            f"self-update={'yes' if updater.can_self_update() else 'no'}"
+            f"self-update={'yes' if runtime.can_self_update() else 'no'}"
         )
         return 0
     except Exception as e:

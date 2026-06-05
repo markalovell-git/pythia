@@ -21,6 +21,14 @@ jobs:
       - name: Sync dependencies
         run: uv sync
 
+      - name: Check version matches tag
+        # Guards against tagging without bumping app/__version__, which would
+        # ship a build that thinks it's older than its own tag and update-loops.
+        run: |
+          VERSION="v$(uv run python -c 'import app; print(app.__version__)')"
+          echo "tag=${GITHUB_REF_NAME}  __version__=${VERSION}"
+          test "${GITHUB_REF_NAME}" = "${VERSION}"
+
       - name: Build AppImage
         run: bash scripts/build_appimage.sh
 

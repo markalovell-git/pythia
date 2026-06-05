@@ -15,12 +15,15 @@ class BackendWorker(QThread):
     def __init__(self):
         super().__init__()
         self.setObjectName("BackendWorker")
+        self.server = None
 
     def run(self):
         log.debug("BackendWorker starting uvicorn")
         # Import the app object directly (not the "module:attr" string) so a
         # frozen PyInstaller build statically pulls in the backend package.
         from app.backend.main import app as fastapi_app
+        from app.common.database import init_db
+        init_db()
         config = uvicorn.Config(
             fastapi_app,
             host=BACKEND_HOST,
@@ -33,6 +36,6 @@ class BackendWorker(QThread):
 
     def stop(self):
         log.debug("BackendWorker stopping")
-        if hasattr(self, "server"):
+        if self.server is not None:
             self.server.should_exit = True
         self.wait()

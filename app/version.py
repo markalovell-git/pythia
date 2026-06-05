@@ -5,10 +5,10 @@ checkout we prefer ``git describe --tags`` so the displayed version reflects the
 exact release/dev state (e.g. ``v0.2.0`` or ``v0.2.0-3-gabc123``).
 """
 import subprocess
-import sys
 from pathlib import Path
 
 from app import __version__
+from app.common import runtime
 
 # Repo root = two levels up from this file (app/version.py -> app -> repo).
 _REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -35,7 +35,7 @@ def _git_describe() -> str | None:
 def get_version() -> str:
     """Human-readable version string for display (About dialog, window title)."""
     # A frozen build has no .git; __version__ is the baked-in source of truth.
-    if not getattr(sys, "frozen", False):
+    if not runtime.is_frozen():
         described = _git_describe()
         if described:
             return described
