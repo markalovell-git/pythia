@@ -18,6 +18,11 @@ double-click.) Nothing else is required — Python, Qt, and the star ephemeris a
 all bundled. Some distros need `libfuse2` to run AppImages
 (`sudo apt install libfuse2` on Debian/Ubuntu).
 
+On first launch Pythia offers to add itself to your applications menu (so you can
+launch and pin it like a normal app); you can toggle this any time under
+**Settings → Desktop**. Keep the AppImage somewhere stable — the menu entry
+points at it, and updates replace it in place.
+
 User data (database, ephemeris, logs) lives in `~/.local/share/Pythia/`,
 separate from the app, so updates never touch it.
 

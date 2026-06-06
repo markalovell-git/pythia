@@ -2,7 +2,7 @@ import os
 import sys
 import time
 from PyQt6.QtWidgets import QApplication, QSplashScreen, QLabel, QMessageBox
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QSettings
 from PyQt6.QtGui import QPixmap, QPalette, QColor
 
 from app.common.logging_config import setup_logging, get_logger
@@ -15,6 +15,7 @@ log = get_logger(__name__)
 from app.frontend.workers.backend_worker import BackendWorker
 from app.frontend import api_client
 from app.frontend import updater
+from app.frontend import desktop_integration
 
 
 def _wait_for_backend(timeout: float = 10.0) -> bool:
@@ -85,10 +86,44 @@ def _maybe_update():
     _relaunch()
 
 
+def _maybe_offer_desktop_integration():
+    """First run as an AppImage: offer to add Pythia to the applications menu.
+
+    Asked once (tracked in QSettings); thereafter it's available in Settings. If
+    already integrated, just keep the launcher's path current.
+    """
+    if not desktop_integration.is_available():
+        return
+    if desktop_integration.is_installed():
+        desktop_integration.sync_exec_path()
+        return
+
+    settings = QSettings("Pythia", "Pythia")
+    if settings.value("desktop_integration/prompted", False, type=bool):
+        return
+    settings.setValue("desktop_integration/prompted", True)
+
+    resp = QMessageBox.question(
+        None,
+        "Add to applications menu?",
+        "Add Pythia to your applications menu so you can launch and pin it like "
+        "a normal app?\n\nYou can change this any time in Settings.",
+        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        QMessageBox.StandardButton.Yes,
+    )
+    if resp == QMessageBox.StandardButton.Yes:
+        ok, msg = desktop_integration.install()
+        if not ok:
+            log.warning("Desktop integration failed: %s", msg)
+
+
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("Pythia")
     app.setApplicationVersion(get_version())
+    # Sets the Wayland app_id so the window binds to the desktop launcher
+    # (correct dock icon, no ghost entry, pinnable). See desktop_integration.
+    app.setDesktopFileName(desktop_integration.WM_CLASS)
     app.setStyle("Fusion")
 
     # Dark palette
@@ -164,6 +199,8 @@ def main():
         sys.exit(1)
 
     splash.close()
+
+    _maybe_offer_desktop_integration()
 
     from app.frontend.widgets.welcome import WelcomeWidget
     from app.frontend.main_window import MainWindow

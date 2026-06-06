@@ -7,6 +7,7 @@ import httpx
 
 from app.frontend.models import chart_model, user_model
 from app.frontend.workers.api_worker import ApiWorker
+from app.frontend import desktop_integration
 from app.common.constants import VALID_ZODIAC_SYSTEMS, VALID_HOUSE_SYSTEMS
 
 _HOUSE_SYSTEM_LABELS = {"placidus": "Placidus", "whole_sign": "Whole Sign"}
@@ -119,6 +120,23 @@ class SettingsView(QWidget):
         ai_layout.addWidget(save_ai_btn)
         layout.addWidget(ai_group)
 
+        # ── Desktop (AppImage only) ───────────────────────────────────────────
+        if desktop_integration.is_available():
+            desktop_group = QGroupBox("Desktop")
+            desktop_layout = QVBoxLayout(desktop_group)
+            self.desktop_btn = QPushButton()
+            self.desktop_btn.clicked.connect(self._on_toggle_desktop)
+            desktop_layout.addWidget(self.desktop_btn)
+            hint = QLabel(
+                "Add Pythia to your applications menu so you can launch and pin "
+                "it like a normal app."
+            )
+            hint.setWordWrap(True)
+            hint.setStyleSheet("color: #7070a0; font-size: 11px;")
+            desktop_layout.addWidget(hint)
+            layout.addWidget(desktop_group)
+            self._refresh_desktop_btn()
+
         account_group = QGroupBox("Account")
         account_layout = QVBoxLayout(account_group)
         delete_btn = QPushButton("Delete My Account…")
@@ -128,6 +146,24 @@ class SettingsView(QWidget):
         layout.addWidget(account_group)
 
         layout.addStretch()
+
+    def _refresh_desktop_btn(self):
+        installed = desktop_integration.is_installed()
+        self.desktop_btn.setText(
+            "Remove from Applications Menu" if installed
+            else "Add to Applications Menu"
+        )
+
+    def _on_toggle_desktop(self):
+        if desktop_integration.is_installed():
+            ok, msg = desktop_integration.uninstall()
+        else:
+            ok, msg = desktop_integration.install()
+        self._refresh_desktop_btn()
+        if ok:
+            QMessageBox.information(self, "Desktop", msg)
+        else:
+            QMessageBox.warning(self, "Desktop", f"Couldn't update the menu entry:\n\n{msg}")
 
     def load(self, user_id: str):
         self._user_id = user_id

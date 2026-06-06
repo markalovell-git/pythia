@@ -21,6 +21,7 @@ hiddenimports = [
 datas += collect_data_files("skyfield")        # skyfield's packaged data
 datas += collect_data_files("tzdata")          # pure-python tz database
 datas += [(str(ROOT / "data" / "de421.bsp"), "data")]  # bundled ephemeris
+datas += [(str(ROOT / "packaging" / "pythia.svg"), ".")]  # icon for desktop integration
 hiddenimports += collect_submodules("app")     # ensure backend routers are bundled
 
 # timezonefinder is imported lazily (in account_wizard.py), so its dependency
