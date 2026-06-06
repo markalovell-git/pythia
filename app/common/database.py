@@ -1,6 +1,6 @@
 import logging as _logging
 
-from sqlalchemy import create_engine, Column, String, DateTime, Float, ForeignKey, JSON, Date, text
+from sqlalchemy import create_engine, Column, String, DateTime, Float, Integer, ForeignKey, JSON, Date, text
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 from app.common import paths
@@ -65,6 +65,18 @@ class ConsultCache(Base):
     horizon   = Column(String, primary_key=True)  # "today" | "longer_term"
     cached_at = Column(DateTime, nullable=False)
     content   = Column(String, nullable=False)
+
+    user = relationship("UserData")
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id         = Column(Integer, primary_key=True, autoincrement=True)
+    user_id    = Column(String, ForeignKey("user_data.user_id"), index=True, nullable=False)
+    role       = Column(String, nullable=False)   # "user" | "assistant"
+    content    = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False)
 
     user = relationship("UserData")
 

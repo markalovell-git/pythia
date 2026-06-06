@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.common.database import get_db, UserData, ConsultCache
+from app.common.database import get_db, UserData, ConsultCache, ChatMessage
 
 consult_router = APIRouter()
 
@@ -58,5 +58,50 @@ async def set_consult_cache(
     else:
         entry.cached_at = now
         entry.content = body.content
+    db.commit()
+    return {"status": "ok"}
+
+
+# ── Chat history ────────────────────────────────────────────────────────────────
+
+def _require_user(user_id: str, db: Session) -> None:
+    if not db.query(UserData).filter(UserData.user_id == user_id).first():
+        raise HTTPException(status_code=404, detail="User not found")
+
+
+@consult_router.get("/chat_history/{user_id}")
+async def get_chat_history(user_id: str, db: Session = Depends(get_db)):
+    _require_user(user_id, db)
+    rows = (
+        db.query(ChatMessage)
+        .filter(ChatMessage.user_id == user_id)
+        .order_by(ChatMessage.id)
+        .all()
+    )
+    return [{"role": r.role, "content": r.content} for r in rows]
+
+
+class ChatMessageBody(BaseModel):
+    role: str
+    content: str
+
+
+@consult_router.post("/chat_history/{user_id}")
+async def append_chat_message(
+    user_id: str, body: ChatMessageBody, db: Session = Depends(get_db)
+):
+    if body.role not in ("user", "assistant"):
+        raise HTTPException(status_code=422, detail="role must be 'user' or 'assistant'")
+    _require_user(user_id, db)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    db.add(ChatMessage(user_id=user_id, role=body.role, content=body.content, created_at=now))
+    db.commit()
+    return {"status": "ok"}
+
+
+@consult_router.delete("/chat_history/{user_id}")
+async def clear_chat_history(user_id: str, db: Session = Depends(get_db)):
+    _require_user(user_id, db)
+    db.query(ChatMessage).filter(ChatMessage.user_id == user_id).delete()
     db.commit()
     return {"status": "ok"}

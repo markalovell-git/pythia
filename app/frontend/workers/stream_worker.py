@@ -12,11 +12,12 @@ class StreamWorker(QThread):
     chunk = pyqtSignal(str)
     error = pyqtSignal(str)
 
-    def __init__(self, ai_settings: dict, system: str, messages: list[dict]):
+    def __init__(self, ai_settings: dict, system: str, messages: list[dict], think: bool = True):
         super().__init__()
         self._ai_settings = ai_settings
         self._system = system
         self._messages = messages
+        self._think = think
         _active.add(self)
         self.finished.connect(lambda: _active.discard(self))
 
@@ -35,6 +36,7 @@ class StreamWorker(QThread):
                 base_url=self._ai_settings.get("ollama_url", "http://localhost:11434"),
                 system=self._system,
                 messages=self._messages,
+                think=self._think,
             ):
                 self.chunk.emit(text)
         except Exception as e:

@@ -89,17 +89,51 @@ CONSTRAINTS
 - Name tensions and contradictions in the chart rather than resolving them artificially.
 """
 
-CHAT_SYSTEM_PROMPT = """You are an astrological interpreter engaged in a follow-up conversation about a natal and transit reading.
+CHAT_SYSTEM_PROMPT = """You are a warm, knowledgeable astrologer texting with a friend about their chart. They've already read a daily and a longer-term interpretation (provided below). This is a casual back-and-forth chat.
 
-The user has already received two written interpretations: a daily reading and a longer-term reading. These are provided in the context below. Your role is to answer follow-up questions, go deeper on specific transits or natal placements, and help the user understand the astrology at work.
+HOW TO REPLY — these are hard rules, not suggestions:
+- SHORT. Default to 2–4 sentences. Treat this like a text message, never an essay or a report.
+- Plain conversational prose ONLY. Do NOT use markdown headings, bold section titles, numbered sections, bullet lists, horizontal rules, or emoji. Just talk.
+- Answer the actual question directly and stop. Do not add background, summaries, "what to expect," or action tips they didn't ask for.
+- Warm and friendly — sound like a real person, not a textbook.
+- A short follow-up question to keep the chat going is welcome.
+- Only write more than a few sentences if they explicitly ask you to go deeper ("tell me more", "explain", "why?"). Even then, stay tight.
 
-RULES
-- Ground every answer in the chart data provided. Do not invent placements, aspects, or transits not present in the context.
-- When the user asks about a planet, sign, or aspect not in the data, say so clearly rather than speculating.
-- Adjust depth to the question — a "what does this mean?" question deserves a different depth than "how long will this last?"
-- Keep responses focused and conversational. You're in a dialogue, not writing another essay.
-- Avoid generic horoscope language. Be specific to THIS chart.
+GROUNDING
+- Always reply in plain modern English.
+- Use only the chart data provided. Never invent placements, aspects, or transits that aren't there.
+- If they ask about something not in the data, just say so plainly.
+- Be specific to THIS chart — no generic horoscope filler.
 """
+
+# Few-shot priming. Small local models mimic the *length and tone* of recent
+# turns far more reliably than they follow a "be brief" instruction, so we seed
+# the conversation with one short exchange. These turns are sent to the model
+# only — they are never displayed or saved to the user's chat history. The
+# example deliberately avoids naming real placements so it can't be mistaken for
+# this user's chart data.
+CHAT_FEWSHOT: list[dict] = [
+    {"role": "user", "content": "what does my sun mean for me?"},
+    {"role": "assistant", "content": "Your Sun is basically your core drive — how you naturally show up and what energizes you. Its sign and house colour where that plays out most in your life. Want me to connect it to something specific you're working through?"},
+]
+
+
+_SENTENCE_END = ".!?…"
+
+
+def trim_to_last_sentence(text: str) -> str:
+    """Trim a reply back to its last complete sentence.
+
+    The Ollama token cap (`num_predict`) can guillotine a reply mid-word; rather
+    than show that, we drop back to the last sentence-ending punctuation. If the
+    text already ends cleanly (or has no sentence break at all) it's returned
+    unchanged apart from trailing whitespace.
+    """
+    s = text.rstrip()
+    if not s or s[-1] in _SENTENCE_END:
+        return s
+    cut = max(s.rfind(c) for c in _SENTENCE_END)
+    return s[:cut + 1] if cut != -1 else s
 
 # ── Moon phase helper ──────────────────────────────────────────────────────────
 
@@ -240,14 +274,20 @@ def stream_chat(
     base_url: str,
     system: str,
     messages: list[dict],
+    think: bool = True,
 ):
-    """Generator that yields text chunks as they arrive. Strips <think> blocks."""
+    """Generator that yields text chunks as they arrive. Strips <think> blocks.
+
+    `think=False` asks an Ollama thinking model (e.g. qwen3) to skip its
+    reasoning pass entirely — used for chat, where short replies matter and a
+    leaked/half-tagged <think> block would otherwise pollute the bubble.
+    """
     if provider == "claude":
         yield from _strip_think(_stream_claude(api_key, system, messages))
     elif provider == "openai":
         yield from _strip_think(_stream_openai(api_key, system, messages))
     else:
-        yield from _strip_think(_stream_ollama(base_url, model, system, messages))
+        yield from _strip_think(_stream_ollama(base_url, model, system, messages, think))
 
 
 def _strip_think(chunks):
@@ -284,17 +324,31 @@ def _strip_think(chunks):
         yield pending
 
 
-def _stream_ollama(base_url: str, model: str, system: str, messages: list[dict]):
+def _stream_ollama(base_url: str, model: str, system: str, messages: list[dict], think: bool = True):
     url = base_url.rstrip("/") + "/api/chat"
+    options: dict = {"num_ctx": _OLLAMA_CTX}
+    payload = {
+        "model":    model,
+        "stream":   True,
+        "options":  options,
+        "messages": [{"role": "system", "content": system}] + messages,
+    }
+    # Only diverge from the readings' request shape when thinking is disabled
+    # (the chat path). Chat gets anti-repetition + sampling guards to avoid the
+    # degeneration loops small models fall into without their reasoning pass,
+    # plus a hard length cap to keep replies short.
+    if not think:
+        payload["think"] = False
+        options.update({
+            "repeat_penalty": 1.3,   # punish reusing recent tokens — breaks loops
+            "repeat_last_n":  256,   # window the penalty looks back over
+            "temperature":    0.7,   # avoid the near-greedy decoding that locks loops in
+            "top_p":          0.9,
+        })
     try:
         with httpx.stream(
             "POST", url,
-            json={
-                "model":    model,
-                "stream":   True,
-                "options":  {"num_ctx": _OLLAMA_CTX},
-                "messages": [{"role": "system", "content": system}] + messages,
-            },
+            json=payload,
             timeout=_TIMEOUT,
         ) as r:
             r.raise_for_status()

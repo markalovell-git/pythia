@@ -4,7 +4,7 @@ from PyQt6.QtGui import QTextCursor, QTextBlockFormat
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QSplitter, QScrollArea, QLineEdit, QFrame, QTextBrowser,
-    QGroupBox,
+    QGroupBox, QMessageBox,
 )
 
 from app.frontend import api_client
@@ -116,7 +116,16 @@ class ConsultView(QWidget):
         self._longer_cache_worker: ApiWorker | None = None
         self._today_worker:        ApiWorker | None = None
         self._longer_worker:       ApiWorker | None = None
-        self._chat_worker:         ApiWorker | None = None
+        self._history_worker:      ApiWorker | None = None
+        self._chat_worker:         StreamWorker | None = None
+        self._chat_accumulated:    str = ""
+        self._pending_user_msg:    str = ""
+        self._streaming_bubble:    QLabel | None = None
+        self._chat_pending_scroll: bool = False
+        self._chat_think_step:     int = 0
+        self._chat_think_timer = QTimer(self)
+        self._chat_think_timer.setInterval(450)
+        self._chat_think_timer.timeout.connect(self._tick_chat_thinking)
         self._bg_workers:          list[ApiWorker] = []  # fire-and-forget refs
         self._generated = False
         self._longer_done = False
@@ -195,9 +204,16 @@ class ConsultView(QWidget):
         chat_layout.setContentsMargins(0, 4, 0, 0)
         chat_layout.setSpacing(4)
 
+        chat_header = QHBoxLayout()
         chat_label = QLabel("Chat")
         chat_label.setStyleSheet("font-size: 13px; font-weight: bold; color: #c0c0e0;")
-        chat_layout.addWidget(chat_label)
+        chat_header.addWidget(chat_label)
+        chat_header.addStretch()
+        self._clear_chat_btn = QPushButton("Clear chat")
+        self._clear_chat_btn.setStyleSheet("font-size: 12px;")
+        self._clear_chat_btn.clicked.connect(self._on_clear_chat)
+        chat_header.addWidget(self._clear_chat_btn)
+        chat_layout.addLayout(chat_header)
 
         self._chat_scroll = QScrollArea()
         self._chat_scroll.setWidgetResizable(True)
@@ -208,15 +224,22 @@ class ConsultView(QWidget):
         self._chat_inner_layout.setSpacing(8)
         self._chat_inner_layout.addStretch()
         self._chat_scroll.setWidget(self._chat_inner)
+        # rangeChanged fires once the scroll area has recomputed its extent for
+        # newly added / re-wrapped content — the right moment to pin to bottom.
+        self._chat_scroll.verticalScrollBar().rangeChanged.connect(self._on_chat_range_changed)
         chat_layout.addWidget(self._chat_scroll)
 
         input_row = QHBoxLayout()
         self._chat_input = QLineEdit()
         self._chat_input.setPlaceholderText("Ask about your chart…")
         self._chat_input.returnPressed.connect(self._on_send)
+        # Make the input box 1.5x its natural height
+        input_h = int(self._chat_input.sizeHint().height() * 1.5)
+        self._chat_input.setFixedHeight(input_h)
         input_row.addWidget(self._chat_input)
         self._send_btn = QPushButton("Send")
         self._send_btn.clicked.connect(self._on_send)
+        self._send_btn.setFixedHeight(input_h)  # match the taller input
         input_row.addWidget(self._send_btn)
         chat_layout.addLayout(input_row)
 
@@ -230,6 +253,11 @@ class ConsultView(QWidget):
         self._user_id = user_id
         self._ai_settings = chart_model.get_ai_settings(user_id)
         self._update_provider_label()
+
+        self._history_worker = ApiWorker(api_client.get_chat_history, user_id)
+        self._history_worker.result.connect(self._on_chat_history_loaded)
+        self._history_worker.error.connect(lambda _: None)
+        self._history_worker.start()
 
         self._natal_worker = ApiWorker(chart_model.load_chart, user_id)
         self._natal_worker.result.connect(self._on_natal)
@@ -439,46 +467,156 @@ class ConsultView(QWidget):
 
     # ── Chat ──────────────────────────────────────────────────────────────────
 
+    def _on_chat_history_loaded(self, history: list):
+        """Render persisted messages and seed the in-memory history on page load."""
+        if not history:
+            return
+        self._chat_history = [{"role": m["role"], "content": m["content"]} for m in history]
+        for m in self._chat_history:
+            self._append_chat_bubble(m["content"], role=m["role"])
+
+    def _build_chat_system(self) -> str:
+        """Chat system prompt + authoritative chart data + the two prose readings."""
+        system = llm_client.CHAT_SYSTEM_PROMPT
+
+        if self._natal is not None and self._transits is not None and self._user is not None:
+            payload = llm_client.build_consult_payload(
+                self._user, self._natal, self._transits, self._windows or [], "longer_term"
+            )
+            system += "\n\nCHART DATA (authoritative — ground answers in this):\n\n" + payload
+
+        context_parts = []
+        if self._today_text:
+            context_parts.append(f"DAILY READING:\n{self._today_text}")
+        if self._longer_text:
+            context_parts.append(f"LONGER-TERM READING:\n{self._longer_text}")
+        if context_parts:
+            system += "\n\nCONTEXT — READINGS ALREADY GIVEN TO THE USER:\n\n" + "\n\n".join(context_parts)
+        return system
+
     def _on_send(self):
         text = self._chat_input.text().strip()
         if not text or self._chat_worker is not None:
             return
         self._chat_input.clear()
         self._send_btn.setEnabled(False)
+        self._clear_chat_btn.setEnabled(False)  # don't delete a thread mid-reply
         self._append_chat_bubble(text, role="user")
         self._chat_history.append({"role": "user", "content": text})
+        self._pending_user_msg = text  # persisted only if the reply succeeds
 
-        # Build system context including the two readings
-        context_parts = []
-        if self._today_text:
-            context_parts.append(f"DAILY READING:\n{self._today_text}")
-        if self._longer_text:
-            context_parts.append(f"LONGER-TERM READING:\n{self._longer_text}")
-        system = llm_client.CHAT_SYSTEM_PROMPT
-        if context_parts:
-            system += "\n\nCONTEXT — READINGS ALREADY GIVEN TO THE USER:\n\n" + "\n\n".join(context_parts)
+        # Empty assistant bubble that shows a "Thinking…" animation until the
+        # first chunk arrives, then fills in as chunks stream in.
+        self._chat_accumulated = ""
+        self._streaming_bubble = self._append_chat_bubble("Thinking", role="assistant")
+        self._chat_think_step = 0
+        self._chat_think_timer.start()
 
-        ai = chart_model.get_ai_settings(self._user_id)
-        self._chat_worker = ApiWorker(
-            _call_llm, ai, system, list(self._chat_history)
+        # Few-shot example primes the model toward short replies; it's sent to the
+        # model but kept out of the persisted/displayed history.
+        w = StreamWorker(
+            chart_model.get_ai_settings(self._user_id),
+            self._build_chat_system(),
+            llm_client.CHAT_FEWSHOT + list(self._chat_history),
+            think=False,  # chat wants short, direct replies — skip qwen3's reasoning pass
         )
-        self._chat_worker.result.connect(self._on_chat_result)
-        self._chat_worker.error.connect(self._on_chat_error)
-        self._chat_worker.start()
+        w.chunk.connect(self._on_chat_chunk)
+        w.error.connect(self._on_chat_error)
+        w.finished.connect(self._on_chat_stream_done)
+        w.start()
+        self._chat_worker = w
 
-    def _on_chat_result(self, text: str):
-        self._chat_history.append({"role": "assistant", "content": text})
-        self._append_chat_bubble(text, role="assistant")
+    def _tick_chat_thinking(self):
+        if self._streaming_bubble is None:
+            self._chat_think_timer.stop()
+            return
+        self._chat_think_step = (self._chat_think_step + 1) % 4
+        self._streaming_bubble.setText("Thinking" + "." * self._chat_think_step)
+
+    def _on_chat_chunk(self, text: str):
+        self._chat_think_timer.stop()  # first content arrived — drop the placeholder
+        self._chat_accumulated += text
+        if self._streaming_bubble is not None:
+            self._streaming_bubble.setText(self._chat_accumulated)
+        self._scroll_chat_to_bottom()
+
+    def _scroll_chat_to_bottom(self):
+        # Best-effort now, plus arm a deferred scroll: a word-wrapped bubble only
+        # gets its true height once resized to the viewport, which fires
+        # rangeChanged after this returns — _on_chat_range_changed catches that.
+        self._chat_pending_scroll = True
+        sb = self._chat_scroll.verticalScrollBar()
+        sb.setValue(sb.maximum())
+
+    def _on_chat_range_changed(self, _minimum: int, maximum: int):
+        if self._chat_pending_scroll:
+            self._chat_pending_scroll = False
+            self._chat_scroll.verticalScrollBar().setValue(maximum)
+
+    def _on_chat_stream_done(self):
+        self._chat_think_timer.stop()
+        bubble, self._streaming_bubble = self._streaming_bubble, None
         self._chat_worker = None
         self._send_btn.setEnabled(True)
+        self._clear_chat_btn.setEnabled(True)
+        reply = llm_client.trim_to_last_sentence(self._chat_accumulated)
+        if reply:
+            if bubble is not None:
+                bubble.setText(reply)  # replace any mid-sentence cutoff with the clean version
+            self._chat_history.append({"role": "assistant", "content": reply})
+            self._fire_and_forget(api_client.append_chat_message, self._user_id, "user", self._pending_user_msg)
+            self._fire_and_forget(
+                api_client.append_chat_message, self._user_id, "assistant", reply
+            )
+        elif bubble is not None:
+            # Stream ended with no content and no error handled below — drop the
+            # empty bubble and the unanswered user turn.
+            bubble.deleteLater()
+            if self._chat_history and self._chat_history[-1]["role"] == "user":
+                self._chat_history.pop()
 
     def _on_chat_error(self, msg: str):
+        # Drop the empty assistant bubble and the failed user turn. Clear the
+        # accumulator so the trailing `finished` signal is a no-op.
+        self._chat_think_timer.stop()
+        if self._streaming_bubble is not None:
+            self._streaming_bubble.deleteLater()
+            self._streaming_bubble = None
+        self._chat_accumulated = ""
         self._append_chat_bubble(f"Error: {msg}", role="error")
-        self._chat_history.pop()  # remove the failed user message
+        if self._chat_history and self._chat_history[-1]["role"] == "user":
+            self._chat_history.pop()
         self._chat_worker = None
         self._send_btn.setEnabled(True)
+        self._clear_chat_btn.setEnabled(True)
 
-    def _append_chat_bubble(self, text: str, role: str):
+    def _on_clear_chat(self):
+        if self._chat_worker is not None:
+            return  # a reply is streaming; button is disabled anyway
+        if not self._chat_history:
+            return  # nothing to clear
+        confirm = QMessageBox.question(
+            self,
+            "Clear chat",
+            "Delete the entire chat history for this person? This can't be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+        self._chat_history = []
+        self._clear_chat_bubbles()
+        self._fire_and_forget(api_client.clear_chat_history, self._user_id)
+
+    def _clear_chat_bubbles(self):
+        """Remove every message bubble, leaving the trailing stretch in place."""
+        for i in reversed(range(self._chat_inner_layout.count())):
+            w = self._chat_inner_layout.itemAt(i).widget()
+            if w is not None:
+                w.setParent(None)
+                w.deleteLater()
+
+    def _append_chat_bubble(self, text: str, role: str) -> QLabel:
         bubble = QLabel(text)
         bubble.setWordWrap(True)
         bubble.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
@@ -503,10 +641,8 @@ class ConsultView(QWidget):
         count = self._chat_inner_layout.count()
         self._chat_inner_layout.insertWidget(count - 1, bubble)
 
-        # Scroll to bottom
-        self._chat_scroll.verticalScrollBar().setValue(
-            self._chat_scroll.verticalScrollBar().maximum()
-        )
+        self._scroll_chat_to_bottom()
+        return bubble
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 

@@ -149,6 +149,20 @@ def set_consult_cache(user_id: str, horizon: str, content: str) -> dict:
     return _put(f"/consult_cache/{user_id}/{horizon}", json={"content": content})
 
 
+# ── Chat history ──────────────────────────────────────────────────────────────
+
+def get_chat_history(user_id: str) -> list:
+    return _get(f"/chat_history/{user_id}") or []
+
+
+def append_chat_message(user_id: str, role: str, content: str) -> dict:
+    return _post(f"/chat_history/{user_id}", json={"role": role, "content": content})
+
+
+def clear_chat_history(user_id: str) -> dict:
+    return _delete(f"/chat_history/{user_id}")
+
+
 # ── Geocode ───────────────────────────────────────────────────────────────────
 
 def geocode(query: str) -> dict | None:
