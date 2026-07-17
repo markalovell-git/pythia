@@ -59,3 +59,14 @@ def test_key_saved_via_api_is_not_stored_plaintext(client, created_user, tmp_pat
     # And a fresh read resolves it back.
     resp = client.get(f"/api/get_user_settings/{created_user}")
     assert resp.json()["anthropic_key"] == "sk-ant-secret"
+
+
+def test_model_fields_round_trip(client, created_user):
+    resp = client.put(
+        f"/api/update_user_settings/{created_user}",
+        json={"anthropic_model": "claude-opus-4-8", "openai_model": "gpt-4o"},
+    )
+    assert resp.status_code == 200
+    body = client.get(f"/api/get_user_settings/{created_user}").json()
+    assert body["anthropic_model"] == "claude-opus-4-8"
+    assert body["openai_model"] == "gpt-4o"

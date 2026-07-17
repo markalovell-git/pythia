@@ -4,6 +4,10 @@ from sqlalchemy import create_engine, Column, String, DateTime, Float, Integer, 
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 from app.common import paths
+from app.common.constants import (
+    DEFAULT_ANTHROPIC_MODEL, DEFAULT_OPENAI_MODEL,
+    DEFAULT_OLLAMA_MODEL, DEFAULT_OLLAMA_URL,
+)
 
 _log = _logging.getLogger(__name__)
 
@@ -38,11 +42,13 @@ class UserSettings(Base):
     user_id       = Column(String, ForeignKey("user_data.user_id"), primary_key=True)
     zodiac_system = Column(String, nullable=False)
     house_system  = Column(String, nullable=False, default="placidus")
-    ai_provider   = Column(String, nullable=False, default="ollama")
-    anthropic_key = Column(String, nullable=True)
-    openai_key    = Column(String, nullable=True)
-    ollama_url    = Column(String, nullable=False, default="http://localhost:11434")
-    ollama_model  = Column(String, nullable=False, default="qwen3:14b")
+    ai_provider     = Column(String, nullable=False, default="ollama")
+    anthropic_key   = Column(String, nullable=True)
+    openai_key      = Column(String, nullable=True)
+    anthropic_model = Column(String, nullable=False, default=DEFAULT_ANTHROPIC_MODEL)
+    openai_model    = Column(String, nullable=False, default=DEFAULT_OPENAI_MODEL)
+    ollama_url      = Column(String, nullable=False, default=DEFAULT_OLLAMA_URL)
+    ollama_model    = Column(String, nullable=False, default=DEFAULT_OLLAMA_MODEL)
 
     user = relationship("UserData", back_populates="settings")
 
@@ -105,11 +111,13 @@ def init_db() -> None:
     # Migrate existing databases that predate AI settings columns.
     with engine.connect() as conn:
         for col, dflt in [
-            ("ai_provider",   "'ollama'"),
-            ("anthropic_key", "NULL"),
-            ("openai_key",    "NULL"),
-            ("ollama_url",    "'http://localhost:11434'"),
-            ("ollama_model",  "'qwen3:14b'"),
+            ("ai_provider",     "'ollama'"),
+            ("anthropic_key",   "NULL"),
+            ("openai_key",      "NULL"),
+            ("anthropic_model", f"'{DEFAULT_ANTHROPIC_MODEL}'"),
+            ("openai_model",    f"'{DEFAULT_OPENAI_MODEL}'"),
+            ("ollama_url",      f"'{DEFAULT_OLLAMA_URL}'"),
+            ("ollama_model",    f"'{DEFAULT_OLLAMA_MODEL}'"),
         ]:
             try:
                 conn.execute(text(

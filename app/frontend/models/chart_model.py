@@ -219,11 +219,13 @@ def set_house_system(user_id: str, house_system: str) -> None:
 def get_ai_settings(user_id: str) -> dict:
     raw = api_client.get_user_settings(user_id)
     return {
-        "ai_provider":   raw.get("ai_provider"),
-        "anthropic_key": raw.get("anthropic_key"),
-        "openai_key":    raw.get("openai_key"),
-        "ollama_url":    raw.get("ollama_url"),
-        "ollama_model":  raw.get("ollama_model"),
+        "ai_provider":     raw.get("ai_provider"),
+        "anthropic_key":   raw.get("anthropic_key"),
+        "openai_key":      raw.get("openai_key"),
+        "anthropic_model": raw.get("anthropic_model"),
+        "openai_model":    raw.get("openai_model"),
+        "ollama_url":      raw.get("ollama_url"),
+        "ollama_model":    raw.get("ollama_model"),
     }
 
 
@@ -232,6 +234,8 @@ def set_ai_settings(
     ai_provider: str | None = None,
     anthropic_key: str | None = None,
     openai_key: str | None = None,
+    anthropic_model: str | None = None,
+    openai_model: str | None = None,
     ollama_url: str | None = None,
     ollama_model: str | None = None,
 ) -> None:
@@ -240,6 +244,8 @@ def set_ai_settings(
         ai_provider=ai_provider,
         anthropic_key=anthropic_key,
         openai_key=openai_key,
+        anthropic_model=anthropic_model,
+        openai_model=openai_model,
         ollama_url=ollama_url,
         ollama_model=ollama_model,
     )

@@ -8,9 +8,20 @@ import httpx
 from app.frontend.models import chart_model, user_model
 from app.frontend.workers.api_worker import ApiWorker
 from app.frontend import desktop_integration
-from app.common.constants import VALID_ZODIAC_SYSTEMS, VALID_HOUSE_SYSTEMS
+from app.common.constants import (
+    VALID_ZODIAC_SYSTEMS, VALID_HOUSE_SYSTEMS,
+    DEFAULT_ANTHROPIC_MODEL, DEFAULT_OPENAI_MODEL,
+    DEFAULT_OLLAMA_MODEL, DEFAULT_OLLAMA_URL,
+)
 
 _HOUSE_SYSTEM_LABELS = {"placidus": "Placidus", "whole_sign": "Whole Sign"}
+
+# Which settings field and default the shared Model box maps to, per provider
+_PROVIDER_MODEL_FIELDS = {
+    "claude": ("anthropic_model", DEFAULT_ANTHROPIC_MODEL),
+    "openai": ("openai_model",    DEFAULT_OPENAI_MODEL),
+    "ollama": ("ollama_model",    DEFAULT_OLLAMA_MODEL),
+}
 
 
 def _calculate_chart_detail(user_id: str) -> chart_model.ChartData:
@@ -41,6 +52,8 @@ class SettingsView(QWidget):
         self._user_id: str | None = None
         self._loaded_house: str = "placidus"
         self._house_worker: ApiWorker | None = None
+        self._ai: dict = {}                        # per-provider keys/models cache
+        self._current_provider: str | None = None  # provider the fields currently show
         self._build_ui()
 
     def _build_ui(self):
@@ -107,12 +120,12 @@ class SettingsView(QWidget):
         self._url_row.addWidget(self.ollama_url_edit)
         ai_layout.addLayout(self._url_row)
 
-        # Ollama model row
+        # Model row (all providers — maps to the current provider's model field)
         self._model_row = QHBoxLayout()
         self._model_row.addWidget(QLabel("Model:"))
-        self.ollama_model_edit = QLineEdit()
-        self.ollama_model_edit.setPlaceholderText("qwen3:14b")
-        self._model_row.addWidget(self.ollama_model_edit)
+        self.model_edit = QLineEdit()
+        self.model_edit.setPlaceholderText(DEFAULT_OLLAMA_MODEL)
+        self._model_row.addWidget(self.model_edit)
         ai_layout.addLayout(self._model_row)
 
         save_ai_btn = QPushButton("Save")
@@ -176,17 +189,15 @@ class SettingsView(QWidget):
         if idx >= 0:
             self.house_combo.setCurrentIndex(idx)
         ai = chart_model.get_ai_settings(user_id)
+        self._ai = ai
+        self._current_provider = None  # nothing on screen to stash yet
+        self.ollama_url_edit.setText(ai.get("ollama_url") or DEFAULT_OLLAMA_URL)
+        # Block signals so _on_ai_provider_changed runs once, after _ai is set
+        self.ai_provider_combo.blockSignals(True)
         idx = self.ai_provider_combo.findData(ai["ai_provider"])
         if idx >= 0:
             self.ai_provider_combo.setCurrentIndex(idx)
-        self.ollama_url_edit.setText(ai.get("ollama_url") or "http://localhost:11434")
-        self.ollama_model_edit.setText(ai.get("ollama_model") or "llama3.2")
-        # Populate the key field based on current provider
-        provider = ai["ai_provider"]
-        if provider == "claude":
-            self.ai_key_edit.setText(ai.get("anthropic_key") or "")
-        elif provider == "openai":
-            self.ai_key_edit.setText(ai.get("openai_key") or "")
+        self.ai_provider_combo.blockSignals(False)
         self._on_ai_provider_changed()
 
     def _on_save_zodiac(self):
@@ -226,10 +237,24 @@ class SettingsView(QWidget):
             f"Couldn't switch to {_HOUSE_SYSTEM_LABELS[new_value]}:\n\n{msg}",
         )
 
+    def _stash_provider_fields(self):
+        """Save the on-screen key/model into the cache for the provider showing them."""
+        prev = self._current_provider
+        if prev is None:
+            return
+        model_field, _ = _PROVIDER_MODEL_FIELDS[prev]
+        self._ai[model_field] = self.model_edit.text().strip() or None
+        if prev == "claude":
+            self._ai["anthropic_key"] = self.ai_key_edit.text().strip() or None
+        elif prev == "openai":
+            self._ai["openai_key"] = self.ai_key_edit.text().strip() or None
+
     def _on_ai_provider_changed(self, _index: int = 0):
+        self._stash_provider_fields()
         provider = self.ai_provider_combo.currentData()
+        self._current_provider = provider
         is_ollama = (provider == "ollama")
-        # Show/hide relevant rows
+        # Show/hide relevant rows (model row applies to every provider)
         for i in range(self._key_row.count()):
             w = self._key_row.itemAt(i).widget()
             if w:
@@ -238,23 +263,30 @@ class SettingsView(QWidget):
             w = self._url_row.itemAt(i).widget()
             if w:
                 w.setVisible(is_ollama)
-        for i in range(self._model_row.count()):
-            w = self._model_row.itemAt(i).widget()
-            if w:
-                w.setVisible(is_ollama)
+        # Swap the key/model fields over to the new provider's values
+        if provider == "claude":
+            self.ai_key_edit.setText(self._ai.get("anthropic_key") or "")
+        elif provider == "openai":
+            self.ai_key_edit.setText(self._ai.get("openai_key") or "")
+        else:
+            self.ai_key_edit.clear()
+        model_field, default = _PROVIDER_MODEL_FIELDS[provider]
+        self.model_edit.setPlaceholderText(default)
+        self.model_edit.setText(self._ai.get(model_field) or default)
 
     def _on_save_ai(self):
         if not self._user_id:
             return
-        provider = self.ai_provider_combo.currentData()
-        key = self.ai_key_edit.text().strip() or None
+        self._stash_provider_fields()
         chart_model.set_ai_settings(
             self._user_id,
-            ai_provider=provider,
-            anthropic_key=key if provider == "claude" else None,
-            openai_key=key if provider == "openai" else None,
+            ai_provider=self.ai_provider_combo.currentData(),
+            anthropic_key=self._ai.get("anthropic_key"),
+            openai_key=self._ai.get("openai_key"),
+            anthropic_model=self._ai.get("anthropic_model"),
+            openai_model=self._ai.get("openai_model"),
             ollama_url=self.ollama_url_edit.text().strip() or None,
-            ollama_model=self.ollama_model_edit.text().strip() or None,
+            ollama_model=self._ai.get("ollama_model"),
         )
 
     def _on_delete_account(self):

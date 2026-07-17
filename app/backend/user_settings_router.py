@@ -4,31 +4,44 @@ from sqlalchemy.orm import Session
 
 from app.common import secrets
 from app.common.database import get_db, UserData, UserSettings, NatalChart
-from app.common.constants import VALID_ZODIAC_SYSTEMS, VALID_HOUSE_SYSTEMS
+from app.common.constants import (
+    VALID_ZODIAC_SYSTEMS, VALID_HOUSE_SYSTEMS,
+    DEFAULT_ANTHROPIC_MODEL, DEFAULT_OPENAI_MODEL,
+    DEFAULT_OLLAMA_MODEL, DEFAULT_OLLAMA_URL,
+)
 
 user_settings_router = APIRouter()
 
+# API keys are handled separately — they go through app.common.secrets
+_AI_TEXT_FIELDS = (
+    "ai_provider", "anthropic_model", "openai_model", "ollama_url", "ollama_model",
+)
+
 
 class SettingsUpdate(BaseModel):
-    zodiac_system: str | None = None
-    house_system:  str | None = None
-    ai_provider:   str | None = None
-    anthropic_key: str | None = None
-    openai_key:    str | None = None
-    ollama_url:    str | None = None
-    ollama_model:  str | None = None
+    zodiac_system:   str | None = None
+    house_system:    str | None = None
+    ai_provider:     str | None = None
+    anthropic_key:   str | None = None
+    openai_key:      str | None = None
+    anthropic_model: str | None = None
+    openai_model:    str | None = None
+    ollama_url:      str | None = None
+    ollama_model:    str | None = None
 
 
 def _settings_response(user_id: str, settings: UserSettings) -> dict:
     return {
-        "user_id":       user_id,
-        "zodiac_system": settings.zodiac_system,
-        "house_system":  settings.house_system,
-        "ai_provider":   getattr(settings, "ai_provider",   "ollama"),
-        "anthropic_key": secrets.get_api_key(user_id, "anthropic", getattr(settings, "anthropic_key", None)),
-        "openai_key":    secrets.get_api_key(user_id, "openai",    getattr(settings, "openai_key",    None)),
-        "ollama_url":    getattr(settings, "ollama_url",    "http://localhost:11434"),
-        "ollama_model":  getattr(settings, "ollama_model",  "qwen3:14b"),
+        "user_id":         user_id,
+        "zodiac_system":   settings.zodiac_system,
+        "house_system":    settings.house_system,
+        "ai_provider":     getattr(settings, "ai_provider",     "ollama"),
+        "anthropic_key":   secrets.get_api_key(user_id, "anthropic", getattr(settings, "anthropic_key", None)),
+        "openai_key":      secrets.get_api_key(user_id, "openai",    getattr(settings, "openai_key",    None)),
+        "anthropic_model": getattr(settings, "anthropic_model", DEFAULT_ANTHROPIC_MODEL),
+        "openai_model":    getattr(settings, "openai_model",    DEFAULT_OPENAI_MODEL),
+        "ollama_url":      getattr(settings, "ollama_url",      DEFAULT_OLLAMA_URL),
+        "ollama_model":    getattr(settings, "ollama_model",    DEFAULT_OLLAMA_MODEL),
     }
 
 
@@ -62,8 +75,7 @@ async def update_user_settings(
     if update.house_system is not None:
         settings.house_system = update.house_system
     # AI settings — changes do not invalidate the natal chart
-    # (API keys are handled separately below — they go through app.common.secrets)
-    for field in ("ai_provider", "ollama_url", "ollama_model"):
+    for field in _AI_TEXT_FIELDS:
         value = getattr(update, field)
         if value is not None:
             setattr(settings, field, value)

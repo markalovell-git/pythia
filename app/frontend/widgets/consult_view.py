@@ -109,6 +109,7 @@ class ConsultView(QWidget):
         self._today_accumulated: str = ""
         self._longer_accumulated: str = ""
         self._natal_worker:        ApiWorker | None = None
+        self._ai_settings_worker:  ApiWorker | None = None
         self._transit_worker:      ApiWorker | None = None
         self._windows_worker:      ApiWorker | None = None
         self._user_worker:         ApiWorker | None = None
@@ -251,8 +252,11 @@ class ConsultView(QWidget):
 
     def load(self, user_id: str):
         self._user_id = user_id
-        self._ai_settings = chart_model.get_ai_settings(user_id)
-        self._update_provider_label()
+
+        self._ai_settings_worker = ApiWorker(chart_model.get_ai_settings, user_id)
+        self._ai_settings_worker.result.connect(self._on_ai_settings)
+        self._ai_settings_worker.error.connect(lambda _: None)
+        self._ai_settings_worker.start()
 
         self._history_worker = ApiWorker(api_client.get_chat_history, user_id)
         self._history_worker.result.connect(self._on_chat_history_loaded)
@@ -296,10 +300,17 @@ class ConsultView(QWidget):
         self._user = user
         self._try_generate()
 
+    def _on_ai_settings(self, settings: dict):
+        self._ai_settings = settings
+        self._update_provider_label()
+        self._try_generate()
+
     def _try_generate(self):
+        # _ai_settings must be in before generating, or StreamWorker would
+        # silently fall back to the Ollama defaults for Claude/OpenAI users.
         if (self._natal is not None and self._transits is not None
                 and self._windows is not None and self._user is not None
-                and not self._generated):
+                and self._ai_settings and not self._generated):
             self._generated = True
             self._populate_transit_bar()
             self._check_cache_then_generate(skip_cache=False)
@@ -444,6 +455,9 @@ class ConsultView(QWidget):
         self._today_done = True
 
     def _on_today_error(self, msg: str):
+        # Clear the accumulator so the trailing `finished` signal doesn't cache
+        # and display a partial reading over this error.
+        self._today_accumulated = ""
         self._today_scroll.set_placeholder(f"Error: {msg}")
         self._today_done = True
 
@@ -453,13 +467,23 @@ class ConsultView(QWidget):
         self._longer_done = True
 
     def _on_longer_error(self, msg: str):
+        self._longer_accumulated = ""
         self._longer_scroll.set_placeholder(f"Error: {msg}")
         self._longer_done = True
 
     def _on_regenerate(self):
         if not (self._natal and self._transits and self._windows is not None and self._user):
             return
-        self._ai_settings = chart_model.get_ai_settings(self._user_id)
+        # Re-fetch settings off the GUI thread first — the user may have just
+        # switched provider/model in Settings.
+        self._regen_btn.setEnabled(False)
+        self._ai_settings_worker = ApiWorker(chart_model.get_ai_settings, self._user_id)
+        self._ai_settings_worker.result.connect(self._on_regen_settings)
+        self._ai_settings_worker.error.connect(lambda _: self._regen_btn.setEnabled(True))
+        self._ai_settings_worker.start()
+
+    def _on_regen_settings(self, settings: dict):
+        self._ai_settings = settings
         self._update_provider_label()
         self._today_text = ""
         self._longer_text = ""
@@ -496,7 +520,7 @@ class ConsultView(QWidget):
 
     def _on_send(self):
         text = self._chat_input.text().strip()
-        if not text or self._chat_worker is not None:
+        if not text or self._chat_worker is not None or not self._ai_settings:
             return
         self._chat_input.clear()
         self._send_btn.setEnabled(False)
@@ -515,7 +539,7 @@ class ConsultView(QWidget):
         # Few-shot example primes the model toward short replies; it's sent to the
         # model but kept out of the persisted/displayed history.
         w = StreamWorker(
-            chart_model.get_ai_settings(self._user_id),
+            self._ai_settings,
             self._build_chat_system(),
             llm_client.CHAT_FEWSHOT + list(self._chat_history),
             think=False,  # chat wants short, direct replies — skip qwen3's reasoning pass

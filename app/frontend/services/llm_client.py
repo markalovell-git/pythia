@@ -5,7 +5,6 @@ sent to the LLM for natal + transit interpretation.
 """
 
 import json
-import re
 import httpx
 
 from app.frontend.models.chart_model import (
@@ -16,7 +15,6 @@ from app.frontend.models.user_model import UserDetail
 
 _TIMEOUT = 600.0  # 10 min — local models on CPU can be slow
 _OLLAMA_CTX = 8192  # tokens; 4096 default overflows with large payloads
-_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)  # strip qwen3 reasoning blocks
 
 # ── System prompts ─────────────────────────────────────────────────────────────
 
@@ -283,9 +281,9 @@ def stream_chat(
     leaked/half-tagged <think> block would otherwise pollute the bubble.
     """
     if provider == "claude":
-        yield from _strip_think(_stream_claude(api_key, system, messages))
+        yield from _strip_think(_stream_claude(api_key, model, system, messages))
     elif provider == "openai":
-        yield from _strip_think(_stream_openai(api_key, system, messages))
+        yield from _strip_think(_stream_openai(api_key, model, system, messages))
     else:
         yield from _strip_think(_stream_ollama(base_url, model, system, messages, think))
 
@@ -368,7 +366,7 @@ def _stream_ollama(base_url: str, model: str, system: str, messages: list[dict],
         raise RuntimeError(f"Ollama error {e.response.status_code}: {e.response.text}") from e
 
 
-def _stream_claude(api_key: str, system: str, messages: list[dict]):
+def _stream_claude(api_key: str, model: str, system: str, messages: list[dict]):
     if not api_key:
         raise RuntimeError("No Anthropic API key configured. Add one in Settings → AI Interpreter.")
     try:
@@ -376,7 +374,7 @@ def _stream_claude(api_key: str, system: str, messages: list[dict]):
             "POST", "https://api.anthropic.com/v1/messages",
             headers={"x-api-key": api_key, "anthropic-version": "2023-06-01",
                      "content-type": "application/json"},
-            json={"model": "claude-opus-4-7", "max_tokens": 2048, "stream": True,
+            json={"model": model, "max_tokens": 2048, "stream": True,
                   "system": system, "messages": messages},
             timeout=_TIMEOUT,
         ) as r:
@@ -399,14 +397,14 @@ def _stream_claude(api_key: str, system: str, messages: list[dict]):
         raise RuntimeError(f"Anthropic API error {e.response.status_code}: {detail or '(no detail)'}") from e
 
 
-def _stream_openai(api_key: str, system: str, messages: list[dict]):
+def _stream_openai(api_key: str, model: str, system: str, messages: list[dict]):
     if not api_key:
         raise RuntimeError("No OpenAI API key configured. Add one in Settings → AI Interpreter.")
     try:
         with httpx.stream(
             "POST", "https://api.openai.com/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={"model": "gpt-4o", "stream": True,
+            json={"model": model, "stream": True,
                   "messages": [{"role": "system", "content": system}] + messages},
             timeout=_TIMEOUT,
         ) as r:
@@ -426,105 +424,3 @@ def _stream_openai(api_key: str, system: str, messages: list[dict]):
         except Exception:
             detail = ""
         raise RuntimeError(f"OpenAI API error {e.response.status_code}: {detail or '(no detail)'}") from e
-
-
-# ── Non-streaming API callers (used for chat replies) ─────────────────────────
-
-def send_chat(
-    provider: str,
-    api_key: str,
-    model: str,
-    base_url: str,
-    system: str,
-    messages: list[dict],
-) -> str:
-    if provider == "claude":
-        return _send_claude(api_key, system, messages)
-    elif provider == "openai":
-        return _send_openai(api_key, system, messages)
-    else:
-        return _send_ollama(base_url, model, system, messages)
-
-
-def _send_claude(api_key: str, system: str, messages: list[dict]) -> str:
-    if not api_key:
-        raise RuntimeError("No Anthropic API key configured. Add one in Settings → AI Interpreter.")
-    try:
-        r = httpx.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key":         api_key,
-                "anthropic-version": "2023-06-01",
-                "content-type":      "application/json",
-            },
-            json={
-                "model":      "claude-opus-4-7",
-                "max_tokens": 2048,
-                "system":     system,
-                "messages":   messages,
-            },
-            timeout=_TIMEOUT,
-        )
-        r.raise_for_status()
-        return r.json()["content"][0]["text"]
-    except httpx.HTTPStatusError as e:
-        try:
-            detail = e.response.json().get("error", {}).get("message", "")
-        except Exception:
-            detail = ""
-        raise RuntimeError(f"Anthropic API error {e.response.status_code}: {detail or '(no detail)'}") from e
-    except Exception as e:
-        raise RuntimeError(f"Claude request failed: {e}") from e
-
-
-def _send_openai(api_key: str, system: str, messages: list[dict]) -> str:
-    if not api_key:
-        raise RuntimeError("No OpenAI API key configured. Add one in Settings → AI Interpreter.")
-    try:
-        r = httpx.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type":  "application/json",
-            },
-            json={
-                "model":    "gpt-4o",
-                "messages": [{"role": "system", "content": system}] + messages,
-            },
-            timeout=_TIMEOUT,
-        )
-        r.raise_for_status()
-        return r.json()["choices"][0]["message"]["content"]
-    except httpx.HTTPStatusError as e:
-        try:
-            detail = e.response.json().get("error", {}).get("message", "")
-        except Exception:
-            detail = ""
-        raise RuntimeError(f"OpenAI API error {e.response.status_code}: {detail or '(no detail)'}") from e
-    except Exception as e:
-        raise RuntimeError(f"OpenAI request failed: {e}") from e
-
-
-def _send_ollama(base_url: str, model: str, system: str, messages: list[dict]) -> str:
-    url = base_url.rstrip("/") + "/api/chat"
-    try:
-        r = httpx.post(
-            url,
-            json={
-                "model":   model,
-                "stream":  False,
-                "options": {"num_ctx": _OLLAMA_CTX},
-                "messages": [{"role": "system", "content": system}] + messages,
-            },
-            timeout=_TIMEOUT,
-        )
-        r.raise_for_status()
-        content = r.json()["message"]["content"]
-        # Strip qwen3-style reasoning blocks before returning the visible answer
-        return _THINK_RE.sub("", content).strip()
-    except httpx.ConnectError:
-        raise RuntimeError(f"Cannot connect to Ollama at {base_url}. Is Ollama running?")
-    except httpx.HTTPStatusError as e:
-        raise RuntimeError(f"Ollama error {e.response.status_code}: {e.response.text}") from e
-    except Exception as e:
-        raise RuntimeError(f"Ollama request failed: {e}") from e

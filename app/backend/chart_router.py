@@ -21,6 +21,29 @@ def _chart_ruler(asc_sign: str | None) -> str | None:
     return _ASC_SIGN_RULERS.get(asc_sign) if asc_sign else None
 
 
+def _parse_date_param(date: str | None) -> datetime | None:
+    """Parse an optional ISO date query param to an aware UTC datetime.
+
+    Naive inputs are assumed to be UTC; offset-aware inputs are converted.
+    """
+    if not date:
+        return None
+    try:
+        dt = datetime.fromisoformat(date)
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid date format: {date!r}. Use ISO format e.g. 1997-04-15T12:00:00",
+        )
+    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+
+
+def _get_settings_or_404(user_id: str, db: Session) -> UserSettings:
+    settings = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
+    if not settings:
+        raise HTTPException(status_code=404, detail="User not found")
+    return settings
+
 
 
 @chart_router.post("/calculate_natal_chart/{user_id}")
@@ -29,7 +52,7 @@ async def calculate_natal_chart(user_id: str, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    settings = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
+    settings = _get_settings_or_404(user_id, db)
     try:
         positions, cusps = compute_natal_chart(
             user.birth_datetime, user.birth_timezone, settings.zodiac_system,
@@ -69,7 +92,7 @@ async def get_natal_chart(user_id: str, db: Session = Depends(get_db)):
             status_code=404,
             detail="Natal chart not found — call /calculate_natal_chart first",
         )
-    settings = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
+    settings = _get_settings_or_404(user_id, db)
     return {
         "user_id":       user_id,
         "zodiac_system": settings.zodiac_system,
@@ -92,13 +115,8 @@ async def calculate_transits(
             status_code=404,
             detail="Natal chart not found — call /calculate_natal_chart first",
         )
-    dt = None
-    if date:
-        try:
-            dt = datetime.fromisoformat(date).replace(tzinfo=timezone.utc)
-        except ValueError:
-            raise HTTPException(status_code=422, detail=f"Invalid date format: {date!r}. Use ISO format e.g. 1997-04-15T12:00:00")
-    settings = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
+    dt = _parse_date_param(date)
+    settings = _get_settings_or_404(user_id, db)
     try:
         transits = compute_transits(chart.positions, settings.zodiac_system, dt)
     except ValueError as e:
@@ -139,13 +157,8 @@ async def get_transit_windows(
     chart = db.query(NatalChart).filter(NatalChart.user_id == user_id).first()
     if not chart:
         raise HTTPException(status_code=404, detail="Natal chart not found — call /calculate_natal_chart first")
-    dt = None
-    if date:
-        try:
-            dt = datetime.fromisoformat(date).replace(tzinfo=timezone.utc)
-        except ValueError:
-            raise HTTPException(status_code=422, detail=f"Invalid date format: {date!r}. Use ISO format e.g. 2026-05-17T12:00:00")
-    settings = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
+    dt = _parse_date_param(date)
+    settings = _get_settings_or_404(user_id, db)
     try:
         windows = compute_transit_windows(chart.positions, settings.zodiac_system, dt)
     except ValueError as e:
@@ -163,16 +176,8 @@ async def get_sky_aspects(
     date: str | None = Query(None, description="ISO datetime, e.g. 2026-05-11T12:00:00. Defaults to now."),
     db: Session = Depends(get_db),
 ):
-    settings = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
-    if not settings:
-        raise HTTPException(status_code=404, detail="User not found")
-    dt = None
-    if date:
-        try:
-            dt = datetime.fromisoformat(date).replace(tzinfo=timezone.utc)
-        except ValueError:
-            raise HTTPException(status_code=422, detail=f"Invalid date format: {date!r}. Use ISO format e.g. 2026-05-11T12:00:00")
-    dt = dt or datetime.now(timezone.utc)
+    settings = _get_settings_or_404(user_id, db)
+    dt = _parse_date_param(date) or datetime.now(timezone.utc)
     try:
         aspects = compute_sky_aspects(settings.zodiac_system, dt)
     except ValueError as e:
@@ -190,15 +195,8 @@ async def get_sky_windows(
     date: str | None = Query(None, description="ISO datetime to center the 12-month scan on, e.g. 2026-05-17T12:00:00. Defaults to now."),
     db: Session = Depends(get_db),
 ):
-    settings = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
-    if not settings:
-        raise HTTPException(status_code=404, detail="User not found")
-    dt = None
-    if date:
-        try:
-            dt = datetime.fromisoformat(date).replace(tzinfo=timezone.utc)
-        except ValueError:
-            raise HTTPException(status_code=422, detail=f"Invalid date format: {date!r}. Use ISO format e.g. 2026-05-17T12:00:00")
+    settings = _get_settings_or_404(user_id, db)
+    dt = _parse_date_param(date)
     try:
         windows = compute_sky_windows(settings.zodiac_system, dt)
     except ValueError as e:
@@ -216,16 +214,8 @@ async def get_transit_positions(
     date: str | None = Query(None, description="ISO datetime to compute positions for, e.g. 2026-05-10T12:00:00. Defaults to now."),
     db: Session = Depends(get_db),
 ):
-    settings = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
-    if not settings:
-        raise HTTPException(status_code=404, detail="User not found")
-    dt = None
-    if date:
-        try:
-            dt = datetime.fromisoformat(date).replace(tzinfo=timezone.utc)
-        except ValueError:
-            raise HTTPException(status_code=422, detail=f"Invalid date format: {date!r}. Use ISO format e.g. 2026-05-10T12:00:00")
-    dt = dt or datetime.now(timezone.utc)
+    settings = _get_settings_or_404(user_id, db)
+    dt = _parse_date_param(date) or datetime.now(timezone.utc)
     try:
         positions = compute_planet_positions(dt, settings.zodiac_system)
     except ValueError as e:

@@ -81,23 +81,27 @@ def get_user_settings(user_id: str) -> dict | None:
 
 def update_user_settings(
     user_id: str,
-    zodiac_system: str | None = None,
-    house_system:  str | None = None,
-    ai_provider:   str | None = None,
-    anthropic_key: str | None = None,
-    openai_key:    str | None = None,
-    ollama_url:    str | None = None,
-    ollama_model:  str | None = None,
+    zodiac_system:   str | None = None,
+    house_system:    str | None = None,
+    ai_provider:     str | None = None,
+    anthropic_key:   str | None = None,
+    openai_key:      str | None = None,
+    anthropic_model: str | None = None,
+    openai_model:    str | None = None,
+    ollama_url:      str | None = None,
+    ollama_model:    str | None = None,
 ) -> dict:
     payload: dict = {}
     for key, val in [
-        ("zodiac_system", zodiac_system),
-        ("house_system",  house_system),
-        ("ai_provider",   ai_provider),
-        ("anthropic_key", anthropic_key),
-        ("openai_key",    openai_key),
-        ("ollama_url",    ollama_url),
-        ("ollama_model",  ollama_model),
+        ("zodiac_system",   zodiac_system),
+        ("house_system",    house_system),
+        ("ai_provider",     ai_provider),
+        ("anthropic_key",   anthropic_key),
+        ("openai_key",      openai_key),
+        ("anthropic_model", anthropic_model),
+        ("openai_model",    openai_model),
+        ("ollama_url",      ollama_url),
+        ("ollama_model",    ollama_model),
     ]:
         if val is not None:
             payload[key] = val
