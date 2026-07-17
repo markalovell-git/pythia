@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 )
 
 from app.frontend.models import chart_model
-from app.frontend.widgets.chart_view import ASPECT_COLORS
+from app.frontend.widgets.chart_wheel import ASPECT_COLORS
 from app.frontend.workers.api_worker import ApiWorker
 
 
