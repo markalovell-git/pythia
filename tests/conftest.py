@@ -35,6 +35,7 @@ def isolated_secrets(tmp_path, monkeypatch):
     """
     monkeypatch.setattr(secrets, "keyring_enabled", False)
     monkeypatch.setattr(secrets, "_keyfile_path", lambda: tmp_path / ".keyfile")
+    monkeypatch.setattr(secrets, "_db_keyfile_path", lambda: tmp_path / ".dbkey")
 
 
 @pytest.fixture

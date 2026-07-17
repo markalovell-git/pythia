@@ -100,6 +100,7 @@ dependencies = [
     { name = "pyqt6" },
     { name = "skyfield" },
     { name = "sqlalchemy" },
+    { name = "sqlcipher3-binary" },
     { name = "timezonefinder", version = "8.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "timezonefinder", version = "8.2.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "tzdata" },
@@ -128,6 +129,7 @@ requires-dist = [
     { name = "pyqt6", specifier = ">=6.10.2" },
     { name = "skyfield", specifier = ">=1.54" },
     { name = "sqlalchemy", specifier = ">=2.0.49" },
+    { name = "sqlcipher3-binary", specifier = ">=0.6.0" },
     { name = "timezonefinder", specifier = ">=6.5.0" },
     { name = "tzdata", specifier = ">=2026.2" },
     { name = "uvicorn", specifier = ">=0.39.0" },
@@ -1480,6 +1482,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/e5/c3/c80fcdb41905a2df650c2a3e0337198b6848876e63d66fe9188ef9003d24/sqlalchemy-2.0.49-cp314-cp314t-win32.whl", hash = "sha256:6270d717b11c5476b0cbb21eedc8d4dbb7d1a956fd6c15a23e96f197a6193158", size = 2149151, upload-time = "2026-04-03T17:02:07.281Z" },
     { url = "https://files.pythonhosted.org/packages/05/52/9f1a62feab6ed368aff068524ff414f26a6daebc7361861035ae00b05530/sqlalchemy-2.0.49-cp314-cp314t-win_amd64.whl", hash = "sha256:275424295f4256fd301744b8f335cff367825d270f155d522b30c7bf49903ee7", size = 2184178, upload-time = "2026-04-03T17:02:08.623Z" },
     { url = "https://files.pythonhosted.org/packages/e5/30/8519fdde58a7bdf155b714359791ad1dc018b47d60269d5d160d311fdc36/sqlalchemy-2.0.49-py3-none-any.whl", hash = "sha256:ec44cfa7ef1a728e88ad41674de50f6db8cfdb3e2af84af86e0041aaf02d43d0", size = 1942158, upload-time = "2026-04-03T16:53:44.135Z" },
+]
+
+[[package]]
+name = "sqlcipher3-binary"
+version = "0.6.0"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5f/e4/83112ce1e72b87040dbde522b852459954a168ffe250bf23c261221d1481/sqlcipher3_binary-0.6.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:9886d2d30b5bb4e3ddc3a9e2b9e5b65261fa0c748eaf8a584781082312d37cee", size = 3243557, upload-time = "2025-12-31T16:40:20.974Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/5e/f0b3021365f421495c66961160798e628e866b3d75aea8147bf2d4087d9b/sqlcipher3_binary-0.6.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:421abf7a81e134bd808a7933d296f408aaf75475d6561d4a21e1f285b75445aa", size = 3244473, upload-time = "2025-12-31T16:40:26.74Z" },
+    { url = "https://files.pythonhosted.org/packages/a7/ff/de25662f378f0a5cedef2a5c1d9479db5a9bf7b6bff4fdb8e413869548ac/sqlcipher3_binary-0.6.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:c8a7076a18b4f6fc9b580b0f24aa526d6a47605b1e3e6491ee3e9f2977940d8e", size = 3247275, upload-time = "2025-12-31T16:40:31.593Z" },
+    { url = "https://files.pythonhosted.org/packages/6d/ce/48fabcff1a441e1bc7d91aab00fc1ec398571238b7cf131a4fa73d6eebd2/sqlcipher3_binary-0.6.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:8a6afbdef7cbbb33b1228ce96edc1bfe7f15bdf2a5e8bdab87261ab52e4111e6", size = 3246980, upload-time = "2025-12-31T16:40:36.653Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/ce/fbe8da71656eefd5fd4db70cb6d7b5911ba34279985ee3c11476a1f8550d/sqlcipher3_binary-0.6.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:f9bccb9e942a04bbf920714940c8f9e00134cd655b11ba4c6f1306bcc3504d6c", size = 3246791, upload-time = "2025-12-31T16:40:41.484Z" },
 ]
 
 [[package]]

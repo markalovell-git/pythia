@@ -1,9 +1,12 @@
 import logging as _logging
+import os as _os
 
+import sqlcipher3
 from sqlalchemy import create_engine, Column, String, DateTime, Float, Integer, ForeignKey, JSON, Date, text
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from sqlalchemy.pool import QueuePool
 
-from app.common import paths
+from app.common import paths, secrets
 from app.common.constants import (
     DEFAULT_ANTHROPIC_MODEL, DEFAULT_OPENAI_MODEL,
     DEFAULT_OLLAMA_MODEL, DEFAULT_OLLAMA_URL,
@@ -11,10 +14,29 @@ from app.common.constants import (
 
 _log = _logging.getLogger(__name__)
 
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{paths.db_path()}"
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+_SQLITE_MAGIC = b"SQLite format 3\x00"  # header of a *plaintext* SQLite file
+
+# Fetched lazily (and once) so importing this module never touches the keyring.
+_db_key_cached: str | None = None
+
+
+def _db_key() -> str:
+    global _db_key_cached
+    if _db_key_cached is None:
+        _db_key_cached = secrets.get_db_key()
+    return _db_key_cached
+
+
+def _connect():
+    conn = sqlcipher3.connect(str(paths.db_path()), check_same_thread=False)
+    conn.execute(f"PRAGMA key = \"x'{_db_key()}'\"")
+    return conn
+
+
+# The URL is only cosmetic here: the DBAPI module and the connections both come
+# from sqlcipher3. poolclass is explicit because SQLAlchemy would otherwise pick
+# a pool based on the (in-memory-looking) URL.
+engine = create_engine("sqlite://", module=sqlcipher3, creator=_connect, poolclass=QueuePool)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
@@ -106,6 +128,7 @@ def init_db() -> None:
     database on disk.
     """
     paths.migrate_legacy_db()
+    _encrypt_plaintext_db(paths.db_path(), _db_key())
     Base.metadata.create_all(bind=engine)
 
     # Migrate existing databases that predate AI settings columns.
@@ -131,10 +154,37 @@ def init_db() -> None:
     _migrate_plaintext_api_keys()
 
 
+def _encrypt_plaintext_db(path, key_hex: str) -> None:
+    """One-time in-place conversion of a plaintext SQLite file to SQLCipher.
+
+    A file that is missing, empty, or already encrypted is left alone. The
+    plaintext original is only replaced after sqlcipher_export() succeeds.
+    """
+    if not path.exists():
+        return
+    with open(path, "rb") as f:
+        if f.read(16) != _SQLITE_MAGIC:
+            return
+    tmp = path.with_name(path.name + ".enc-tmp")
+    conn = sqlcipher3.connect(str(path))
+    try:
+        conn.execute(f"ATTACH DATABASE ? AS encrypted KEY \"x'{key_hex}'\"", (str(tmp),))
+        conn.execute("SELECT sqlcipher_export('encrypted')")
+        conn.execute("DETACH DATABASE encrypted")
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        raise
+    finally:
+        conn.close()
+    _os.replace(tmp, path)
+    # Sidecar files belong to the old plaintext database
+    for suffix in ("-wal", "-shm"):
+        (path.parent / (path.name + suffix)).unlink(missing_ok=True)
+    _log.info("Encrypted existing database at %s", path)
+
+
 def _migrate_plaintext_api_keys() -> None:
     """Move legacy plaintext API keys into the keyring (or encrypted column)."""
-    from app.common import secrets
-
     db = SessionLocal()
     try:
         for row in db.query(UserSettings).all():
