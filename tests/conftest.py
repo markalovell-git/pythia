@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.backend.main import app
+from app.common import secrets
 from app.common.database import Base, get_db
 
 TEST_DATABASE_URL = "sqlite:///./test.db"
@@ -24,6 +25,16 @@ def setup_db():
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture(autouse=True)
+def isolated_secrets(tmp_path, monkeypatch):
+    """Keep test API keys out of the user's real keyring and data dir.
+
+    Forces the Fernet-fallback path with a throwaway key file.
+    """
+    monkeypatch.setattr(secrets, "keyring_enabled", False)
+    monkeypatch.setattr(secrets, "_keyfile_path", lambda: tmp_path / ".keyfile")
 
 
 @pytest.fixture

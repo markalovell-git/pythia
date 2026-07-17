@@ -5,6 +5,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import uuid
 
+from app.common import secrets
 from app.common.database import get_db, UserData, UserSettings, NatalChart
 from app.common.constants import (
     DEFAULT_ZODIAC_SYSTEM, DEFAULT_HOUSE_SYSTEM, VALID_HOUSE_SYSTEMS,
@@ -141,6 +142,8 @@ async def delete_user(user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     db.delete(record)
     db.commit()
+    for provider in ("anthropic", "openai"):
+        secrets.delete_api_key(user_id, provider)
     return {"message": "User deleted successfully", "user_id": user_id}
 
 

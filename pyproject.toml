@@ -10,8 +10,10 @@ description = "A desktop astrology app with FastAPI backend and PyQt6 frontend"
 license = "MIT"
 requires-python = ">=3.10"
 dependencies = [
+    "cryptography>=42.0",
     "fastapi>=0.128.8",
     "httpx>=0.28.1",
+    "keyring>=25.0",
     "platformdirs>=4.0.0",
     "pydantic>=2.13.4",
     "pyqt6>=6.10.2",

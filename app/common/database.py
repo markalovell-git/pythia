@@ -120,6 +120,30 @@ def init_db() -> None:
                 if "duplicate column name" not in str(e).lower():
                     _log.error("Migration failed adding column %s: %s", col, e)
 
+    _migrate_plaintext_api_keys()
+
+
+def _migrate_plaintext_api_keys() -> None:
+    """Move legacy plaintext API keys into the keyring (or encrypted column)."""
+    from app.common import secrets
+
+    db = SessionLocal()
+    try:
+        for row in db.query(UserSettings).all():
+            changed = False
+            for provider, col in (("anthropic", "anthropic_key"), ("openai", "openai_key")):
+                moved, new_value = secrets.migrate_plaintext_value(
+                    row.user_id, provider, getattr(row, col)
+                )
+                if moved:
+                    setattr(row, col, new_value)
+                    changed = True
+            if changed:
+                _log.info("Moved plaintext API key(s) to protected storage for %s", row.user_id)
+        db.commit()
+    finally:
+        db.close()
+
 
 def get_db():
     db = SessionLocal()

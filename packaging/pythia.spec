@@ -16,6 +16,11 @@ hiddenimports = [
     "uvicorn.lifespan.on",
     "uvicorn.logging",
     "cffi",  # timezonefinder's C-extension loader
+    # keyring discovers backends via entry points — invisible to static analysis
+    "keyring.backends.SecretService",
+    "keyring.backends.kwallet",
+    "keyring.backends.chainer",
+    "keyring.backends.fail",
 ]
 
 datas += collect_data_files("skyfield")        # skyfield's packaged data

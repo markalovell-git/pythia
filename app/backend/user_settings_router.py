@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.common import secrets
 from app.common.database import get_db, UserData, UserSettings, NatalChart
 from app.common.constants import VALID_ZODIAC_SYSTEMS, VALID_HOUSE_SYSTEMS
 
@@ -18,21 +19,25 @@ class SettingsUpdate(BaseModel):
     ollama_model:  str | None = None
 
 
-@user_settings_router.get("/get_user_settings/{user_id}")
-async def get_user_settings(user_id: str, db: Session = Depends(get_db)):
-    if not db.query(UserData).filter(UserData.user_id == user_id).first():
-        raise HTTPException(status_code=404, detail="User not found")
-    settings = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
+def _settings_response(user_id: str, settings: UserSettings) -> dict:
     return {
         "user_id":       user_id,
         "zodiac_system": settings.zodiac_system,
         "house_system":  settings.house_system,
         "ai_provider":   getattr(settings, "ai_provider",   "ollama"),
-        "anthropic_key": getattr(settings, "anthropic_key", None),
-        "openai_key":    getattr(settings, "openai_key",    None),
+        "anthropic_key": secrets.get_api_key(user_id, "anthropic", getattr(settings, "anthropic_key", None)),
+        "openai_key":    secrets.get_api_key(user_id, "openai",    getattr(settings, "openai_key",    None)),
         "ollama_url":    getattr(settings, "ollama_url",    "http://localhost:11434"),
-        "ollama_model":  getattr(settings, "ollama_model",  "llama3.2"),
+        "ollama_model":  getattr(settings, "ollama_model",  "qwen3:14b"),
     }
+
+
+@user_settings_router.get("/get_user_settings/{user_id}")
+async def get_user_settings(user_id: str, db: Session = Depends(get_db)):
+    if not db.query(UserData).filter(UserData.user_id == user_id).first():
+        raise HTTPException(status_code=404, detail="User not found")
+    settings = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
+    return _settings_response(user_id, settings)
 
 
 @user_settings_router.put("/update_user_settings/{user_id}")
@@ -57,23 +62,20 @@ async def update_user_settings(
     if update.house_system is not None:
         settings.house_system = update.house_system
     # AI settings — changes do not invalidate the natal chart
-    for field in ("ai_provider", "anthropic_key", "openai_key", "ollama_url", "ollama_model"):
+    # (API keys are handled separately below — they go through app.common.secrets)
+    for field in ("ai_provider", "ollama_url", "ollama_model"):
         value = getattr(update, field)
         if value is not None:
             setattr(settings, field, value)
+    # API keys go to the keyring when available; the column stores NULL or ciphertext
+    if update.anthropic_key is not None:
+        settings.anthropic_key = secrets.set_api_key(user_id, "anthropic", update.anthropic_key)
+    if update.openai_key is not None:
+        settings.openai_key = secrets.set_api_key(user_id, "openai", update.openai_key)
     # Only invalidate natal chart for zodiac/house changes
     if update.zodiac_system is not None or update.house_system is not None:
         chart = db.query(NatalChart).filter(NatalChart.user_id == user_id).first()
         if chart:
             db.delete(chart)
     db.commit()
-    return {
-        "user_id":       user_id,
-        "zodiac_system": settings.zodiac_system,
-        "house_system":  settings.house_system,
-        "ai_provider":   getattr(settings, "ai_provider",   "ollama"),
-        "anthropic_key": getattr(settings, "anthropic_key", None),
-        "openai_key":    getattr(settings, "openai_key",    None),
-        "ollama_url":    getattr(settings, "ollama_url",    "http://localhost:11434"),
-        "ollama_model":  getattr(settings, "ollama_model",  "llama3.2"),
-    }
+    return _settings_response(user_id, settings)
