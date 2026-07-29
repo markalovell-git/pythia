@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "astrology_app"
-version = "0.1.3"
+version = "0.2.0"
 authors = [{name = "markalovell", email = "markalovell@protonmail.com"}]
 description = "A desktop astrology app with FastAPI backend and PyQt6 frontend"
 license = "MIT"

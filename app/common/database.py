@@ -109,6 +109,18 @@ class ChatMessage(Base):
     user = relationship("UserData")
 
 
+class Location(Base):
+    __tablename__ = "locations"
+
+    location_id = Column(String, primary_key=True, index=True)
+    name        = Column(String, nullable=False, unique=True, index=True)
+    # Nullable: locations can be saved name-only (e.g. XML import) and
+    # geocoded later when a chart needs coordinates.
+    latitude  = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    timezone  = Column(String, nullable=True)
+
+
 class DiaryEntry(Base):
     __tablename__ = "diary_entries"
 
@@ -118,6 +130,14 @@ class DiaryEntry(Base):
     content = Column(String, nullable=False)
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
+    title = Column(String, nullable=True)
+    visual_cues = Column(String, nullable=True)
+    categories = Column(String, nullable=True)  # pipe-delimited slugs: "|a|b|"
+    entry_time = Column(String, nullable=True)  # free text; legacy data has e.g. "2h"
+    location_id = Column(String, ForeignKey("locations.location_id"), nullable=True)
+    destination_id = Column(String, ForeignKey("locations.location_id"), nullable=True)
+    segment_start = Column(Integer, nullable=True, default=0)
+    segment_color = Column(String, nullable=True)  # "R,G,B"
 
 
 def init_db() -> None:
@@ -145,6 +165,26 @@ def init_db() -> None:
             try:
                 conn.execute(text(
                     f"ALTER TABLE user_settings ADD COLUMN {col} TEXT DEFAULT {dflt}"
+                ))
+                conn.commit()
+            except Exception as e:
+                if "duplicate column name" not in str(e).lower():
+                    _log.error("Migration failed adding column %s: %s", col, e)
+
+        # Migrate existing databases that predate structured diary entries.
+        for col, decl in [
+            ("title",          "TEXT"),
+            ("visual_cues",    "TEXT"),
+            ("categories",     "TEXT"),
+            ("entry_time",     "TEXT"),
+            ("location_id",    "TEXT"),
+            ("destination_id", "TEXT"),
+            ("segment_start",  "INTEGER DEFAULT 0"),
+            ("segment_color",  "TEXT"),
+        ]:
+            try:
+                conn.execute(text(
+                    f"ALTER TABLE diary_entries ADD COLUMN {col} {decl}"
                 ))
                 conn.commit()
             except Exception as e:

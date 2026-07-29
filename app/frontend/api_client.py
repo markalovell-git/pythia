@@ -180,13 +180,31 @@ def get_diary_entries(user_id: str, date: str | None = None) -> list:
     return _get(f"/get_diary_entries/{user_id}", **params) or []
 
 
-def create_diary_entry(user_id: str, entry_date: str, content: str) -> dict:
-    return _post(f"/create_diary_entry/{user_id}", json={"entry_date": entry_date, "content": content})
+def get_diary_dates(user_id: str) -> list:
+    return _get(f"/diary_dates/{user_id}") or []
 
 
-def update_diary_entry(entry_id: str, content: str) -> dict:
-    return _put(f"/update_diary_entry/{entry_id}", json={"content": content})
+def create_diary_entry(user_id: str, payload: dict) -> dict:
+    return _post(f"/create_diary_entry/{user_id}", json=payload)
+
+
+def update_diary_entry(entry_id: str, payload: dict) -> dict:
+    return _put(f"/update_diary_entry/{entry_id}", json=payload)
 
 
 def delete_diary_entry(entry_id: str) -> dict:
     return _delete(f"/delete_diary_entry/{entry_id}")
+
+
+# ── Locations ─────────────────────────────────────────────────────────────────
+
+def get_locations(q: str = "") -> list:
+    return _get("/locations", q=q) or []
+
+
+def create_location(payload: dict) -> dict:
+    return _post("/locations", json=payload)
+
+
+def update_location(location_id: str, payload: dict) -> dict:
+    return _put(f"/locations/{location_id}", json=payload)
