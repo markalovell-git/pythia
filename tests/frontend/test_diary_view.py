@@ -247,3 +247,15 @@ class TestDiaryViewExport:
         qtbot.waitUntil(lambda: bool(errors), timeout=2000)
         assert "backend down" in errors[0]
         assert diary_view.export_btn.isEnabled()
+
+
+class TestDiaryViewNew:
+    def test_new_starts_blank_entry_dated_today(self, diary_view):
+        diary_view.next_btn.click()  # sitting on a past entry
+        assert diary_view._index == 1
+        diary_view.form.new_btn.click()
+        today = QDate.currentDate()
+        assert diary_view.form._entry is None
+        assert diary_view.form.date_edit.date() == today
+        assert diary_view.calendar.selectedDate() == today
+        assert diary_view._index == -1

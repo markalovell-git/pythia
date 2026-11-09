@@ -87,6 +87,7 @@ class DiaryEntryForm(QWidget):
 
     saved = pyqtSignal(object)   # diary_model.DiaryEntry
     deleted = pyqtSignal(str)    # entry_id
+    new_started = pyqtSignal()   # New clicked; form now in create mode for today
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -298,7 +299,7 @@ class DiaryEntryForm(QWidget):
 
     def _set_categories(self, slugs: set[str]):
         """Light up the chips for `slugs`, adding chips for any unknown slug
-        (legacy 'travel' and friends survive a round-trip through the form)."""
+        (unknown legacy slugs survive a round-trip through the form)."""
         known = {slug for slug, _ in DIARY_CATEGORIES}
         for slug in sorted(slugs - known):
             if slug not in self._chips:
@@ -363,7 +364,8 @@ class DiaryEntryForm(QWidget):
             )
             if reply != QMessageBox.StandardButton.Yes:
                 return
-        self.set_entry(None, self._current_date)
+        self.set_entry(None, QDate.currentDate())
+        self.new_started.emit()
 
     def _on_delete(self):
         if not self._entry:

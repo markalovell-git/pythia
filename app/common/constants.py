@@ -15,6 +15,7 @@ DIARY_CATEGORIES: list[tuple[str, str]] = [
     ("studies_and_arts",                "Studies and Arts"),
     ("friends_and_relationships",       "Friends and Relationships"),
     ("outing",                          "Outing"),
+    ("travel",                          "Travel"),
     ("landmark",                        "Landmark"),
     ("health_and_physical_body",        "Health and Physical Body"),
     ("family",                          "Family"),
@@ -27,7 +28,7 @@ _CATEGORY_DISPLAY = dict(DIARY_CATEGORIES)
 
 
 def category_display(slug: str) -> str:
-    """Display name for a category slug; unknown slugs (e.g. legacy 'travel')
+    """Display name for a category slug; unknown slugs (e.g. a legacy 'gardening')
     fall back to a title-cased version."""
     return _CATEGORY_DISPLAY.get(slug, slug.replace("_", " ").title())
 

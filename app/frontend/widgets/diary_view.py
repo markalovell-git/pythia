@@ -90,6 +90,7 @@ class DiaryView(QWidget):
         self.form = DiaryEntryForm()
         self.form.saved.connect(self._on_saved)
         self.form.deleted.connect(self._on_deleted)
+        self.form.new_started.connect(self._on_new_started)
         right_layout.addWidget(self.form, stretch=1)
 
         splitter.addWidget(right)
@@ -223,6 +224,13 @@ class DiaryView(QWidget):
     def _on_saved(self, entry: diary_model.DiaryEntry):
         self._reload_entries(select_entry_id=entry.entry_id)
         self._refresh_highlights()
+
+    def _on_new_started(self):
+        """New was clicked: show a blank entry dated today, and move the
+        calendar, header and arrows there too."""
+        self._index = -1
+        self._anchor_date = QDate.currentDate()
+        self._show_current()
 
     def _on_deleted(self, entry_id: str):
         # Land on the entry that will occupy this slot once the deleted one

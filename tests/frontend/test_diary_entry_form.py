@@ -73,6 +73,21 @@ class TestCategoryChips:
         assert set(form._chips) == {slug for slug, _ in DIARY_CATEGORIES}
         assert all(chip.isCheckable() for chip in form._chips.values())
 
+    def test_travel_sits_between_outing_and_landmark(self, form):
+        from app.common.constants import DIARY_CATEGORIES
+        slugs = [slug for slug, _ in DIARY_CATEGORIES]
+        i = slugs.index("travel")
+        assert slugs[i - 1] == "outing" and slugs[i + 1] == "landmark"
+
+    def test_travel_entry_lights_real_chip_without_extras(self, form):
+        from app.common.constants import DIARY_CATEGORIES
+        entry = _entry()
+        entry.categories = ["travel"]
+        form.set_entry(entry, QDate(2026, 7, 19))
+        assert form._chips["travel"].isChecked()
+        assert form._chips["travel"].text() == "Travel"
+        assert set(form._chips) == {slug for slug, _ in DIARY_CATEGORIES}
+
     def test_entry_categories_start_lit(self, form):
         entry = _entry()
         entry.categories = ["family", "outing"]
@@ -122,25 +137,26 @@ class TestCategoryChips:
     def test_chips_split_evenly_across_two_rows(self, form):
         form.set_entry(None, QDate(2026, 7, 19))
         assert len(form._chip_rows) == 2
-        # 11 categories -> 6 then 5, the extra going to the first row.
-        assert self._row_counts(form) == [6, 5]
+        # 12 categories -> 6 and 6.
+        assert self._row_counts(form) == [6, 6]
 
     def test_rows_rebalance_when_a_legacy_chip_appears(self, form):
         entry = _entry()
-        entry.categories = ["travel"]
+        entry.categories = ["gardening"]
         form.set_entry(entry, QDate(2026, 7, 19))
-        assert self._row_counts(form) == [6, 6]
+        # 13 chips -> 7 then 6, the extra going to the first row.
+        assert self._row_counts(form) == [7, 6]
 
     def test_stale_legacy_chip_removed_on_next_entry(self, form):
         legacy = _entry()
-        legacy.categories = ["travel"]
+        legacy.categories = ["gardening"]
         form.set_entry(legacy, QDate(2026, 7, 19))
-        assert "travel" in form._chips
+        assert "gardening" in form._chips
 
         plain = _entry()
         plain.categories = ["family"]
         form.set_entry(plain, QDate(2026, 7, 19))
-        assert "travel" not in form._chips
+        assert "gardening" not in form._chips
         assert form._checked_categories() == ["family"]
 
 
