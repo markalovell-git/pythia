@@ -1,5 +1,6 @@
 import pytest
 from PyQt6.QtCore import QDate
+from PyQt6.QtWidgets import QMessageBox
 
 from app.frontend.widgets.diary_view import DiaryView
 
@@ -109,3 +110,140 @@ class TestDiaryViewNavigation:
 
         diary_view.next_btn.click()
         assert diary_view._entries[diary_view._index].title == "A day without hours"
+
+
+class TestDiaryViewImport:
+    @pytest.fixture
+    def picked_file(self, tmp_path, monkeypatch):
+        path = tmp_path / "diary.xml"
+        path.write_text("<xml/>", encoding="utf-8")
+        monkeypatch.setattr(
+            "app.frontend.widgets.diary_view.QFileDialog.getOpenFileName",
+            lambda *a, **k: (str(path), ""),
+        )
+        return path
+
+    def _answer(self, monkeypatch, button):
+        monkeypatch.setattr(
+            "app.frontend.widgets.diary_view.QMessageBox.warning",
+            lambda *a, **k: button,
+        )
+
+    def test_cancelling_confirmation_makes_no_api_call(self, diary_view, mock_api, picked_file, monkeypatch):
+        self._answer(monkeypatch, QMessageBox.StandardButton.Cancel)
+        diary_view.import_btn.click()
+        mock_api["import_diary"].assert_not_called()
+
+    def test_cancelling_file_dialog_makes_no_api_call(self, diary_view, mock_api, monkeypatch):
+        monkeypatch.setattr(
+            "app.frontend.widgets.diary_view.QFileDialog.getOpenFileName",
+            lambda *a, **k: ("", ""),
+        )
+        diary_view.import_btn.click()
+        mock_api["import_diary"].assert_not_called()
+
+    def test_confirming_imports_and_reloads(self, diary_view, mock_api, picked_file, monkeypatch, qtbot):
+        self._answer(monkeypatch, QMessageBox.StandardButton.Yes)
+        shown = []
+        monkeypatch.setattr(
+            "app.frontend.widgets.diary_view.QMessageBox.information",
+            lambda _parent, _title, text: shown.append(text),
+        )
+        mock_api["import_diary"].return_value = {"deleted": 6, "imported": 1, "month_only_dates": 1}
+        mock_api["get_diary_entries"].return_value = [_ENTRIES[0]]
+        diary_view.import_btn.click()
+        qtbot.waitUntil(lambda: len(diary_view._entries) == 1, timeout=2000)
+        mock_api["import_diary"].assert_called_once_with("u1", "<xml/>")
+        assert "Imported 1 entries, replacing 6" in shown[0]
+        assert "1 entries gave only a month" in shown[0]
+        assert diary_view.import_btn.isEnabled()
+
+    def test_failure_shows_error_dialog(self, diary_view, mock_api, picked_file, monkeypatch, qtbot):
+        self._answer(monkeypatch, QMessageBox.StandardButton.Yes)
+        errors = []
+        monkeypatch.setattr(
+            "app.frontend.widgets.diary_view.QMessageBox.critical",
+            lambda _parent, _title, text: errors.append(text),
+        )
+        mock_api["import_diary"].side_effect = ValueError("Entry 2: unrecognised date 'x'")
+        diary_view.import_btn.click()
+        qtbot.waitUntil(lambda: bool(errors), timeout=2000)
+        assert "Entry 2" in errors[0]
+        assert diary_view.import_btn.isEnabled()
+
+
+class TestDiaryViewExport:
+    _RESULT = {"xml": "<vt:diary_event>é</vt:diary_event>\n", "exported": 1, "username": "mark lovell"}
+
+    def _save_to(self, monkeypatch, path):
+        names = []
+
+        def fake_dialog(_parent, _title, default, _filter):
+            names.append(default)
+            return (str(path), "")
+
+        monkeypatch.setattr(
+            "app.frontend.widgets.diary_view.QFileDialog.getSaveFileName", fake_dialog
+        )
+        return names
+
+    def _capture(self, monkeypatch, kind):
+        shown = []
+        monkeypatch.setattr(
+            f"app.frontend.widgets.diary_view.QMessageBox.{kind}",
+            lambda _parent, _title, text: shown.append(text),
+        )
+        return shown
+
+    def test_writes_file_with_suggested_name(self, diary_view, mock_api, tmp_path, monkeypatch, qtbot):
+        target = tmp_path / "backup"
+        names = self._save_to(monkeypatch, target)
+        shown = self._capture(monkeypatch, "information")
+        mock_api["export_diary"].return_value = self._RESULT
+        diary_view.export_btn.click()
+        qtbot.waitUntil(lambda: bool(shown), timeout=2000)
+        today = QDate.currentDate().toString("yyyy-MM-dd")
+        assert names[0].endswith(f"diary_mark_lovell_{today}.xml")
+        written = tmp_path / "backup.xml"  # .xml added when no suffix was typed
+        assert written.read_text(encoding="utf-8") == self._RESULT["xml"]
+        assert not (tmp_path / "backup.xml.tmp").exists()
+        assert diary_view.export_btn.isEnabled()
+
+    def test_cancelling_save_dialog_writes_nothing(self, diary_view, mock_api, tmp_path, monkeypatch, qtbot):
+        names = self._save_to(monkeypatch, "")
+        mock_api["export_diary"].return_value = self._RESULT
+        diary_view.export_btn.click()
+        qtbot.waitUntil(lambda: bool(names), timeout=2000)
+        assert list(tmp_path.iterdir()) == []
+
+    def test_empty_diary_skips_save_dialog(self, diary_view, mock_api, tmp_path, monkeypatch, qtbot):
+        names = self._save_to(monkeypatch, tmp_path / "x.xml")
+        shown = self._capture(monkeypatch, "information")
+        mock_api["export_diary"].return_value = {"xml": "", "exported": 0, "username": "u"}
+        diary_view.export_btn.click()
+        qtbot.waitUntil(lambda: bool(shown), timeout=2000)
+        assert names == []
+
+    def test_write_failure_keeps_existing_backup(self, diary_view, mock_api, tmp_path, monkeypatch, qtbot):
+        target = tmp_path / "old.xml"
+        target.write_text("old backup", encoding="utf-8")
+        self._save_to(monkeypatch, target)
+        errors = self._capture(monkeypatch, "critical")
+        monkeypatch.setattr(
+            "app.frontend.widgets.diary_view.os.replace",
+            lambda *a: (_ for _ in ()).throw(OSError("disk full")),
+        )
+        mock_api["export_diary"].return_value = self._RESULT
+        diary_view.export_btn.click()
+        qtbot.waitUntil(lambda: bool(errors), timeout=2000)
+        assert "disk full" in errors[0]
+        assert target.read_text(encoding="utf-8") == "old backup"
+        assert not (tmp_path / "old.xml.tmp").exists()
+
+    def test_api_failure_shows_error(self, diary_view, mock_api, monkeypatch, qtbot):
+        errors = self._capture(monkeypatch, "critical")
+        mock_api["export_diary"].side_effect = RuntimeError("backend down")
+        diary_view.export_btn.click()
+        qtbot.waitUntil(lambda: bool(errors), timeout=2000)
+        assert "backend down" in errors[0]
+        assert diary_view.export_btn.isEnabled()

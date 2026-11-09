@@ -6,6 +6,7 @@ BASE_URL = f"http://{BACKEND_HOST}:{BACKEND_PORT}/api"
 _HEALTH_URL = f"http://{BACKEND_HOST}:{BACKEND_PORT}/health"
 _TIMEOUT        = 10.0
 _HEALTH_TIMEOUT = 1.0   # shorter fast-fail timeout for the health check
+_IMPORT_TIMEOUT = 60.0  # a diary import writes every entry in one transaction
 
 
 def _get(path: str, **params) -> dict | list | None:
@@ -19,8 +20,8 @@ def _get(path: str, **params) -> dict | list | None:
         raise
 
 
-def _post(path: str, json: dict | None = None) -> dict:
-    r = httpx.post(f"{BASE_URL}{path}", json=json, timeout=_TIMEOUT)
+def _post(path: str, json: dict | None = None, timeout: float = _TIMEOUT) -> dict:
+    r = httpx.post(f"{BASE_URL}{path}", json=json, timeout=timeout)
     r.raise_for_status()
     return r.json()
 
@@ -194,6 +195,19 @@ def update_diary_entry(entry_id: str, payload: dict) -> dict:
 
 def delete_diary_entry(entry_id: str) -> dict:
     return _delete(f"/delete_diary_entry/{entry_id}")
+
+
+def export_diary(user_id: str) -> dict | None:
+    return _get(f"/export_diary/{user_id}")
+
+
+def import_diary(user_id: str, xml_text: str) -> dict:
+    try:
+        return _post(f"/import_diary/{user_id}", json={"xml": xml_text}, timeout=_IMPORT_TIMEOUT)
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 422:
+            raise ValueError(str(e.response.json().get("detail"))) from e
+        raise
 
 
 # ── Locations ─────────────────────────────────────────────────────────────────

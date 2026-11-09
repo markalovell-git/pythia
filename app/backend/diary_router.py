@@ -1,10 +1,12 @@
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.backend.diary_export import build_diary_xml
+from app.backend.diary_import import parse_diary_xml
 from app.common.database import get_db, UserData, DiaryEntry, Location
 
 diary_router = APIRouter()
@@ -34,6 +36,10 @@ class DiaryEntryUpdate(BaseModel):
     destination_id: str | None = None
     segment_start: bool | None = None
     segment_color: str | None = None
+
+
+class DiaryImport(BaseModel):
+    xml: str
 
 
 def _categories_to_str(slugs: list[str]) -> str:
@@ -158,3 +164,78 @@ async def delete_diary_entry(entry_id: str, db: Session = Depends(get_db)):
     db.delete(entry)
     db.commit()
     return {"entry_id": entry_id, "deleted": True}
+
+
+@diary_router.get("/export_diary/{user_id}")
+async def export_diary(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(UserData).filter(UserData.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    entries = (
+        db.query(DiaryEntry)
+        .filter(DiaryEntry.user_id == user_id)
+        .order_by(DiaryEntry.entry_date, DiaryEntry.entry_time, DiaryEntry.created_at)
+        .all()
+    )
+    location_names = {loc.location_id: loc.name for loc in db.query(Location).all()}
+    return {
+        "xml": build_diary_xml(entries, location_names),
+        "exported": len(entries),
+        "username": user.username,
+    }
+
+
+@diary_router.post("/import_diary/{user_id}")
+async def import_diary(user_id: str, body: DiaryImport, db: Session = Depends(get_db)):
+    """Replace ALL of this user's diary entries with those in the XML file."""
+    if not db.query(UserData).filter(UserData.user_id == user_id).first():
+        raise HTTPException(status_code=404, detail="User not found")
+    # Parse before touching the DB, so a bad file leaves existing entries intact.
+    try:
+        parsed = parse_diary_xml(body.xml)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    # Name-only locations: bulk geocoding is impractical (Nominatim ~1 req/s).
+    locations = {loc.name.lower(): loc.location_id for loc in db.query(Location).all()}
+
+    def _location_id(name: str | None) -> str | None:
+        if not name:
+            return None
+        key = name.lower()
+        if key not in locations:
+            locations[key] = str(uuid.uuid4())
+            db.add(Location(location_id=locations[key], name=name))
+        return locations[key]
+
+    try:
+        deleted = db.query(DiaryEntry).filter(DiaryEntry.user_id == user_id).delete()
+        now = datetime.utcnow()
+        for i, item in enumerate(parsed):
+            db.add(DiaryEntry(
+                entry_id=str(uuid.uuid4()),
+                user_id=user_id,
+                entry_date=item.entry_date,
+                content=item.content,
+                # Ordering falls back to created_at, so this keeps same-day
+                # entries in file order.
+                created_at=now + timedelta(microseconds=i),
+                updated_at=now,
+                title=item.title,
+                visual_cues=item.visual_cues,
+                categories=item.categories,
+                entry_time=item.entry_time,
+                location_id=_location_id(item.location),
+                destination_id=_location_id(item.destination),
+                segment_start=int(item.segment_start),
+                segment_color=item.segment_color,
+            ))
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    return {
+        "deleted": deleted,
+        "imported": len(parsed),
+        "month_only_dates": sum(1 for item in parsed if item.month_only),
+    }

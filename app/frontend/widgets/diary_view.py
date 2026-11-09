@@ -1,10 +1,13 @@
 import bisect
+import os
+import re
+from pathlib import Path
 
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QColor, QTextCharFormat, QFont
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QCalendarWidget, QSplitter, QMessageBox,
+    QCalendarWidget, QSplitter, QMessageBox, QFileDialog,
 )
 
 from app.frontend.models import diary_model
@@ -29,6 +32,8 @@ class DiaryView(QWidget):
         self._user_id: str | None = None
         self._load_worker: ApiWorker | None = None
         self._dates_worker: ApiWorker | None = None
+        self._import_worker: ApiWorker | None = None
+        self._export_worker: ApiWorker | None = None
         self._highlighted: set[QDate] = set()
         self._entries: list[diary_model.DiaryEntry] = []
         self._index: int = -1
@@ -43,7 +48,16 @@ class DiaryView(QWidget):
 
         title = QLabel("Diary")
         title.setStyleSheet("font-size: 18px; font-weight: bold;")
-        layout.addWidget(title)
+        self.import_btn = QPushButton("Import XML…")
+        self.import_btn.clicked.connect(self._on_import_clicked)
+        title_row = QHBoxLayout()
+        title_row.addWidget(title)
+        title_row.addStretch()
+        title_row.addWidget(self.import_btn)
+        self.export_btn = QPushButton("Export XML…")
+        self.export_btn.clicked.connect(self._on_export_clicked)
+        title_row.addWidget(self.export_btn)
+        layout.addLayout(title_row)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
 
@@ -222,6 +236,110 @@ class DiaryView(QWidget):
                 landing_id = remaining[landing_index].entry_id
         self._reload_entries(select_entry_id=landing_id)
         self._refresh_highlights()
+
+    # ── XML import ───────────────────────────────────────────────────────────
+
+    def _on_import_clicked(self):
+        if not self._user_id or self._confirm_discard_if_dirty():
+            return
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Import Diary XML", "", "XML files (*.xml);;All files (*)"
+        )
+        if not path:
+            return
+        try:
+            xml_text = Path(path).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as e:
+            QMessageBox.critical(self, "Import Failed", f"Could not read the file:\n{e}")
+            return
+        reply = QMessageBox.warning(
+            self, "Replace All Diary Entries",
+            f"This will permanently delete all {len(self._entries)} current diary "
+            f"entries for this profile and replace them with the entries in "
+            f"{Path(path).name}.\n\nThis cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        self.import_btn.setEnabled(False)
+        self._import_worker = ApiWorker(diary_model.import_entries, self._user_id, xml_text)
+        self._import_worker.result.connect(self._on_import_done)
+        self._import_worker.error.connect(self._on_import_error)
+        self._import_worker.start()
+
+    def _on_import_done(self, result: dict):
+        self.import_btn.setEnabled(True)
+        self._reload_entries()
+        self._refresh_highlights()
+        message = f"Imported {result['imported']} entries, replacing {result['deleted']}."
+        if result["month_only_dates"]:
+            message += (
+                f"\n\n{result['month_only_dates']} entries gave only a month, "
+                "so they were set to the 1st of that month."
+            )
+        QMessageBox.information(self, "Import Complete", message)
+
+    def _on_import_error(self, msg: str):
+        self.import_btn.setEnabled(True)
+        # Reload anyway: after a client-side timeout the import may still have
+        # completed, so show what's really stored.
+        self._reload_entries()
+        self._refresh_highlights()
+        QMessageBox.critical(self, "Import Failed", f"The diary was not imported:\n{msg}")
+
+    # ── XML export ───────────────────────────────────────────────────────────
+
+    def _on_export_clicked(self):
+        if not self._user_id:
+            return
+        if self.form.is_dirty():
+            reply = QMessageBox.question(
+                self, "Unsaved Changes",
+                "This entry has unsaved changes, which won't be in the export. Export anyway?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+        self.export_btn.setEnabled(False)
+        self._export_worker = ApiWorker(diary_model.export_entries, self._user_id)
+        self._export_worker.result.connect(self._on_export_ready)
+        self._export_worker.error.connect(self._on_export_error)
+        self._export_worker.start()
+
+    def _on_export_ready(self, result: dict):
+        self.export_btn.setEnabled(True)
+        if not result["exported"]:
+            QMessageBox.information(self, "Nothing to Export", "This profile has no diary entries.")
+            return
+        username = re.sub(r"[^\w-]+", "_", result["username"]).strip("_") or "user"
+        date_str = QDate.currentDate().toString("yyyy-MM-dd")
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Export Diary XML",
+            str(Path.home() / f"diary_{username}_{date_str}.xml"),
+            "XML files (*.xml);;All files (*)",
+        )
+        if not path:
+            return
+        if not Path(path).suffix:
+            path += ".xml"
+        # Write beside the target, then swap, so a failed write can't damage
+        # an earlier backup being overwritten.
+        tmp_path = f"{path}.tmp"
+        try:
+            Path(tmp_path).write_text(result["xml"], encoding="utf-8")
+            os.replace(tmp_path, path)
+        except OSError as e:
+            Path(tmp_path).unlink(missing_ok=True)
+            QMessageBox.critical(self, "Export Failed", f"Could not write the file:\n{e}")
+            return
+        QMessageBox.information(
+            self, "Export Complete", f"Exported {result['exported']} entries to:\n{path}"
+        )
+
+    def _on_export_error(self, msg: str):
+        self.export_btn.setEnabled(True)
+        QMessageBox.critical(self, "Export Failed", f"The diary was not exported:\n{msg}")
 
     # ── Calendar highlighting ─────────────────────────────────────────────────
 

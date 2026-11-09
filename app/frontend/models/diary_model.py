@@ -44,6 +44,19 @@ def delete_entry(entry_id: str) -> None:
     api_client.delete_diary_entry(entry_id)
 
 
+def import_entries(user_id: str, xml_text: str) -> dict:
+    """Replace all of the user's entries; returns deleted/imported/month_only_dates counts."""
+    return api_client.import_diary(user_id, xml_text)
+
+
+def export_entries(user_id: str) -> dict:
+    """Returns the user's diary as XML, with exported/username fields."""
+    result = api_client.export_diary(user_id)
+    if result is None:
+        raise ValueError("Profile not found")
+    return result
+
+
 def dates_with_entries(user_id: str) -> set[str]:
     """Returns ISO date strings (YYYY-MM-DD) that have at least one entry."""
     return set(api_client.get_diary_dates(user_id))

@@ -1,5 +1,10 @@
 # TODO
 
+## Data Import & Export (next up)
+- [x] **Diary export to XML** — readable file that this app's diary import can load back, so a backup never depends on the database key.
+- [ ] **User info export to XML** — separate file from the diary.
+- [ ] **User info import from XML**
+
 ## Chart Points to Add
 - [ ] North and South Nodes
 - [ ] Ascendant (ASC) and Descendant (DSC)
